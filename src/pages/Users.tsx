@@ -28,9 +28,12 @@ export const Users = () => {
     startDate: '',
     endDate: '',
   });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
   };
 
   const handleClearFilters = () => {
@@ -40,6 +43,7 @@ export const Users = () => {
       startDate: '',
       endDate: '',
     });
+    setPage(1);
   };
 
   const handleSort = (key: string, order: 'asc' | 'desc') => {
@@ -115,6 +119,8 @@ export const Users = () => {
     return 0;
   });
 
+  const sliced = sorted.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
       <div className="page-heading">
@@ -129,10 +135,10 @@ export const Users = () => {
 
       <FilterableTable
         columns={columns}
-        data={sorted}
+        data={sliced}
         keyExtractor={(u) => u.id}
         searchQuery={search}
-        onSearch={setSearch}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
         searchPlaceholder="Search by name, email, employee id..."
         total={sorted.length}
         filters={filters}
@@ -142,6 +148,11 @@ export const Users = () => {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        showPagination={true}
       />
     </div>
   );

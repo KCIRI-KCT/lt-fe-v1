@@ -6,9 +6,7 @@ import kcirilogo from '../../assets/kciri_logo.png';
 import tidcologo from '../../assets/tidco-logo.png';
 
 export const Navbar = () => {
-  const { toggleTheme, theme, user } = useApp();
-  const nextTheme = theme === 'dark' ? 'light' : 'dark';
-  const iconClass = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+  const { user, toggleSidebar } = useApp();
   const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
@@ -33,6 +31,16 @@ export const Navbar = () => {
   return (
     <nav className="navbar admin-navbar navbar-expand bg-white">
       <div className="container-fluid px-3 px-lg-4">
+        <button
+          className="btn btn-sm btn-link text-body me-2 border-0 p-0"
+          type="button"
+          onClick={toggleSidebar}
+          aria-label="Toggle Sidebar"
+          title="Toggle Sidebar"
+        >
+          <i className="bi bi-list fs-3" />
+        </button>
+
         <Link to="/health" className="navbar-brand d-flex align-items-center me-3">
           <div className="d-flex align-items-center gap-2 border-end pe-3 me-3" style={{ height: '32px' }}>
             <img src={tidcologo} alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
@@ -50,15 +58,6 @@ export const Navbar = () => {
               <span>{currentTime}</span>
             </div>
           )}
-          <button
-            className="icon-button theme-toggle"
-            type="button"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${nextTheme} mode`}
-            title={`Switch to ${nextTheme} mode`}
-          >
-            <i className={iconClass} aria-hidden="true" />
-          </button>
 
           <div className="dropdown">
             <button
@@ -71,14 +70,68 @@ export const Navbar = () => {
               <span className="notification-dot" />
               <i className="bi bi-bell" aria-hidden="true" />
             </button>
-            <div className="dropdown-menu dropdown-menu-end notification-menu">
-              <div className="dropdown-header fw-bold text-body">Notifications</div>
-              {MOCK_NOTIFICATIONS.map((n, i) => (
-                <Link key={i} className="dropdown-item" to={n.path}>
-                  <span className={`notification-title text-${n.variant}`}>{n.title}</span>
-                  <span className="notification-time">{n.time}</span>
-                </Link>
-              ))}
+            <div className="dropdown-menu dropdown-menu-end notification-menu p-3" style={{ width: '320px', maxHeight: '420px', overflowY: 'auto' }}>
+              <div className="dropdown-header fw-bold text-body border-bottom pb-2 mb-2 px-0">Notifications</div>
+              {user?.role === 'admin' ? (
+                <div className="d-grid gap-3">
+                  <div>
+                    <span className="small text-danger fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <i className="bi bi-camera-video-off-fill" /> CAMERA FAILURES
+                    </span>
+                    <div className="d-grid gap-1.5 ps-1">
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">CAM-204 Stream Disconnected</div>
+                        <small className="text-muted">10m ago • Highway Zone B</small>
+                      </div>
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">CAM-105 High packet drop (22%)</div>
+                        <small className="text-muted">30m ago • Entrance Gate</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="small text-warning fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <i className="bi bi-exclamation-triangle-fill" /> NETWORK FAILURES
+                    </span>
+                    <div className="d-grid gap-1.5 ps-1">
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">Gateway Node #2 Ping Failure</div>
+                        <small className="text-muted">5m ago • Route Gateway</small>
+                      </div>
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">DNS 2 resolution latency high</div>
+                        <small className="text-muted">1h ago • Secondary Server</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="small text-info fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <i className="bi bi-cpu-fill" /> SYSTEM MALFUNCTIONS
+                    </span>
+                    <div className="d-grid gap-1.5 ps-1">
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">EDGE-02 core temperature high (82°C)</div>
+                        <small className="text-muted">20m ago • Processing Box</small>
+                      </div>
+                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
+                        <div className="text-body fw-medium">FastAPI local socket overflow</div>
+                        <small className="text-muted">2h ago • Main Server</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="d-grid gap-2">
+                  {MOCK_NOTIFICATIONS.map((n, i) => (
+                    <Link key={i} className="dropdown-item py-1 px-2 rounded hover-bg-light" to={n.path} style={{ fontSize: '0.8rem' }}>
+                      <div className={`fw-medium text-${n.variant}`}>{n.title}</div>
+                      <small className="text-muted d-block mt-0.5">{n.time}</small>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

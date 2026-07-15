@@ -21,9 +21,6 @@ const setSavedItem = (key: string, value: string): void => {
 };
 
 const getPreferredTheme = (): Theme => {
-  const saved = getSavedItem(STORAGE_KEYS.THEME);
-  if (saved === 'dark' || saved === 'light') return saved;
-  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
   return 'light';
 };
 
@@ -132,9 +129,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-bs-theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+  }, []);
 
   // Handle breakpoint changes
   useEffect(() => {

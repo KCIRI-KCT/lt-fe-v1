@@ -36,6 +36,8 @@ export const ProjectsPage = () => {
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const columns: Column<ProjectSiteRow>[] = [
     {
@@ -121,6 +123,7 @@ export const ProjectsPage = () => {
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
   };
 
   const handleClearFilters = () => {
@@ -131,6 +134,7 @@ export const ProjectsPage = () => {
       supervisorName: '',
       engineerName: '',
     });
+    setPage(1);
   };
 
   const handleSort = (key: string, order: 'asc' | 'desc') => {
@@ -181,6 +185,8 @@ export const ProjectsPage = () => {
     return 0;
   });
 
+  const sliced = sorted.slice((page - 1) * pageSize, page * pageSize);
+
   const selectedProject = MOCK_PROJECTS.find(p => p.id === selectedProjectId);
 
   return (
@@ -197,10 +203,10 @@ export const ProjectsPage = () => {
 
       <FilterableTable
         columns={columns}
-        data={sorted}
+        data={sliced}
         keyExtractor={(r) => r.id}
         searchQuery={search}
-        onSearch={setSearch}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
         searchPlaceholder="Search by project, site, chainage..."
         total={sorted.length}
         filters={filters}
@@ -210,136 +216,179 @@ export const ProjectsPage = () => {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        showPagination={true}
+        rowClassName={(r) => {
+          const parentProj = MOCK_PROJECTS.find(p => p.id === r.projectId);
+          return parentProj?.status === 'completed' ? 'project-row-finished' : '';
+        }}
       />
 
-      {showDetails && selectedProject && (
-        <>
-          <div className="modal-backdrop fade show" onClick={() => setShowDetails(false)} />
-          <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ background: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '12px' }}>
-                <div className="modal-header bg-light border-bottom">
-                  <div>
-                    <span className="eyebrow mb-1 text-muted text-uppercase small" style={{ fontSize: '0.7rem' }}>Project Details</span>
-                    <h5 className="modal-title fw-bold text-primary">{selectedProject.name}</h5>
-                    <span className="badge bg-secondary-subtle text-secondary-emphasis border mt-1" style={{ fontSize: '0.75rem' }}>{selectedProject.code}</span>
+      {showDetails && selectedProject && (() => {
+        const getWeeks = (startStr?: string, endStr?: string) => {
+          if (!startStr || !endStr) return { finished: 0, remaining: 0 };
+          const today = new Date();
+          const start = new Date(startStr);
+          const end = new Date(endStr);
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return { finished: 0, remaining: 0 };
+
+          let finished = 0;
+          if (today.getTime() > start.getTime()) {
+            const elapsedMs = Math.min(today.getTime(), end.getTime()) - start.getTime();
+            finished = Math.max(0, Math.ceil(elapsedMs / (1000 * 60 * 60 * 24 * 7)));
+          }
+          
+          let remaining = 0;
+          if (today.getTime() < end.getTime()) {
+            const remainingMs = end.getTime() - Math.max(today.getTime(), start.getTime());
+            remaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24 * 7)));
+          }
+          
+          return { finished, remaining };
+        };
+
+        const { finished, remaining } = getWeeks(selectedProject.startDate, selectedProject.endDate);
+
+        return (
+          <>
+            <div className="modal-backdrop fade show" onClick={() => setShowDetails(false)} />
+            <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ background: 'rgba(0,0,0,0.5)' }}>
+              <div className="modal-dialog modal-lg modal-dialog-centered">
+                <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '12px' }}>
+                  <div className="modal-header bg-light border-bottom">
+                    <div>
+                      <span className="eyebrow mb-1 text-muted text-uppercase small" style={{ fontSize: '0.7rem' }}>Project Details</span>
+                      <h5 className="modal-title fw-bold text-primary">{selectedProject.name}</h5>
+                      <span className="badge bg-secondary-subtle text-secondary-emphasis border mt-1" style={{ fontSize: '0.75rem' }}>{selectedProject.code}</span>
+                    </div>
+                    <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowDetails(false)} />
                   </div>
-                  <button type="button" className="btn-close" aria-label="Close" onClick={() => setShowDetails(false)} />
-                </div>
-                <div className="modal-body p-4" style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
-                  <div className="row g-4">
-                    {/* General Info */}
-                    <div className="col-12">
-                      <div className="bg-light p-3 rounded border">
-                        <h6 className="fw-bold mb-2 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Description</h6>
-                        <p className="mb-0 text-muted" style={{ fontSize: '0.9rem' }}>{selectedProject.description || 'No description provided.'}</p>
-                      </div>
-                    </div>
-
-                    <div className="col-6 col-md-4">
-                      <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Location</h6>
-                      <p className="mb-0 fw-semibold">{selectedProject.cityName}, {selectedProject.stateName}</p>
-                    </div>
-                    <div className="col-6 col-md-4">
-                      <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Start Date</h6>
-                      <p className="mb-0 fw-semibold">{selectedProject.startDate}</p>
-                    </div>
-                    <div className="col-6 col-md-4">
-                      <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Status</h6>
-                      <span className={`badge ${STATUS_BADGES[selectedProject.status] || 'text-bg-secondary'} text-capitalize`}>
-                        {selectedProject.status}
-                      </span>
-                    </div>
-
-                    <div className="col-6 col-md-6">
-                      {/* <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Budget</h6> */}
-                      {/* <p className="mb-0 fw-bold text-success" style={{ fontSize: '1.1rem' }}>₹{(selectedProject.budget / 10000000).toFixed(2)} Cr</p> */}
-                    </div>
-                    <div className="col-6 col-md-6">
-                      <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Overall Progress</h6>
-                      <div className="d-flex align-items-center gap-2 mt-1">
-                        <div className="progress flex-grow-1" style={{ height: '8px' }}>
-                          <div className="progress-bar" style={{ width: `${selectedProject.progress}%` }} />
+                  <div className="modal-body p-4" style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+                    <div className="row g-4">
+                      {/* General Info */}
+                      <div className="col-12">
+                        <div className="bg-light p-3 rounded border">
+                          <h6 className="fw-bold mb-2 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Description</h6>
+                          <p className="mb-0 text-muted" style={{ fontSize: '0.9rem' }}>{selectedProject.description || 'No description provided.'}</p>
                         </div>
-                        <span className="fw-bold">{selectedProject.progress}%</span>
                       </div>
-                    </div>
 
-                    {/* Role Assignments */}
-                    <div className="col-12 col-md-6">
-                      <div className="border rounded p-3 bg-white h-100">
-                        <h6 className="fw-bold border-bottom pb-2 mb-3 text-primary" style={{ fontSize: '0.85rem' }}><i className="bi bi-people-fill me-2" />Personnel & Role Assignments</h6>
-                        {selectedProject.roleAssignments && selectedProject.roleAssignments.length > 0 ? (
-                          <div className="d-grid gap-2">
-                            {selectedProject.roleAssignments.map((ra, idx) => (
-                              <div key={idx} className="p-2 border rounded bg-light-subtle d-flex flex-column">
-                                <div className="d-flex justify-content-between align-items-center mb-1">
-                                  <span className="badge bg-primary-subtle text-primary border text-capitalize small" style={{ fontSize: '0.65rem' }}>
-                                    {ra.role.replace(/_/g, ' ')}
-                                  </span>
+                      <div className="col-6 col-md-3">
+                        <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Location</h6>
+                        <p className="mb-0 fw-semibold">{selectedProject.cityName}, {selectedProject.stateName}</p>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Start / End Date</h6>
+                        <p className="mb-0 fw-semibold">{selectedProject.startDate} to {selectedProject.endDate || 'N/A'}</p>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Weeks Timeline</h6>
+                        <p className="mb-0 small">
+                          Finished: <strong className="text-success">{finished}</strong> | Remaining: <strong className="text-primary">{remaining}</strong>
+                        </p>
+                      </div>
+                      <div className="col-6 col-md-3">
+                        <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Status</h6>
+                        <span className={`badge ${STATUS_BADGES[selectedProject.status] || 'text-bg-secondary'} text-capitalize`}>
+                          {selectedProject.status}
+                        </span>
+                      </div>
+
+                      <div className="col-12">
+                        <h6 className="fw-bold mb-1 text-uppercase text-secondary small" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Overall Progress</h6>
+                        <div className="d-flex align-items-center gap-2 mt-1">
+                          <div className="progress flex-grow-1" style={{ height: '8px' }}>
+                            <div className="progress-bar" style={{ width: `${selectedProject.progress}%` }} />
+                          </div>
+                          <span className="fw-bold">{selectedProject.progress}%</span>
+                        </div>
+                      </div>
+
+                      {/* Role Assignments */}
+                      <div className="col-12 col-md-6">
+                        <div className="border rounded p-3 bg-white h-100">
+                          <h6 className="fw-bold border-bottom pb-2 mb-3 text-primary" style={{ fontSize: '0.85rem' }}><i className="bi bi-people-fill me-2" />Personnel & Role Assignments</h6>
+                          {selectedProject.roleAssignments && selectedProject.roleAssignments.length > 0 ? (
+                            <div className="d-grid gap-2">
+                              {selectedProject.roleAssignments.map((ra, idx) => (
+                                <div key={idx} className="p-2 border rounded bg-light-subtle d-flex flex-column">
+                                  <div className="d-flex justify-content-between align-items-center mb-1">
+                                    <span className="badge bg-primary-subtle text-primary border text-capitalize small" style={{ fontSize: '0.65rem' }}>
+                                      {ra.role.replace(/_/g, ' ')}
+                                    </span>
+                                  </div>
+                                  <div className="fw-bold" style={{ fontSize: '0.9rem' }}>{ra.userName}</div>
+                                  <div className="text-muted small" style={{ fontSize: '0.75rem' }}><i className="bi bi-geo-alt me-1" />Allocated Site: {ra.siteName}</div>
                                 </div>
-                                <div className="fw-bold" style={{ fontSize: '0.9rem' }}>{ra.userName}</div>
-                                <div className="text-muted small" style={{ fontSize: '0.75rem' }}><i className="bi bi-geo-alt me-1" />Allocated Site: {ra.siteName}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="d-grid gap-2 text-muted small">
-                            {selectedProject.managerName && (
-                              <div className="p-2 border rounded bg-light-subtle">
-                                <span className="badge bg-light border text-secondary me-1">Manager</span>
-                                <strong>{selectedProject.managerName}</strong>
-                              </div>
-                            )}
-                            {selectedProject.supervisorName && (
-                              <div className="p-2 border rounded bg-light-subtle">
-                                <span className="badge bg-light border text-secondary me-1">Supervisor</span>
-                                <strong>{selectedProject.supervisorName}</strong>
-                              </div>
-                            )}
-                            {selectedProject.engineerName && (
-                              <div className="p-2 border rounded bg-light-subtle">
-                                <span className="badge bg-light border text-secondary me-1">Engineer</span>
-                                <strong>{selectedProject.engineerName}</strong>
-                              </div>
-                            )}
-                            {!selectedProject.managerName && !selectedProject.supervisorName && !selectedProject.engineerName && 'No personnel assigned.'}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="d-grid gap-2 text-muted small">
+                              {selectedProject.managerName && (
+                                <div className="p-2 border rounded bg-light-subtle">
+                                  <span className="badge bg-light border text-secondary me-1">Manager</span>
+                                  <strong>{selectedProject.managerName}</strong>
+                                </div>
+                              )}
+                              {selectedProject.supervisorName && (
+                                <div className="p-2 border rounded bg-light-subtle">
+                                  <span className="badge bg-light border text-secondary me-1">Supervisor</span>
+                                  <strong>{selectedProject.supervisorName}</strong>
+                                </div>
+                              )}
+                              {selectedProject.engineerName && (
+                                <div className="p-2 border rounded bg-light-subtle">
+                                  <span className="badge bg-light border text-secondary me-1">Engineer</span>
+                                  <strong>{selectedProject.engineerName}</strong>
+                                </div>
+                              )}
+                              {!selectedProject.managerName && !selectedProject.supervisorName && !selectedProject.engineerName && 'No personnel assigned.'}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Sites and Chainages */}
-                    <div className="col-12 col-md-6">
-                      <div className="border rounded p-3 bg-white h-100">
-                        <h6 className="fw-bold border-bottom pb-2 mb-3 text-primary" style={{ fontSize: '0.85rem' }}><i className="bi bi-geo-alt-fill me-2" />Sites & Chainages ({selectedProject.sites?.length || 0})</h6>
-                        {selectedProject.sites && selectedProject.sites.length > 0 ? (
-                          <div className="d-grid gap-2" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                            {selectedProject.sites.map((s) => (
-                              <div key={s.id} className="p-2 border rounded bg-light-subtle">
-                                <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>{s.siteName} ({s.siteNumber})</div>
-                                <div className="text-muted small" style={{ fontSize: '0.75rem' }}>{s.chainageName} — CH 0+{s.chainageKm}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted small mb-0">No sites configured for this project.</p>
-                        )}
+                      {/* Sites and Chainages */}
+                      <div className="col-12 col-md-6">
+                        <div className="border rounded p-3 bg-white h-100">
+                          <h6 className="fw-bold border-bottom pb-2 mb-3 text-primary" style={{ fontSize: '0.85rem' }}><i className="bi bi-geo-alt-fill me-2" />Sites & Chainages ({selectedProject.sites?.length || 0})</h6>
+                          {selectedProject.sites && selectedProject.sites.length > 0 ? (
+                            <div className="d-grid gap-2" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                              {selectedProject.sites.map((s) => (
+                                <div key={s.id} className="p-2 border rounded bg-light-subtle">
+                                  <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>{s.siteName} ({s.siteNumber})</div>
+                                  <div className="text-muted small" style={{ fontSize: '0.75rem' }}>{s.chainageName} — CH 0+{s.chainageKm}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted small mb-0">No sites configured for this project.</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="modal-footer bg-light border-top">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowDetails(false)}>Close Details</button>
-                  <Link to={`/projects/${selectedProject.id}`} className="btn btn-primary">
-                    <i className="bi bi-pencil me-1" /> Edit Project
-                  </Link>
+                  <div className="modal-footer bg-light border-top">
+                    <button type="button" className="btn btn-secondary" onClick={() => setShowDetails(false)}>Close Details</button>
+                    {selectedProject.status === 'completed' ? (
+                      <button type="button" className="btn btn-primary" disabled title="Completed projects cannot be edited">
+                        <i className="bi bi-lock-fill me-1" /> Edit Disabled (Finished)
+                      </button>
+                    ) : (
+                      <Link to={`/projects/${selectedProject.id}`} className="btn btn-primary">
+                        <i className="bi bi-pencil me-1" /> Edit Project
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
     </div>
   );
 };

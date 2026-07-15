@@ -10,17 +10,26 @@ const today = new Date().toISOString().split('T')[0];
 
 // Users
 const INITIAL_USERS: UserProfile[] = [
-  { id: '1', name: 'Kartheeswaran', email: 'karthee@kciri.com', role: 'admin', avatar: 'https://ui-avatars.com/api/?name=Kartheeswaran&background=dc2626&color=fff', workspace: 'KCIRI HQ', phone: '+91-9876543210', location: 'Chennai, TN', department: 'Management', joinedAt: '2024-01-01', employeeId: 'EMP-001', createdAt: '2024-01-01', joiningDate: '2024-01-05', address: '123 Main St, Chennai' },
-  { id: '2', name: 'Rajesh Kumar', email: 'rajesh@kciri.com', role: 'site_engineer', avatar: 'https://ui-avatars.com/api/?name=Rajesh+Kumar&background=2563eb&color=fff', workspace: 'KCIRI Projects', phone: '+91-9876543211', location: 'Mumbai, MH', department: 'Projects', joinedAt: '2024-02-15', employeeId: 'EMP-002', createdAt: '2024-02-15', joiningDate: '2024-02-20', address: '456 Link Rd, Mumbai' },
-  { id: '3', name: 'Priya Sharma', email: 'priya@kciri.com', role: 'project_manager', avatar: 'https://ui-avatars.com/api/?name=Priya+Sharma&background=0f766e&color=fff', workspace: 'Highway Project', phone: '+91-9876543212', location: 'Delhi', department: 'Project Management', joinedAt: '2024-03-01', employeeId: 'EMP-003', createdAt: '2024-03-01', joiningDate: '2024-03-05', address: '789 Connaught Place, Delhi' },
-  { id: '4', name: 'Amit Singh', email: 'amit@kciri.com', role: 'safety_manager', avatar: 'https://ui-avatars.com/api/?name=Amit+Singh&background=d97706&color=fff', workspace: 'Safety Division', phone: '+91-9876543213', location: 'Bangalore, KA', department: 'Safety', joinedAt: '2024-01-20', employeeId: 'EMP-004', createdAt: '2024-01-20', joiningDate: '2024-01-25', address: '101 MG Road, Bangalore' },
-  { id: '5', name: 'Suresh Reddy', email: 'suresh@kciri.com', role: 'site_supervisor', avatar: 'https://ui-avatars.com/api/?name=Suresh+Reddy&background=0891b2&color=fff', workspace: 'Site A - KM 45', phone: '+91-9876543214', location: 'Hyderabad, TS', department: 'Site Operations', joinedAt: '2024-04-10', employeeId: 'EMP-005', createdAt: '2024-04-10', joiningDate: '2024-04-15', address: '202 Jubilee Hills, Hyderabad' },
-  { id: '6', name: 'Deepa Nair', email: 'deepa@kciri.com', role: 'safety_officer', avatar: 'https://ui-avatars.com/api/?name=Deepa+Nair&background=6b7280&color=fff', workspace: 'Site B - KM 78', phone: '+91-9876543215', location: 'Kochi, KL', department: 'Safety', joinedAt: '2024-05-01', employeeId: 'EMP-006', createdAt: '2024-05-01', joiningDate: '2024-05-05', address: '303 Marine Dr, Kochi' },
+  { id: '1', name: 'Kartheeswaran', email: 'karthee@kciri.com', role: 'admin', avatar: 'https://ui-avatars.com/api/?name=Kartheeswaran&background=dc2626&color=fff', workspace: 'KCIRI HQ', phone: '+91-9876543210', location: 'Chennai, TN', department: 'Management', joinedAt: '2024-01-01', employeeId: 'LT-2024-001', createdAt: '2024-01-01', joiningDate: '2024-01-05', address: '123 Main St, Chennai' },
+  { id: '2', name: 'Rajesh Kumar', email: 'rajesh@kciri.com', role: 'site_engineer', avatar: 'https://ui-avatars.com/api/?name=Rajesh+Kumar&background=2563eb&color=fff', workspace: 'KCIRI Projects', phone: '+91-9876543211', location: 'Mumbai, MH', department: 'Projects', joinedAt: '2024-02-15', employeeId: 'LT-2024-002', createdAt: '2024-02-15', joiningDate: '2024-02-20', address: '456 Link Rd, Mumbai' },
+  { id: '3', name: 'Priya Sharma', email: 'priya@kciri.com', role: 'project_manager', avatar: 'https://ui-avatars.com/api/?name=Priya+Sharma&background=0f766e&color=fff', workspace: 'Highway Project', phone: '+91-9876543212', location: 'Delhi', department: 'Project Management', joinedAt: '2024-03-01', employeeId: 'LT-2024-003', createdAt: '2024-03-01', joiningDate: '2024-03-05', address: '789 Connaught Place, Delhi' },
+  { id: '4', name: 'Amit Singh', email: 'amit@kciri.com', role: 'safety_manager', avatar: 'https://ui-avatars.com/api/?name=Amit+Singh&background=d97706&color=fff', workspace: 'Safety Division', phone: '+91-9876543213', location: 'Bangalore, KA', department: 'Safety', joinedAt: '2024-01-20', employeeId: 'LT-2024-004', createdAt: '2024-01-20', joiningDate: '2024-01-25', address: '101 MG Road, Bangalore' },
+  { id: '5', name: 'Suresh Reddy', email: 'suresh@kciri.com', role: 'site_supervisor', avatar: 'https://ui-avatars.com/api/?name=Suresh+Reddy&background=0891b2&color=fff', workspace: 'Site A - KM 45', phone: '+91-9876543214', location: 'Hyderabad, TS', department: 'Site Operations', joinedAt: '2024-04-10', employeeId: 'LT-2024-005', createdAt: '2024-04-10', joiningDate: '2024-04-15', address: '202 Jubilee Hills, Hyderabad' },
+  { id: '6', name: 'Deepa Nair', email: 'deepa@kciri.com', role: 'safety_officer', avatar: 'https://ui-avatars.com/api/?name=Deepa+Nair&background=6b7280&color=fff', workspace: 'Site B - KM 78', phone: '+91-9876543215', location: 'Kochi, KL', department: 'Safety', joinedAt: '2024-05-01', employeeId: 'LT-2024-006', createdAt: '2024-05-01', joiningDate: '2024-05-05', address: '303 Marine Dr, Kochi' },
 ];
 export const MOCK_USERS: UserProfile[] = (() => {
   const data = storage.get<UserProfile[]>(KEYS.USERS, INITIAL_USERS);
-  if (!data || data.length === 0) storage.set(KEYS.USERS, INITIAL_USERS);
-  return storage.get<UserProfile[]>(KEYS.USERS, INITIAL_USERS);
+  // Migrate existing local storage items to the new structured format
+  const migrated = (data && data.length > 0 ? data : INITIAL_USERS).map((u, idx) => {
+    if (!u.employeeId || u.employeeId.startsWith('EMP-') || !u.employeeId.startsWith('LT-')) {
+      const year = (u.joiningDate || u.joinedAt || '2024').split('-')[0];
+      const seq = String(idx + 1).padStart(3, '0');
+      u.employeeId = `LT-${year}-${seq}`;
+    }
+    return u;
+  });
+  storage.set(KEYS.USERS, migrated);
+  return migrated;
 })();
 
 export const upsertUser = (user: UserProfile) => {

@@ -1,15 +1,32 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MOCK_PROJECTS, deleteProject } from '../services/mockData';
+import { MOCK_PROJECTS, upsertProject, deleteProject } from '../services/mockData';
 
 export const ProjectDeletePage = () => {
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'request' | 'approve'>('request');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [successMsg, setSuccessMsg] = useState<string>('');
+  const [toastMsg, setToastMsg] = useState<string>('');
+  const [refreshState, setRefreshState] = useState<number>(0);
+
+  // Force component re-render when local storage/arrays modify
+  const triggerRefresh = () => {
+    setSelectedIds([]);
+    setRefreshState(prev => prev + 1);
+  };
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
+  // Filter projects by current state
+  const pendingRequests = MOCK_PROJECTS.filter((p) => p.deleteRequested);
+  const activeProjects = MOCK_PROJECTS.filter((p) => !p.deleteRequested);
+
+  const currentList = activeTab === 'request' ? activeProjects : pendingRequests;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(MOCK_PROJECTS.map((p) => p.id));
+      setSelectedIds(currentList.map((p) => p.id));
     } else {
       setSelectedIds([]);
     }
@@ -23,60 +40,139 @@ export const ProjectDeletePage = () => {
     }
   };
 
-  const handleDeleteSelected = () => {
+  // Tab 1 Action: Submit Request
+  const handleSubmitRequests = () => {
     if (selectedIds.length === 0) return;
-    const count = selectedIds.length;
-    selectedIds.forEach((id) => deleteProject(id));
-    setSelectedIds([]);
-    setSuccessMsg(`Successfully deleted ${count} selected project(s).`);
-    setTimeout(() => {
-      setSuccessMsg('');
-      navigate('/projects');
-    }, 1500);
+    
+    selectedIds.forEach((id) => {
+      const proj = MOCK_PROJECTS.find((p) => p.id === id);
+      if (proj) {
+        upsertProject({ ...proj, deleteRequested: true });
+      }
+    });
+
+    showToast(`Successfully submitted delete requests for ${selectedIds.length} project(s).`);
+    triggerRefresh();
   };
 
-  const isAllSelected = MOCK_PROJECTS.length > 0 && selectedIds.length === MOCK_PROJECTS.length;
+  // Tab 2 Action: Approve Request (Permanent Delete)
+  const handleApproveRequests = () => {
+    if (selectedIds.length === 0) return;
+    const count = selectedIds.length;
+
+    selectedIds.forEach((id) => {
+      deleteProject(id);
+    });
+
+    showToast(`Approved deletion. Permanently removed ${count} project(s).`);
+    triggerRefresh();
+  };
+
+  // Tab 2 Action: Reject Request (Restore Status)
+  const handleRejectRequests = () => {
+    if (selectedIds.length === 0) return;
+    const count = selectedIds.length;
+
+    selectedIds.forEach((id) => {
+      const proj = MOCK_PROJECTS.find((p) => p.id === id);
+      if (proj) {
+        upsertProject({ ...proj, deleteRequested: false });
+      }
+    });
+
+    showToast(`Rejected delete requests. Restored ${count} project(s) to active status.`);
+    triggerRefresh();
+  };
+
+  const isAllSelected = currentList.length > 0 && selectedIds.length === currentList.length;
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-lg-4 py-4" key={refreshState}>
+      {/* Top Banner Message */}
+      {toastMsg && (
+        <div className="position-fixed bottom-0 end-0 m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex align-items-center gap-2 animate-fade-in" style={{ zIndex: 1050 }}>
+          <i className="bi bi-info-circle-fill text-info" />
+          <span className="small fw-semibold">{toastMsg}</span>
+        </div>
+      )}
+
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-building" aria-hidden="true" /></span>
           <div>
             <p className="eyebrow mb-1">Project Management</p>
-            <h1 className="h3 mb-1">Remove Projects</h1>
-            <p className="text-muted mb-0">Select one or more projects to remove from the platform.</p>
+            <h1 className="h3 mb-1">Delete Project Approvals</h1>
+            <p className="text-muted mb-0">Submit project deletion requests, or authorize requests as a Project Manager.</p>
           </div>
         </div>
       </div>
 
-      {successMsg && (
-        <div className="alert alert-success mt-3" role="alert">
-          <i className="bi bi-check-circle-fill me-2" />
-          {successMsg}
-        </div>
-      )}
+      {/* Tabs Menu */}
+      <div className="d-flex border-bottom mt-4 mb-3">
+        <button
+          className={`btn btn-link py-2 px-3 text-decoration-none border-bottom border-2 rounded-0 small fw-semibold ${activeTab === 'request' ? 'border-primary text-primary fw-bold' : 'border-transparent text-muted'}`}
+          onClick={() => { setActiveTab('request'); setSelectedIds([]); }}
+        >
+          <i className="bi bi-file-earmark-arrow-up me-1" />
+          1. Submit Delete Request ({activeProjects.length})
+        </button>
+        <button
+          className={`btn btn-link py-2 px-3 text-decoration-none border-bottom border-2 rounded-0 small fw-semibold ${activeTab === 'approve' ? 'border-danger text-danger fw-bold' : 'border-transparent text-muted'}`}
+          onClick={() => { setActiveTab('approve'); setSelectedIds([]); }}
+        >
+          <i className="bi bi-shield-check me-1" />
+          2. Pending Approvals (Project Manager Panel) ({pendingRequests.length})
+        </button>
+      </div>
 
-      <div className="panel mt-3">
-        {MOCK_PROJECTS.length === 0 ? (
+      <div className="panel p-4">
+        {currentList.length === 0 ? (
           <div className="text-center py-5 text-muted">
-            <i className="bi bi-building fs-1 mb-3 d-block text-danger" />
-            <p className="mb-0">No projects available to delete.</p>
+            <i className="bi bi-folder-x fs-1 mb-3 d-block text-secondary" />
+            <p className="mb-0">
+              {activeTab === 'request'
+                ? 'No active projects available to request deletion.'
+                : 'No pending delete requests needing approval.'}
+            </p>
           </div>
         ) : (
           <>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <span className="text-muted">
-                {selectedIds.length} of {MOCK_PROJECTS.length} project(s) selected
+            <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <span className="text-muted small">
+                {selectedIds.length} of {currentList.length} project(s) selected
               </span>
-              <button
-                className="btn btn-danger"
-                disabled={selectedIds.length === 0}
-                onClick={handleDeleteSelected}
-              >
-                <i className="bi bi-trash-fill me-2" />
-                Delete Selected ({selectedIds.length})
-              </button>
+
+              <div className="d-flex gap-2">
+                {activeTab === 'request' ? (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={selectedIds.length === 0}
+                    onClick={handleSubmitRequests}
+                  >
+                    <i className="bi bi-send me-1.5" />
+                    Submit Delete Request ({selectedIds.length})
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      disabled={selectedIds.length === 0}
+                      onClick={handleApproveRequests}
+                    >
+                      <i className="bi bi-check-circle me-1.5" />
+                      Approve Deletion ({selectedIds.length})
+                    </button>
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled={selectedIds.length === 0}
+                      onClick={handleRejectRequests}
+                    >
+                      <i className="bi bi-x-circle me-1.5" />
+                      Reject Request
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="table-responsive">
@@ -92,18 +188,17 @@ export const ProjectDeletePage = () => {
                       />
                     </th>
                     <th>Project</th>
-                    <th>Description</th>
                     <th>State & City</th>
-                    <th>Start Date</th>
+                    <th>Timeline Dates</th>
                     <th>Role Assignments</th>
-                    <th>Sites & Chainages</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_PROJECTS.map((proj) => {
+                  {currentList.map((proj) => {
                     const isChecked = selectedIds.includes(proj.id);
                     return (
-                      <tr key={proj.id} className={isChecked ? 'table-danger-subtle' : ''}>
+                      <tr key={proj.id} className={isChecked ? (activeTab === 'request' ? 'table-primary-subtle' : 'table-danger-subtle') : ''}>
                         <td>
                           <input
                             type="checkbox"
@@ -118,11 +213,6 @@ export const ProjectDeletePage = () => {
                             <small className="text-muted">{proj.code}</small>
                           </div>
                         </td>
-                        <td style={{ minWidth: '150px' }}>
-                          <span className="text-truncate d-inline-block" style={{ maxWidth: '200px' }} title={proj.description}>
-                            {proj.description || 'N/A'}
-                          </span>
-                        </td>
                         <td>
                           <div>
                             <span className="fw-semibold">{proj.cityName || 'N/A'}</span>
@@ -130,42 +220,31 @@ export const ProjectDeletePage = () => {
                             <small className="text-muted">{proj.stateName || 'N/A'}</small>
                           </div>
                         </td>
-                        <td>{proj.startDate}</td>
+                        <td>
+                          <small className="text-muted">
+                            {proj.startDate} <span className="fw-bold">to</span> {proj.endDate || 'N/A'}
+                          </small>
+                        </td>
                         <td>
                           <div className="small" style={{ minWidth: '220px' }}>
                             {proj.roleAssignments && proj.roleAssignments.length > 0 ? (
                               <div className="d-grid gap-1">
                                 {proj.roleAssignments.map((ra, idx) => (
-                                  <div key={idx} className="mb-1">
-                                    <span className="badge text-bg-light border text-capitalize me-1">{ra.role.replace(/_/g, ' ')}</span>
-                                    <strong>{ra.userName}</strong> <span className="text-muted small">({ra.siteName})</span>
+                                  <div key={idx} className="mb-0.5">
+                                    <span className="badge text-bg-light border text-capitalize me-1" style={{ fontSize: '0.65rem' }}>{ra.role.replace(/_/g, ' ')}</span>
+                                    <strong>{ra.userName}</strong>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <div className="d-grid gap-1">
-                                {proj.managerName && <div><span className="badge text-bg-light border me-1">Manager</span><strong>{proj.managerName}</strong></div>}
-                                {proj.supervisorName && <div><span className="badge text-bg-light border me-1">Supervisor</span><strong>{proj.supervisorName}</strong></div>}
-                                {proj.engineerName && <div><span className="badge text-bg-light border me-1">Engineer</span><strong>{proj.engineerName}</strong></div>}
-                              </div>
+                              <span className="text-muted">No personnel configured</span>
                             )}
                           </div>
                         </td>
                         <td>
-                          <div className="small" style={{ minWidth: '250px' }}>
-                            {proj.sites && proj.sites.length > 0 ? (
-                              <div className="d-grid gap-1">
-                                {proj.sites.map((s) => (
-                                  <div key={s.id} className="p-1 border rounded bg-light mb-1">
-                                    <div className="fw-bold">{s.siteName} ({s.siteNumber})</div>
-                                    <div className="text-muted small">{s.chainageName} - CH 0+{s.chainageKm}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              'N/A'
-                            )}
-                          </div>
+                          <span className={`badge ${proj.deleteRequested ? 'bg-warning text-dark' : 'bg-success-subtle text-success-emphasis border'} text-capitalize`}>
+                            {proj.deleteRequested ? 'Delete Requested' : proj.status}
+                          </span>
                         </td>
                       </tr>
                     );
