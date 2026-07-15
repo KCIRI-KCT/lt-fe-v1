@@ -25,9 +25,14 @@ const columns: Column<Worker>[] = [
 
 export const WorkforcePage = () => {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   const filtered = MOCK_WORKERS.filter((w) =>
     !search || w.name.toLowerCase().includes(search.toLowerCase()) || w.employeeId.toLowerCase().includes(search.toLowerCase())
   );
+
+  const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -46,12 +51,17 @@ export const WorkforcePage = () => {
       </div>
       <ReusableDataTable
         columns={columns}
-        data={filtered}
+        data={sliced}
         keyExtractor={(w) => w.id}
         searchQuery={search}
-        onSearch={setSearch}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
         searchPlaceholder="Search workers..."
         total={filtered.length}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        showPagination={true}
       />
     </div>
   );

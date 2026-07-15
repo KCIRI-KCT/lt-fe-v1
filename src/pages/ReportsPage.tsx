@@ -27,10 +27,14 @@ const columns: Column<Report>[] = [
 
 export const ReportsPage = () => {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const filtered = MOCK_REPORTS.filter((r) =>
     !search || r.title.toLowerCase().includes(search.toLowerCase()) || r.generatedBy.toLowerCase().includes(search.toLowerCase())
   );
+
+  const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -76,12 +80,17 @@ export const ReportsPage = () => {
 
       <ReusableDataTable
         columns={columns}
-        data={filtered}
+        data={sliced}
         keyExtractor={(r) => r.id}
         searchQuery={search}
-        onSearch={setSearch}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
         searchPlaceholder="Search reports..."
         total={filtered.length}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        showPagination={true}
       />
     </div>
   );

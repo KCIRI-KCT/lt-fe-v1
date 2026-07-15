@@ -24,6 +24,7 @@ export const ProjectFormPage = () => {
   const [stateId, setStateId] = useState('');
   const [cityId, setCityId] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // User Assignments States
   const [managers, setManagers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
@@ -49,6 +50,7 @@ export const ProjectFormPage = () => {
       setName(project.name);
       setDescription(project.description || '');
       setStartDate(project.startDate);
+      setEndDate(project.endDate || '');
       setSites(project.sites || []);
 
       if (project.roleAssignments && project.roleAssignments.length > 0) {
@@ -79,7 +81,9 @@ export const ProjectFormPage = () => {
       }
     } else {
       // Default dates
-      setStartDate(new Date().toISOString().split('T')[0]);
+      const today = new Date().toISOString().split('T')[0];
+      setStartDate(today);
+      setEndDate(new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0]);
     }
   }, [isEdit, project]);
 
@@ -197,8 +201,7 @@ export const ProjectFormPage = () => {
       cityName: selectedCity?.name || '',
       stateName: selectedState?.name || '',
       startDate,
-      // endDate: project?.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
-      endDate: project?.endDate || startDate,
+      endDate,
       status: project?.status || 'active',
       budget: project?.budget || 10000000,
       progress: project?.progress || 0,
@@ -254,14 +257,16 @@ export const ProjectFormPage = () => {
           <label className="form-label small fw-bold mb-0">
             {label} {isRequired ? '*' : ''}
           </label>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-primary py-0 px-2 d-flex align-items-center gap-1"
-            style={{ fontSize: '0.75rem' }}
-            onClick={handleAdd}
-          >
-            <i className="bi bi-plus-lg" />
-          </button>
+          {!isCompleted && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary py-0 px-2 d-flex align-items-center gap-1"
+              style={{ fontSize: '0.75rem' }}
+              onClick={handleAdd}
+            >
+              <i className="bi bi-plus-lg" />
+            </button>
+          )}
         </div>
         <div className="d-grid gap-2">
           {assignments.map((assignment, index) => (
@@ -272,6 +277,7 @@ export const ProjectFormPage = () => {
                   value={assignment.userId}
                   onChange={(e) => handleChange(index, 'userId', e.target.value)}
                   required={isRequired}
+                  disabled={isCompleted}
                 >
                   <option value="">Select Personnel</option>
                   {users.map((u) => (
@@ -287,7 +293,7 @@ export const ProjectFormPage = () => {
                   value={assignment.siteId}
                   onChange={(e) => handleChange(index, 'siteId', e.target.value)}
                   required={isRequired}
-                  disabled={sites.length === 0}
+                  disabled={sites.length === 0 || isCompleted}
                 >
                   <option value="">Select Allocated Site</option>
                   {sites.map((s) => (
@@ -297,7 +303,7 @@ export const ProjectFormPage = () => {
                   ))}
                 </select>
               </div>
-              {assignments.length > 1 && (
+              {assignments.length > 1 && !isCompleted && (
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-danger"
@@ -312,6 +318,31 @@ export const ProjectFormPage = () => {
       </div>
     );
   };
+  // Helper to calculate weeks
+  const getWeeksCount = (startStr: string, endStr: string) => {
+    if (!startStr || !endStr) return { finished: 0, remaining: 0 };
+    const today = new Date();
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return { finished: 0, remaining: 0 };
+
+    let finished = 0;
+    if (today.getTime() > start.getTime()) {
+      const elapsedMs = Math.min(today.getTime(), end.getTime()) - start.getTime();
+      finished = Math.max(0, Math.ceil(elapsedMs / (1000 * 60 * 60 * 24 * 7)));
+    }
+    
+    let remaining = 0;
+    if (today.getTime() < end.getTime()) {
+      const remainingMs = end.getTime() - Math.max(today.getTime(), start.getTime());
+      remaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24 * 7)));
+    }
+    
+    return { finished, remaining };
+  };
+
+  const { finished: finishedWeeks, remaining: remainingWeeks } = getWeeksCount(startDate, endDate);
+  const isCompleted = isEdit && project?.status === 'completed';
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -333,6 +364,15 @@ export const ProjectFormPage = () => {
         </div>
       )}
 
+      {isCompleted && (
+        <div className="alert alert-warning d-flex align-items-center gap-2 mt-3 animate-fade-in" role="alert">
+          <i className="bi bi-lock-fill" style={{ fontSize: '1.25rem' }} />
+          <div>
+            <strong>Project Completed:</strong> This project is marked as completed. Edits are disabled, and only viewing is permitted.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSaveProject} className="mt-3">
         <div className="row g-3">
           {/* Main Info Panel */}
@@ -348,6 +388,7 @@ export const ProjectFormPage = () => {
                   placeholder="Enter project name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={isCompleted}
                   required
                 />
               </div>
@@ -360,6 +401,7 @@ export const ProjectFormPage = () => {
                   placeholder="Describe project details, client, or deliverables"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  disabled={isCompleted}
                 />
               </div>
 
@@ -370,6 +412,7 @@ export const ProjectFormPage = () => {
                     className="form-select"
                     value={stateId}
                     onChange={(e) => handleStateChange(e.target.value)}
+                    disabled={isCompleted}
                     required
                   >
                     <option value="">Select State</option>
@@ -384,7 +427,7 @@ export const ProjectFormPage = () => {
                     className="form-select"
                     value={cityId}
                     onChange={(e) => setCityId(e.target.value)}
-                    disabled={!stateId}
+                    disabled={!stateId || isCompleted}
                     required
                   >
                     <option value="">Select City</option>
@@ -395,16 +438,44 @@ export const ProjectFormPage = () => {
                 </div>
               </div>
 
-              <div className="mb-3 col-6">
-                <label className="form-label small fw-bold">Start Date *</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
-                />
+              <div className="row g-3 mb-3">
+                <div className="col-6">
+                  <label className="form-label small fw-bold">Start Date *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    disabled={isCompleted}
+                    required
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label small fw-bold">End Date *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    disabled={isCompleted}
+                    required
+                  />
+                </div>
               </div>
+
+              {startDate && endDate && (
+                <div className="p-3 bg-light rounded border small d-flex gap-4 align-items-center mb-3">
+                  <div>
+                    <span className="text-muted">Finished Weeks:</span>{' '}
+                    <strong className="text-success" style={{ fontSize: '1rem' }}>{finishedWeeks}</strong>
+                  </div>
+                  <div className="vr" style={{ height: '20px' }}></div>
+                  <div>
+                    <span className="text-muted">Remaining Weeks:</span>{' '}
+                    <strong className="text-primary" style={{ fontSize: '1rem' }}>{remainingWeeks}</strong>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Assignments Panel */}
@@ -451,13 +522,15 @@ export const ProjectFormPage = () => {
                           <p className="fw-semibold small mb-0">{s.siteName} ({s.siteNumber})</p>
                           <small className="text-muted">{s.chainageName} - CH 0+{s.chainageKm}</small>
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger border-0"
-                          onClick={() => handleRemoveSite(s.id)}
-                        >
-                          <i className="bi bi-trash" />
-                        </button>
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger border-0"
+                            onClick={() => handleRemoveSite(s.id)}
+                          >
+                            <i className="bi bi-trash" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -465,78 +538,92 @@ export const ProjectFormPage = () => {
               </div>
 
               {/* Add Site Inline Form */}
-              <div className="p-3 border rounded bg-light">
-                <h6 className="fw-bold mb-2 small text-uppercase text-secondary">Add New Site & Chainage</h6>
+              {!isCompleted && (
+                <div className="p-3 border rounded bg-light">
+                  <h6 className="fw-bold mb-2 small text-uppercase text-secondary">Add New Site & Chainage</h6>
 
-                <div className="mb-2">
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="Site Name (e.g., Valluvarkottam Segment)"
-                    value={newSiteName}
-                    onChange={(e) => setNewSiteName(e.target.value)}
-                  />
-                </div>
-                <div className="row g-2 mb-2">
-                  <div className="col-6">
+                  <div className="mb-2">
                     <input
                       type="text"
                       className="form-control form-control-sm"
-                      placeholder="Site Number (e.g., S-101)"
-                      value={newSiteNumber}
-                      onChange={(e) => setNewSiteNumber(e.target.value)}
+                      placeholder="Site Name (e.g., Valluvarkottam Segment)"
+                      value={newSiteName}
+                      onChange={(e) => setNewSiteName(e.target.value)}
                     />
                   </div>
-                  <div className="col-6">
+                  <div className="row g-2 mb-2">
+                    <div className="col-6">
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="Site Number (e.g., S-101)"
+                        value={newSiteNumber}
+                        onChange={(e) => setNewSiteNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-control form-control-sm"
+                        placeholder="Chainage KM (e.g., 12.5)"
+                        value={newChainageKm}
+                        onChange={(e) => setNewChainageKm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-2">
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
                       className="form-control form-control-sm"
-                      placeholder="Chainage KM (e.g., 12.5)"
-                      value={newChainageKm}
-                      onChange={(e) => setNewChainageKm(e.target.value)}
+                      placeholder="Chainage Name (e.g., Chennai North Line)"
+                      value={newChainageName}
+                      onChange={(e) => setNewChainageName(e.target.value)}
                     />
                   </div>
-                </div>
-                <div className="mb-2">
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="Chainage Name (e.g., Chennai North Line)"
-                    value={newChainageName}
-                    onChange={(e) => setNewChainageName(e.target.value)}
-                  />
-                </div>
 
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm w-100"
-                  onClick={handleAddSite}
-                >
-                  <i className="bi bi-plus-lg me-1" /> Add Site & Chainage
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm w-100"
+                    onClick={handleAddSite}
+                  >
+                    <i className="bi bi-plus-lg me-1" /> Add Site & Chainage
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Submit Actions */}
         <div className="mt-3 d-flex gap-2">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={sites.length === 0}
-          >
-            {isEdit ? 'Update Project' : 'Save Project'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => navigate('/projects')}
-          >
-            Cancel
-          </button>
-          {sites.length === 0 && (
+          {!isCompleted ? (
+            <>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={sites.length === 0}
+              >
+                {isEdit ? 'Update Project' : 'Save Project'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => navigate('/projects')}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate('/projects')}
+            >
+              <i className="bi bi-arrow-left me-1" /> Back to Projects List
+            </button>
+          )}
+          {sites.length === 0 && !isCompleted && (
             <span className="text-danger small align-self-center ms-2">
               * Add site details first to enable saving.
             </span>
