@@ -134,6 +134,7 @@ export interface Project {
   workerCount?: number;
   sites?: NestedSite[];
   roleAssignments?: ProjectRoleAssignment[];
+  deleteRequested?: boolean;
 }
 
 export interface NestedSite {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { MOCK_USERS } from '../../services/mockData';
-import kcirilogo from '../../assets/kciri_logo.png';
+import ltlogo from '../../assets/lt-logo.png'
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -31,7 +31,7 @@ export const LoginPage = () => {
       <div className="auth-page">
         <div className="auth-card">
           <div className="text-center mb-4">
-            <img src={kcirilogo} alt="KCIRI" style={{ height: '60px' }} />
+            <img src={ltlogo} alt="KCIRI" style={{ height: '60px' }} />
             <h2 className="h4 mt-3 fw-bold">AI Progress Monitor</h2>
             <p className="text-muted small">Enterprise Construction Monitoring Platform</p>
           </div>

@@ -12,8 +12,8 @@
   --admin-success: #0f766e;
   --admin-warning: #d97706;
   --admin-danger: #dc2626;
-  --admin-sidebar: #111827;
-  --admin-sidebar-soft: #1f2937;
+  --admin-sidebar: #0f1e40;
+  --admin-sidebar-soft: #1a2f60;
   --admin-shadow-sm: 0 10px 24px rgba(15, 23, 42, 0.06);
   --admin-shadow: 0 18px 46px rgba(15, 23, 42, 0.09);
   --admin-shadow-lg: 0 26px 70px rgba(15, 23, 42, 0.12);
@@ -1010,6 +1010,17 @@ html[data-theme="dark"] .profile-button .avatar-sm {
   .sidebar-mini .sidebar-nav .nav-link {
     justify-content: center;
     padding-inline: 0.65rem;
+    gap: 0 !important;
+  }
+
+  body.sidebar-mini .sidebar-nav .nav-link div,
+  .sidebar-mini .sidebar-nav .nav-link div {
+    gap: 0 !important;
+  }
+
+  body.sidebar-mini .sidebar-submenu-list,
+  .sidebar-mini .sidebar-submenu-list {
+    display: none !important;
   }
 
   body.sidebar-mini .sidebar-nav .nav-link:hover,
@@ -1321,9 +1332,21 @@ html[data-theme="dark"] .text-body {
   color: var(--admin-text) !important;
 }
 
-/* ===== Sidebar Light Theme Overrides ===== */
+/* ===== Sidebar Color Themes ===== */
 
-html:not([data-theme="dark"]) {
+.admin-sidebar.sidebar-theme-dark {
+  --admin-sidebar: #0f1e40;
+  --admin-sidebar-soft: #1a2f60;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.1);
+  --admin-sidebar-text: #d0d7e6;
+  --admin-sidebar-text-strong: #ffffff;
+  --admin-sidebar-muted: #8b9bb8;
+  --admin-sidebar-icon-bg: rgba(255, 255, 255, 0.08);
+  --admin-sidebar-icon: #60a5fa;
+  --admin-sidebar-shadow: 18px 0 42px rgba(15, 23, 42, 0.24);
+}
+
+.admin-sidebar.sidebar-theme-light {
   --admin-sidebar: #ffffff;
   --admin-sidebar-soft: #eef4ff;
   --admin-sidebar-border: #dbe4ef;
@@ -1333,16 +1356,6 @@ html:not([data-theme="dark"]) {
   --admin-sidebar-icon-bg: #eaf2ff;
   --admin-sidebar-icon: #2563eb;
   --admin-sidebar-shadow: 18px 0 42px rgba(15, 23, 42, 0.08);
-}
-
-html[data-theme="dark"] {
-  --admin-sidebar-border: rgba(255, 255, 255, 0.08);
-  --admin-sidebar-text: #d1d5db;
-  --admin-sidebar-text-strong: #ffffff;
-  --admin-sidebar-muted: #9ca3af;
-  --admin-sidebar-icon-bg: rgba(255, 255, 255, 0.08);
-  --admin-sidebar-icon: #bfdbfe;
-  --admin-sidebar-shadow: 18px 0 42px rgba(0, 0, 0, 0.34);
 }
 
 .admin-sidebar {
@@ -1621,3 +1634,21 @@ html[data-theme="dark"] .alert-danger {
 /* Mini cards */
 .mini-card { background: var(--admin-surface-soft); border: 1px solid var(--admin-border); border-radius: 8px; transition: box-shadow 0.2s; }
 .mini-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+/* Completed Project Row Grey styling */
+.project-row-finished {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  opacity: 0.65;
+}
+
+.project-row-finished button,
+.project-row-finished a,
+.project-row-finished span {
+  color: #94a3b8 !important;
+  text-decoration: none !important;
+}
+
+.project-row-finished:hover {
+  background-color: #e2e8f0 !important;
+}
