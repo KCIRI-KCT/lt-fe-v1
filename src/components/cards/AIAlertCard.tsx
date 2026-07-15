@@ -1,0 +1,68 @@
+import type { AIAlert } from '../../types';
+import { SEVERITY_BADGES, AI_ALERT_CONFIG } from '../../constants';
+
+interface AIAlertCardProps {
+  alert: AIAlert;
+  onAcknowledge?: (id: string) => void;
+  onResolve?: (id: string) => void;
+  onView?: (id: string) => void;
+}
+
+export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView }: AIAlertCardProps) => {
+  const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
+  const timeAgo = getTimeAgo(alert.timestamp);
+  const severityBadge = SEVERITY_BADGES[alert.severity] || 'text-bg-secondary';
+
+  return (
+    <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}` }}>
+      <div className="d-flex align-items-start gap-3">
+        <span className="metric-icon" style={{ background: `${config.color}20`, color: config.color }}>
+          <i className={config.icon} aria-hidden="true" />
+        </span>
+        <div className="flex-grow-1 min-width-0">
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <h6 className="fw-bold mb-0">{config.label}</h6>
+            <span className={`badge ${severityBadge}`}>{alert.severity}</span>
+            <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-info' : 'text-bg-success'}`}>
+              {alert.status}
+            </span>
+          </div>
+          <p className="text-muted small mb-1">{alert.description}</p>
+          <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
+            <span><i className="bi bi-camera-video me-1" />{alert.cameraName || 'N/A'}</span>
+            <span><i className="bi bi-geo-alt me-1" />{alert.siteName || 'N/A'}</span>
+            <span><i className="bi bi-clock me-1" />{timeAgo}</span>
+          </div>
+          <div className="d-flex gap-2 mt-2">
+            {onView && (
+              <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
+                <i className="bi bi-eye me-1" />View
+              </button>
+            )}
+            {alert.status === 'new' && onAcknowledge && (
+              <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id)}>
+                <i className="bi bi-check-circle me-1" />Acknowledge
+              </button>
+            )}
+            {alert.status === 'acknowledged' && onResolve && (
+              <button className="btn btn-sm btn-outline-success" onClick={() => onResolve(alert.id)}>
+                <i className="bi bi-check2-all me-1" />Resolve
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+function getTimeAgo(timestamp: string): string {
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}

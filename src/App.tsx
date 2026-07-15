@@ -1,0 +1,142 @@
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppProvider } from './contexts/AppContext';
+import { Layout } from './components/layout/Layout';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { LoadingState } from './components/common/LoadingState';
+import type { UserRole } from './types';
+
+// ============================================================================
+// Lazy loaded pages for route-based code splitting
+// ============================================================================
+const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
+const UsersPage = lazy(() => import('./pages/Users').then((m) => ({ default: m.Users })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })));
+const SitesPage = lazy(() => import('./pages/SitesPage').then((m) => ({ default: m.SitesPage })));
+const WorkforcePage = lazy(() => import('./pages/WorkforcePage').then((m) => ({ default: m.WorkforcePage })));
+const CamerasPage = lazy(() => import('./pages/CamerasPage').then((m) => ({ default: m.CamerasPage })));
+const AIMonitoringPage = lazy(() => import('./pages/AIMonitoringPage').then((m) => ({ default: m.AIMonitoringPage })));
+const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })));
+const MessagesPage = lazy(() => import('./pages/MessagesPage').then((m) => ({ default: m.MessagesPage })));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage').then((m) => ({ default: m.SystemHealthPage })));
+const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
+const UserFormPage = lazy(() => import('./pages/UserFormPage').then((m) => ({ default: m.UserFormPage })));
+const ProjectFormPage = lazy(() => import('./pages/ProjectFormPage').then((m) => ({ default: m.ProjectFormPage })));
+const CameraFormPage = lazy(() => import('./pages/CameraFormPage').then((m) => ({ default: m.CameraFormPage })));
+const UserEditPage = lazy(() => import('./pages/UserEditPage').then((m) => ({ default: m.UserEditPage })));
+const UserDeletePage = lazy(() => import('./pages/UserDeletePage').then((m) => ({ default: m.UserDeletePage })));
+const ProjectEditPage = lazy(() => import('./pages/ProjectEditPage').then((m) => ({ default: m.ProjectEditPage })));
+const ProjectDeletePage = lazy(() => import('./pages/ProjectDeletePage').then((m) => ({ default: m.ProjectDeletePage })));
+const CameraEditPage = lazy(() => import('./pages/CameraEditPage').then((m) => ({ default: m.CameraEditPage })));
+const CameraDeletePage = lazy(() => import('./pages/CameraDeletePage').then((m) => ({ default: m.CameraDeletePage })));
+
+const PageLoader = () => <LoadingState message="Loading page..." />;
+
+// ============================================================================
+// Role-based route guards
+// ============================================================================
+const AdminRoutes: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+const SuperAdminOnly: UserRole[] = ['admin'];
+const ProjectRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+const SafetyRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+const SiteRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+const WorkforceRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer'];
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppProvider>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/logout" element={<LoginPage />} />
+
+              {/* Protected routes with layout */}
+              <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Navigate to="/health" replace />} />
+
+                  {/* User Management - Super Admin only */}
+                  <Route element={<ProtectedRoute requiredRoles={SuperAdminOnly} />}>
+                    <Route path="/users" element={<UsersPage />} />
+                    <Route path="/users/create" element={<UserFormPage />} />
+                    <Route path="/users/edit" element={<UserEditPage />} />
+                    <Route path="/users/delete" element={<UserDeletePage />} />
+                    <Route path="/users/:id" element={<UserFormPage />} />
+                  </Route>
+
+                  {/* Projects */}
+                  <Route element={<ProtectedRoute requiredRoles={ProjectRoles} />}>
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/projects/create" element={<ProjectFormPage />} />
+                    <Route path="/projects/edit" element={<ProjectEditPage />} />
+                    <Route path="/projects/delete" element={<ProjectDeletePage />} />
+                    <Route path="/projects/:id" element={<ProjectFormPage />} />
+                  </Route>
+
+                  {/* Sites */}
+                  <Route element={<ProtectedRoute requiredRoles={SiteRoles} />}>
+                    <Route path="/sites" element={<SitesPage />} />
+                  </Route>
+
+                  {/* Workforce */}
+                  <Route element={<ProtectedRoute requiredRoles={WorkforceRoles} />}>
+                    <Route path="/workforce" element={<WorkforcePage />} />
+                  </Route>
+
+                  {/* Cameras */}
+                  <Route element={<ProtectedRoute requiredRoles={SiteRoles} />}>
+                    <Route path="/cameras" element={<CamerasPage />} />
+                    <Route path="/cameras/create" element={<CameraFormPage />} />
+                    <Route path="/cameras/edit" element={<CameraEditPage />} />
+                    <Route path="/cameras/delete" element={<CameraDeletePage />} />
+                    <Route path="/cameras/:id" element={<CameraFormPage />} />
+                  </Route>
+
+                  {/* AI Monitoring */}
+                  <Route element={<ProtectedRoute requiredRoles={SafetyRoles} />}>
+                    <Route path="/ai-monitoring" element={<AIMonitoringPage />} />
+                  </Route>
+
+                  {/* Incidents */}
+                  <Route element={<ProtectedRoute requiredRoles={SafetyRoles} />}>
+                    <Route path="/incidents" element={<IncidentsPage />} />
+                  </Route>
+
+                  {/* Messages - accessible to all authenticated users */}
+                  <Route path="/messages" element={<MessagesPage />} />
+
+                  {/* Reports */}
+                  <Route element={<ProtectedRoute requiredRoles={ProjectRoles} />}>
+                    <Route path="/reports" element={<ReportsPage />} />
+                  </Route>
+
+                  {/* System Health / Dashboard - Accessible to all roles */}
+                  <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
+                    <Route path="/health" element={<SystemHealthPage />} />
+                  </Route>
+
+                  {/* User pages */}
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  {/* Removed: /users/add - now handled by /users/:id */}
+
+                </Route>
+              </Route>
+
+              {/* Catch all - redirect to health */}
+              <Route path="*" element={<Navigate to="/health" replace />} />
+            </Routes>
+          </Suspense>
+        </AppProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

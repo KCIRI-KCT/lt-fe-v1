@@ -1,75 +1,97 @@
-# React + TypeScript + Vite
+# L&T Infrastructure Operations Control Center (IOCC) — Frontend Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A premium, state-of-the-art operations control dashboard designed to monitor large-scale construction sites, manage workforce role assignments, track safety incidents, and visualize real-time AI telemetry from edge devices and cameras.
 
-Currently, two official plugins are available:
+Built with **React**, **TypeScript**, and **Vite** for optimized build performance, styled using custom modern CSS layouts and Bootstrap components.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 📁 Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The project follows a modular, feature-oriented structure for clean division of concerns:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```text
+lt-fe-v1/
+├── dist/                     # Production build output
+├── public/                   # Static assets (logos, icons)
+├── src/                      # Application source code
+│   ├── api/                  # API clients and integration layer
+│   ├── assets/               # Local static images (L&T, KCIRI, and AI logos)
+│   ├── components/           # Reusable UI component library
+│   │   ├── cards/            # KPI metrics, AI alert cards, incident indicators
+│   │   ├── charts/           # Incident trends and statistical analytics
+│   │   ├── forms/            # DynamicForm components supporting inputs/files
+│   │   ├── layout/           # Sidebar, Navbar, and theme wrappers
+│   │   ├── tables/           # FilterableTable and ReusableDataTable modules
+│   │   └── ui/               # Primary interactive UI controls
+│   ├── config/               # App-wide configurations
+│   ├── constants/            # Role options, statuses, and config lists
+│   ├── contexts/             # Global states (Theme, AuthUser, Sidebar configs)
+│   ├── data/                 # Local data schemas
+│   ├── features/             # Business logic modules
+│   ├── hooks/                # Custom React hook utilities
+│   ├── layouts/              # Screen grids and route structural templates
+│   ├── pages/                # High-level screens and form containers
+│   ├── routes/               # Browser routing configurations
+│   ├── services/             # Mock DB models and localStorage services
+│   ├── store/                # Client-side state store (Zustand/Redux if applicable)
+│   ├── styles/               # Global styling sheets and token variables
+│   ├── types/                # TypeScript type definitions and interfaces
+│   ├── utils/                # Date parsers, formatting helpers, and utilities
+│   ├── App.tsx               # Root component loading routes and context
+│   └── main.tsx              # React mounting entrypoint
+├── eslint.config.js          # ESLint rules and parsing configurations
+├── package.json              # Package dependency definitions and scripts
+├── tsconfig.json             # TypeScript root configurations
+└── vite.config.ts            # Vite compile and module bundling options
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🌟 Key Core Features
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 🏢 Infrastructure Project Management
+*   **Detailed View Popovers**: Clickable project links open a detailed modal overlay showing timelines, budget tracking, site configurations, and assigned personnel without context switching.
+*   **Dynamic Role Assignment**: Support for adding multiple managers, site supervisors, site engineers, safety officers, and safety engineers, with specific site allocation limits for each person.
+*   **Flexible Sites & Chainages**: Configure site codes, names, and chainage milestone markers (kilometer ranges) dynamically.
+*   **Configurable Fallbacks**: Auto-generates timelines and links back to the selected Start Date.
 
-```
+### 👤 User & Access Control Directory
+*   **Local Photo Uploader**: User forms support local file uploading. Images are read as base64 Data URLs and stored locally in the mock database with immediate thumbnail previews.
+*   **Robust Delete Tables**: Bulk removal pages display detailed user profiles (employee ID, role, photo, joined dates, address) and projects (timelines, site configurations, role lists) before action approval.
+
+### 📊 Diagnostics & System Health
+*   **Cameras & Edge Tracking**: Displays total online vs. offline devices.
+*   **Server Diagnostics**: Real-time progress bars for CPU/RAM usage featuring smooth sliding stripe animations, AI Latency tracking, and uptime metrics.
+*   **Ping Hearts**: Concentric wave indicators pulsing in real-time to signal active edge node telemetry.
+
+---
+
+## 🛠️ Development & Commands
+
+### Prerequisites
+Make sure you have **Node.js** (v18+) and **npm** installed.
+
+### Setup Instructions
+
+1.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+2.  **Start Local Development Server**
+    ```bash
+    npm run dev
+    ```
+    *(Vite will spin up the local server with hot module replacement.)*
+
+3.  **Build for Production**
+    ```bash
+    npm run build
+    ```
+    *(Outputs a minified, production-ready bundle to the `dist/` directory.)*
+
+4.  **Lint Codebase**
+    ```bash
+    npm run lint
+    ```
