@@ -2,7 +2,7 @@ import type {
   UserProfile, Project, Site, Worker, Attendance, Camera,
   AIAlert, Incident, Message, Report, Country, State, City,
   SystemHealth, PPECompliance,
-  SiteProgress, StateWiseAnalytics, IncidentTrend
+  SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData
 } from '../types';
 import { storage, KEYS } from './storage';
 
@@ -214,18 +214,20 @@ export const deleteCamera = (id: string) => {
 
 // AI Alerts
 const INITIAL_AI_ALERTS: AIAlert[] = [
-  { id: '1', cameraId: '1', cameraName: 'Main Gate - Site A', siteId: '1', siteName: 'Site A - KM 0-15', type: 'helmet_violation', severity: 'high', timestamp: new Date(Date.now() - 300000).toISOString(), description: 'Worker detected without helmet at main gate entry', status: 'new' },
-  { id: '2', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', type: 'vest_violation', severity: 'medium', timestamp: new Date(Date.now() - 1800000).toISOString(), description: '3 workers without safety vests in excavation zone', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 900000).toISOString() },
-  { id: '3', cameraId: '4', cameraName: 'Bridge Construction - Site B', siteId: '2', siteName: 'Site B - KM 15-30', type: 'fall_detected', severity: 'critical', timestamp: new Date(Date.now() - 3600000).toISOString(), description: 'Possible fall detected near bridge pier edge', status: 'new' },
-  { id: '4', cameraId: '5', cameraName: 'Material Storage - Site B', siteId: '2', siteName: 'Site B - KM 15-30', type: 'restricted_zone', severity: 'high', timestamp: new Date(Date.now() - 7200000).toISOString(), description: 'Unauthorized personnel in restricted storage area', status: 'resolved', acknowledgedBy: 'Deepa Nair', acknowledgedAt: new Date(Date.now() - 5400000).toISOString(), resolvedAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: '5', cameraId: '7', cameraName: 'Perimeter - Site D', siteId: '4', siteName: 'Site D - KM 0-12', type: 'fire_detected', severity: 'critical', timestamp: new Date(Date.now() - 600000).toISOString(), description: 'Fire detected near perimeter fence, possible trash burning', status: 'new' },
-  { id: '6', cameraId: '8', cameraName: 'Crane Zone - Site E', siteId: '5', siteName: 'Site E - KM 12-25', type: 'mask_violation', severity: 'low', timestamp: new Date(Date.now() - 14400000).toISOString(), description: 'Worker without mask in dust-prone crane zone', status: 'dismissed' },
-  { id: '7', cameraId: '3', cameraName: 'Worker Shed - Site A', siteId: '1', siteName: 'Site A - KM 0-15', type: 'worker_count', severity: 'medium', timestamp: new Date(Date.now() - 28800000).toISOString(), description: 'Worker count exceeds safe limit in rest area', status: 'resolved', resolvedAt: new Date(Date.now() - 21600000).toISOString() },
-  { id: '8', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', type: 'smoke_detected', severity: 'high', timestamp: new Date(Date.now() - 43200000).toISOString(), description: 'Smoke detected near excavation machinery', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 36000000).toISOString() },
+  { id: '1', cameraId: '1', cameraName: 'Main Gate - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', type: 'helmet_violation', severity: 'high', timestamp: new Date(Date.now() - 300000).toISOString(), description: 'Worker detected without helmet at main gate entry', status: 'new' },
+  { id: '2', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'vest_violation', severity: 'medium', timestamp: new Date(Date.now() - 1800000).toISOString(), description: '3 workers without safety vests in excavation zone', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 900000).toISOString() },
+  { id: '3', cameraId: '4', cameraName: 'Bridge Construction - Site B', siteId: '2', siteName: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', type: 'fall_detected', severity: 'critical', timestamp: new Date(Date.now() - 3600000).toISOString(), description: 'Possible fall detected near bridge pier edge', status: 'new' },
+  { id: '4', cameraId: '5', cameraName: 'Material Storage - Site B', siteId: '2', siteName: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', type: 'restricted_zone', severity: 'high', timestamp: new Date(Date.now() - 7200000).toISOString(), description: 'Unauthorized personnel in restricted storage area', status: 'resolved', acknowledgedBy: 'Deepa Nair', acknowledgedAt: new Date(Date.now() - 5400000).toISOString(), resolvedAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: '5', cameraId: '7', cameraName: 'Perimeter - Site D', siteId: '4', siteName: 'Site D - KM 0-12', projectId: '2', chainageId: 'CH-20', type: 'fire_detected', severity: 'critical', timestamp: new Date(Date.now() - 600000).toISOString(), description: 'Fire detected near perimeter fence, possible trash burning', status: 'new' },
+  { id: '6', cameraId: '8', cameraName: 'Crane Zone - Site E', siteId: '5', siteName: 'Site E - KM 12-25', projectId: '2', chainageId: 'CH-25', type: 'mask_violation', severity: 'low', timestamp: new Date(Date.now() - 14400000).toISOString(), description: 'Worker without mask in dust-prone crane zone', status: 'dismissed' },
+  { id: '7', cameraId: '3', cameraName: 'Worker Shed - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', type: 'worker_count', severity: 'medium', timestamp: new Date(Date.now() - 28800000).toISOString(), description: 'Worker count exceeds safe limit in rest area', status: 'resolved', resolvedAt: new Date(Date.now() - 21600000).toISOString() },
+  { id: '8', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'smoke_detected', severity: 'high', timestamp: new Date(Date.now() - 43200000).toISOString(), description: 'Smoke detected near excavation machinery', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 36000000).toISOString() },
 ];
 export const MOCK_AI_ALERTS: AIAlert[] = (() => {
   const data = storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
-  if (!data || data.length === 0) storage.set(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+  if (!data || data.length === 0 || !data[0].projectId) {
+    storage.set(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+  }
   return storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
 })();
 
@@ -259,15 +261,17 @@ export const MOCK_MESSAGES: Message[] = (() => {
 
 // Reports
 const INITIAL_REPORTS: Report[] = [
-  { id: '1', title: 'Daily Safety Report - Site A', type: 'daily_safety', description: 'Daily safety inspection report for Site A', generatedAt: new Date().toISOString(), generatedBy: 'Deepa Nair', siteId: '1', projectId: '1', dateRange: { start: today, end: today }, format: 'pdf', status: 'ready' },
+  { id: '1', title: 'Daily Safety Report - Site A', type: 'daily_safety', description: 'Daily safety inspection report for Site A', generatedAt: new Date().toISOString(), generatedBy: 'Deepa Nair', siteId: '1', projectId: '1', chainageId: 'CH-01', dateRange: { start: today, end: today }, format: 'pdf', status: 'ready' },
   { id: '2', title: 'Weekly Progress - Chennai Expressway', type: 'weekly_progress', description: 'Weekly construction progress report', generatedAt: new Date(Date.now() - 86400000).toISOString(), generatedBy: 'Priya Sharma', projectId: '1', dateRange: { start: new Date(Date.now() - 604800000).toISOString().split('T')[0], end: today }, format: 'pdf', status: 'ready' },
-  { id: '3', title: 'Monthly Incident Summary - June 2026', type: 'incident_report', description: 'Summary of all incidents reported in June', generatedAt: new Date(Date.now() - 86400000).toISOString(), generatedBy: 'Amit Singh', dateRange: { start: '2026-06-01', end: '2026-06-30' }, format: 'excel', status: 'ready' },
-  { id: '4', title: 'PPE Compliance - Q2 2026', type: 'ppe_compliance', description: 'Quarterly PPE compliance analysis', generatedAt: new Date(Date.now() - 172800000).toISOString(), generatedBy: 'Deepa Nair', dateRange: { start: '2026-04-01', end: '2026-06-30' }, format: 'pdf', status: 'ready' },
-  { id: '5', title: 'Attendance Report - July 2026', type: 'attendance', description: 'Monthly workforce attendance report', generatedAt: new Date().toISOString(), generatedBy: 'Suresh Reddy', siteId: '1', projectId: '1', dateRange: { start: '2026-07-01', end: today }, format: 'csv', status: 'generating' },
+  { id: '3', title: 'Monthly Incident Summary - June 2026', type: 'incident_report', description: 'Summary of all incidents reported in June', generatedAt: new Date(Date.now() - 86400000).toISOString(), generatedBy: 'Amit Singh', siteId: '4', projectId: '2', chainageId: 'CH-20', dateRange: { start: '2026-06-01', end: '2026-06-30' }, format: 'excel', status: 'ready' },
+  { id: '4', title: 'PPE Compliance - Q2 2026', type: 'ppe_compliance', description: 'Quarterly PPE compliance analysis', generatedAt: new Date(Date.now() - 172800000).toISOString(), generatedBy: 'Deepa Nair', siteId: '2', projectId: '1', chainageId: 'CH-05', dateRange: { start: '2026-04-01', end: '2026-06-30' }, format: 'pdf', status: 'ready' },
+  { id: '5', title: 'Attendance Report - July 2026', type: 'attendance', description: 'Monthly workforce attendance report', generatedAt: new Date().toISOString(), generatedBy: 'Suresh Reddy', siteId: '1', projectId: '1', chainageId: 'CH-01', dateRange: { start: '2026-07-01', end: today }, format: 'csv', status: 'generating' },
 ];
 export const MOCK_REPORTS: Report[] = (() => {
   const data = storage.get<Report[]>(KEYS.REPORTS, INITIAL_REPORTS);
-  if (!data || data.length === 0) storage.set(KEYS.REPORTS, INITIAL_REPORTS);
+  if (!data || data.length === 0 || !data[0].projectId || !data[2].projectId) {
+    storage.set(KEYS.REPORTS, INITIAL_REPORTS);
+  }
   return storage.get<Report[]>(KEYS.REPORTS, INITIAL_REPORTS);
 })();
 
@@ -356,4 +360,194 @@ export const MOCK_DASHBOARD_METRICS = {
     { label: 'Total Workforce', value: '3,855', icon: 'bi bi-people', variant: 'warning' as const, meta: { text: 'active workers', value: '+2.4%', positive: true } },
     { label: 'Safety Score', value: '89.6%', icon: 'bi bi-shield-check', variant: 'danger' as const, meta: { text: 'overall rating', value: '-1.2%', positive: false } },
   ],
+  project_manager: [
+    { label: 'My Projects', value: '3', icon: 'bi bi-building-fill', variant: 'primary' as const, meta: { text: 'active assignments', value: '+1 this month', positive: true } },
+    { label: 'Total Budget', value: '₹1,050 Cr', icon: 'bi bi-currency-rupee', variant: 'success' as const, meta: { text: 'under management', value: '92% utilized', positive: true } },
+    { label: 'Workforce', value: '2,680', icon: 'bi bi-people-fill', variant: 'warning' as const, meta: { text: 'workers on sites', value: '+3.1%', positive: true } },
+    { label: 'Safety Score', value: '91.2%', icon: 'bi bi-shield-fill-check', variant: 'danger' as const, meta: { text: 'avg across sites', value: '+0.8%', positive: true } },
+    { label: 'AI Alerts', value: '14', icon: 'bi bi-robot', variant: 'primary' as const, meta: { text: 'pending review', value: '-3 from yesterday', positive: true } },
+    { label: 'Avg Progress', value: '33.7%', icon: 'bi bi-bar-chart-fill', variant: 'success' as const, meta: { text: 'plan vs actual', value: '-1.5% variance', positive: false } },
+  ],
 };
+
+// Project Manager – Plan vs Actual per month
+export const MOCK_PM_PLAN_VS_ACTUAL = [
+  { month: 'Jan', planned: 8, actual: 7 },
+  { month: 'Feb', planned: 16, actual: 14 },
+  { month: 'Mar', planned: 24, actual: 22 },
+  { month: 'Apr', planned: 32, actual: 31 },
+  { month: 'May', planned: 40, actual: 37 },
+  { month: 'Jun', planned: 48, actual: 45 },
+  { month: 'Jul', planned: 56, actual: 52 },
+];
+
+// Project Manager – Safety & Attendance trend per month
+export const MOCK_PM_SAFETY_ATTENDANCE = [
+  { month: 'Jan', safety: 88, attendance: 92 },
+  { month: 'Feb', safety: 89, attendance: 90 },
+  { month: 'Mar', safety: 90, attendance: 93 },
+  { month: 'Apr', safety: 87, attendance: 89 },
+  { month: 'May', safety: 91, attendance: 94 },
+  { month: 'Jun', safety: 92, attendance: 95 },
+  { month: 'Jul', safety: 91, attendance: 93 },
+];
+
+// Project Manager – Construction progress per project
+export const MOCK_PM_CONSTRUCTION_PROGRESS = [
+  { projectId: '1', projectName: 'Chennai-Bangalore Expressway', planned: 40, actual: 35, workers: 1200, status: 'on_track' as const },
+  { projectId: '2', projectName: 'Mumbai Ring Road', planned: 25, actual: 22, workers: 980, status: 'delayed' as const },
+  { projectId: '3', projectName: 'Hyderabad Metro Phase II', planned: 18, actual: 15, workers: 1500, status: 'delayed' as const },
+];
+
+export const MOCK_CHAINAGES: ChainageData[] = [
+  {
+    id: 'CH-01',
+    name: 'CH-01 (KM 2.5)',
+    project: 'Chennai-Bangalore Expressway',
+    site: 'Site A - KM 0-15',
+    supervisor: 'Suresh Reddy',
+    engineer: 'Rajesh Kumar',
+    lat: 12.9716,
+    lng: 80.1994,
+    progress: 82,
+    highwayProgress: 85,
+    structuralProgress: 78,
+    workers: 45,
+    safetyScore: 96,
+    vehicles: 8,
+    equipment: 5,
+    cameras: 4,
+    ppePending: 0,
+    aiAlerts: 1,
+    status: 'green',
+    lastUpdate: '5 mins ago',
+    elevation: '550m',
+    precipitation: '700mm',
+    temperature: '33°C',
+  },
+  {
+    id: 'CH-05',
+    name: 'CH-05 (KM 12.0)',
+    project: 'Chennai-Bangalore Expressway',
+    site: 'Site A - KM 0-15',
+    supervisor: 'Suresh Reddy',
+    engineer: 'Rajesh Kumar',
+    lat: 12.9125,
+    lng: 80.0820,
+    progress: 45,
+    highwayProgress: 50,
+    structuralProgress: 40,
+    workers: 52,
+    safetyScore: 88,
+    vehicles: 12,
+    equipment: 7,
+    cameras: 3,
+    ppePending: 4,
+    aiAlerts: 3,
+    status: 'yellow',
+    lastUpdate: '2 mins ago',
+    elevation: '580m',
+    precipitation: '680mm',
+    temperature: '32°C',
+  },
+  {
+    id: 'CH-10',
+    name: 'CH-10 (KM 22.4)',
+    project: 'Chennai-Bangalore Expressway',
+    site: 'Site B - KM 15-30',
+    supervisor: 'Suresh Reddy',
+    engineer: 'Rajesh Kumar',
+    lat: 12.8342,
+    lng: 79.9784,
+    progress: 28,
+    highwayProgress: 35,
+    structuralProgress: 20,
+    workers: 60,
+    safetyScore: 72,
+    vehicles: 15,
+    equipment: 9,
+    cameras: 4,
+    ppePending: 9,
+    aiAlerts: 8,
+    status: 'red',
+    lastUpdate: '10 mins ago',
+    elevation: '610m',
+    precipitation: '650mm',
+    temperature: '34°C',
+  },
+  {
+    id: 'CH-15',
+    name: 'CH-15 (KM 38.2)',
+    project: 'Chennai-Bangalore Expressway',
+    site: 'Site C - KM 30-45',
+    supervisor: 'Suresh Reddy',
+    engineer: 'Rajesh Kumar',
+    lat: 12.9242,
+    lng: 79.4370,
+    progress: 68,
+    highwayProgress: 70,
+    structuralProgress: 65,
+    workers: 38,
+    safetyScore: 94,
+    vehicles: 6,
+    equipment: 4,
+    cameras: 3,
+    ppePending: 1,
+    aiAlerts: 0,
+    status: 'green',
+    lastUpdate: '15 mins ago',
+    elevation: '540m',
+    precipitation: '710mm',
+    temperature: '31°C',
+  },
+  {
+    id: 'CH-20',
+    name: 'CH-20 (KM 4.8)',
+    project: 'Mumbai Ring Road',
+    site: 'Site D - KM 0-12',
+    supervisor: 'Deepa Nair',
+    engineer: 'Rajesh Kumar',
+    lat: 18.9895,
+    lng: 73.1196,
+    progress: 33,
+    highwayProgress: 40,
+    structuralProgress: 25,
+    workers: 40,
+    safetyScore: 84,
+    vehicles: 9,
+    equipment: 6,
+    cameras: 3,
+    ppePending: 3,
+    aiAlerts: 4,
+    status: 'yellow',
+    lastUpdate: '1 min ago',
+    elevation: '210m',
+    precipitation: '1100mm',
+    temperature: '30°C',
+  },
+  {
+    id: 'CH-25',
+    name: 'CH-25 (KM 16.5)',
+    project: 'Mumbai Ring Road',
+    site: 'Site E - KM 12-25',
+    supervisor: 'Deepa Nair',
+    engineer: 'Rajesh Kumar',
+    lat: 19.2399,
+    lng: 73.1307,
+    progress: 19,
+    highwayProgress: 22,
+    structuralProgress: 15,
+    workers: 55,
+    safetyScore: 68,
+    vehicles: 11,
+    equipment: 8,
+    cameras: 4,
+    ppePending: 12,
+    aiAlerts: 11,
+    status: 'red',
+    lastUpdate: 'Just now',
+    elevation: '230m',
+    precipitation: '1050mm',
+    temperature: '29°C',
+  },
+];

@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useApp } from './hooks/useApp';
+import { getFirstSidebarRoute } from './utils/navigation';
 import { AppProvider } from './contexts/AppContext';
 import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -21,6 +23,7 @@ const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ 
 const MessagesPage = lazy(() => import('./pages/MessagesPage').then((m) => ({ default: m.MessagesPage })));
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage').then((m) => ({ default: m.SystemHealthPage })));
+const ProjectManagerDashboard = lazy(() => import('./pages/dashboards/ProjectManagerDashboard').then((m) => ({ default: m.ProjectManagerDashboard })));
 const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
 const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const UserFormPage = lazy(() => import('./pages/UserFormPage').then((m) => ({ default: m.UserFormPage })));
@@ -34,6 +37,19 @@ const CameraEditPage = lazy(() => import('./pages/CameraEditPage').then((m) => (
 const CameraDeletePage = lazy(() => import('./pages/CameraDeletePage').then((m) => ({ default: m.CameraDeletePage })));
 
 const PageLoader = () => <LoadingState message="Loading page..." />;
+
+const HomeRedirect = () => {
+  const { auth } = useApp();
+  return <Navigate to={getFirstSidebarRoute(auth.user?.role)} replace />;
+};
+
+const CatchAllRedirect = () => {
+  const { auth } = useApp();
+  if (auth.isAuthenticated && auth.user) {
+    return <Navigate to={getFirstSidebarRoute(auth.user.role)} replace />;
+  }
+  return <Navigate to="/login" replace />;
+};
 
 // ============================================================================
 // Role-based route guards
@@ -59,7 +75,7 @@ function App() {
               {/* Protected routes with layout */}
               <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
                 <Route element={<Layout />}>
-                  <Route path="/" element={<Navigate to="/health" replace />} />
+                  <Route path="/" element={<HomeRedirect />} />
 
                   {/* User Management - Super Admin only */}
                   <Route element={<ProtectedRoute requiredRoles={SuperAdminOnly} />}>
@@ -119,6 +135,7 @@ function App() {
                   {/* System Health / Dashboard - Accessible to all roles */}
                   <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
                     <Route path="/health" element={<SystemHealthPage />} />
+                    <Route path="/project-manager" element={<ProjectManagerDashboard />} />
                   </Route>
 
                   {/* User pages */}
@@ -129,8 +146,8 @@ function App() {
                 </Route>
               </Route>
 
-              {/* Catch all - redirect to health */}
-              <Route path="*" element={<Navigate to="/health" replace />} />
+              {/* Catch all - redirect to dynamic home or login */}
+              <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
           </Suspense>
         </AppProvider>

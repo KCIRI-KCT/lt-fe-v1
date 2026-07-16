@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
-import ltlogo from '../../assets/lt-logo.png';
+import { getNavItemsForRole } from '../../utils/navigation';
+
 
 export const Sidebar = () => {
   const { sidebar, closeMobileSidebar, user } = useApp();
@@ -155,22 +156,20 @@ export const Sidebar = () => {
       <div className="sidebar-backdrop" onClick={closeMobileSidebar} style={{ display: sidebar.open ? 'block' : 'none' }} />
       <aside className={`admin-sidebar sidebar-theme-${sidebarTheme}`} id="adminSidebar" aria-label="Main navigation">
         <div className="sidebar-header" style={{ padding: sidebar.mini ? '1.35rem 0.5rem' : '1.35rem 1.25rem 1.15rem' }}>
-          <NavLink className="brand-mark" to="/health" aria-label="AI Progress Monitor">
-            <span style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', width: '100%' }}>
-              <img 
-                style={{ 
-                  width: sidebar.mini ? '36px' : '46px', 
-                  height: sidebar.mini ? '36px' : '46px', 
-                  borderRadius: '6px', 
-                  objectFit: 'contain',
-                  filter: sidebarTheme === 'dark' ? 'brightness(0) invert(1)' : 'none',
-                  transition: 'all 0.2s ease'
-                }} 
-                src={ltlogo} 
-                alt="L&T" 
-              />
-            </span>
-          </NavLink>
+          <span style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', width: '100%' }}>
+            <img
+              style={{
+                width: sidebar.mini ? '36px' : '46px',
+                height: sidebar.mini ? '36px' : '46px',
+                borderRadius: '6px',
+                objectFit: 'contain',
+                filter: sidebarTheme === 'dark' ? 'brightness(0) invert(1)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              src="/images/lt-logo.png"
+              alt="L&T"
+            />
+          </span>
         </div>
 
         <nav className="sidebar-nav">

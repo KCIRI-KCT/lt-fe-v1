@@ -179,6 +179,32 @@ export interface Chainage {
 
 export type ChainageStatus = 'active' | 'inactive' | 'completed';
 
+export interface ChainageData {
+  id: string;
+  name: string;
+  project: string;
+  site: string;
+  supervisor: string;
+  engineer: string;
+  lat: number;
+  lng: number;
+  progress: number;
+  highwayProgress: number;
+  structuralProgress: number;
+  workers: number;
+  safetyScore: number;
+  vehicles: number;
+  equipment: number;
+  cameras: number;
+  ppePending: number;
+  aiAlerts: number;
+  status: 'green' | 'yellow' | 'red';
+  lastUpdate: string;
+  elevation: string;
+  precipitation: string;
+  temperature: string;
+}
+
 // ============================================================================
 // Workforce
 // ============================================================================
@@ -247,6 +273,8 @@ export interface AIAlert {
   cameraName?: string;
   siteId: string;
   siteName?: string;
+  projectId?: string;
+  chainageId?: string;
   type: AIAlertType;
   severity: AlertSeverity;
   timestamp: string;
@@ -349,6 +377,7 @@ export interface Report {
   generatedBy: string;
   siteId?: string;
   projectId?: string;
+  chainageId?: string;
   dateRange: { start: string; end: string };
   format: 'pdf' | 'csv' | 'excel';
   url?: string;
