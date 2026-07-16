@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_REPORTS } from '../services/mockData';
+import { MOCK_REPORTS, MOCK_SITES } from '../services/mockData';
 import type { Report } from '../types';
 
 const columns: Column<Report>[] = [
@@ -25,14 +25,52 @@ const columns: Column<Report>[] = [
   )},
 ];
 
+const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color: string; label: string }> = {
+  all: { icon: 'bi-files', activeClass: 'bg-primary-subtle border-primary text-primary', color: '#0d6efd', label: 'All Reports' },
+  ready: { icon: 'bi-check-circle-fill', activeClass: 'bg-success-subtle border-success text-success', color: '#198754', label: 'Ready' },
+  generating: { icon: 'bi-hourglass-split', activeClass: 'bg-warning-subtle border-warning text-warning', color: '#ffc107', label: 'Generating' },
+  pdf: { icon: 'bi-file-pdf-fill', activeClass: 'bg-danger-subtle border-danger text-danger', color: '#dc3545', label: 'PDF Format' },
+  excel: { icon: 'bi-file-earmark-excel-fill', activeClass: 'bg-info-subtle border-info text-info', color: '#0dcaf0', label: 'Excel Format' },
+};
+
 export const ReportsPage = () => {
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const filtered = MOCK_REPORTS.filter((r) =>
-    !search || r.title.toLowerCase().includes(search.toLowerCase()) || r.generatedBy.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filters dropdown state
+  const [filterProject, setFilterProject] = useState('');
+  const [filterSite, setFilterSite] = useState('');
+  const [filterChainage, setFilterChainage] = useState('');
+
+  // Applied filter state
+  const [appliedProject, setAppliedProject] = useState('');
+  const [appliedSite, setAppliedSite] = useState('');
+  const [appliedChainage, setAppliedChainage] = useState('');
+
+  const filtered = MOCK_REPORTS.filter((r) => {
+    if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.generatedBy.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filter === 'ready' && r.status !== 'ready') return false;
+    if (filter === 'generating' && r.status !== 'generating') return false;
+    if (filter === 'pdf' && r.format !== 'pdf') return false;
+    if (filter === 'excel' && r.format !== 'excel') return false;
+
+    // Project filter
+    if (appliedProject) {
+      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
+      if (r.projectId !== projId) return false;
+    }
+    // Site filter
+    if (appliedSite) {
+      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
+      if (r.siteId !== siteObj?.id) return false;
+    }
+    // Chainage filter
+    if (appliedChainage && r.chainageId !== appliedChainage) return false;
+
+    return true;
+  });
 
   const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
 
@@ -42,8 +80,7 @@ export const ReportsPage = () => {
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-file-earmark-bar-graph" aria-hidden="true" /></span>
           <div>
-            <p className="eyebrow mb-1">Analytics</p>
-            <h1 className="h3 mb-0">Reports & Analytics</h1>
+            <h1 className="h3 mb-0">Reports</h1>
           </div>
         </div>
         <div className="heading-actions">
@@ -51,31 +88,154 @@ export const ReportsPage = () => {
         </div>
       </div>
 
-      <div className="row g-3 mb-3">
-        <div className="col-6 col-sm-3">
-          <div className="mini-card text-center p-3">
-            <strong className="fs-4">{MOCK_REPORTS.filter((r) => r.status === 'ready').length}</strong>
-            <span className="text-muted small">Ready</span>
+      {/* Filters Bar */}
+      <div className="card border-0 shadow-sm p-3 mb-4 bg-white">
+        <div className="row g-2 align-items-center">
+          <div className="col-auto">
+            <span className="small text-muted fw-bold text-uppercase">
+              Report Filters:
+            </span>
+          </div>
+
+          {/* Project dropdown */}
+          <div className="col-sm-3 col-md-3 col-xl-2">
+            <select
+              className="form-select form-select-sm"
+              value={filterProject}
+              onChange={(e) => {
+                setFilterProject(e.target.value);
+                setFilterSite('');
+                setFilterChainage('');
+              }}
+            >
+              <option value="">All Projects</option>
+              <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
+              <option value="Mumbai Ring Road">Mumbai Ring Road</option>
+              <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
+            </select>
+          </div>
+
+          {/* Site dropdown */}
+          <div className="col-sm-3 col-md-3 col-xl-2">
+            <select
+              className="form-select form-select-sm"
+              value={filterSite}
+              onChange={(e) => {
+                const selectedVal = e.target.value;
+                setFilterSite(selectedVal);
+                setFilterChainage('');
+                if (selectedVal) {
+                  if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
+                    setFilterProject('Chennai-Bangalore Expressway');
+                  } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
+                    setFilterProject('Mumbai Ring Road');
+                  } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
+                    setFilterProject('Hyderabad Metro Phase II');
+                  }
+                }
+              }}
+            >
+              <option value="">All Sites</option>
+              {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
+                <>
+                  <option value="Site A - KM 0-15">Site A - KM 0-15</option>
+                  <option value="Site B - KM 15-30">Site B - KM 15-30</option>
+                  <option value="Site C - KM 30-45">Site C - KM 30-45</option>
+                </>
+              )}
+              {(!filterProject || filterProject === 'Mumbai Ring Road') && (
+                <>
+                  <option value="Site D - KM 0-12">Site D - KM 0-12</option>
+                  <option value="Site E - KM 12-25">Site E - KM 12-25</option>
+                </>
+              )}
+              {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
+                <>
+                  <option value="Site F - KM 0-12">Site F - KM 0-12</option>
+                  <option value="Site G - KM 12-25">Site G - KM 12-25</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Chainage dropdown */}
+          <div className="col-sm-3 col-md-3 col-xl-2">
+            <select
+              className="form-select form-select-sm"
+              value={filterChainage}
+              onChange={(e) => setFilterChainage(e.target.value)}
+              disabled={!filterSite}
+            >
+              <option value="">All Chainages</option>
+              {filterSite === 'Site A - KM 0-15' && (
+                <>
+                  <option value="CH-01">CH-01 (KM 2.5)</option>
+                  <option value="CH-05">CH-05 (KM 12.0)</option>
+                </>
+              )}
+              {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
+              {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
+              {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
+              {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
+            </select>
+          </div>
+
+          {/* Action buttons */}
+          <div className="col-auto ms-auto d-flex gap-2">
+            <button
+              className="btn btn-sm btn-primary px-3 fw-bold"
+              onClick={() => {
+                setAppliedProject(filterProject);
+                setAppliedSite(filterSite);
+                setAppliedChainage(filterChainage);
+              }}
+            >
+              Apply Filter
+            </button>
+            <button
+              className="btn btn-sm btn-outline-secondary px-3"
+              onClick={() => {
+                setFilterProject('');
+                setFilterSite('');
+                setFilterChainage('');
+                setAppliedProject('');
+                setAppliedSite('');
+                setAppliedChainage('');
+              }}
+            >
+              Reset
+            </button>
           </div>
         </div>
-        <div className="col-6 col-sm-3">
-          <div className="mini-card text-center p-3">
-            <strong className="fs-4">{MOCK_REPORTS.filter((r) => r.status === 'generating').length}</strong>
-            <span className="text-muted small">Generating</span>
-          </div>
-        </div>
-        <div className="col-6 col-sm-3">
-          <div className="mini-card text-center p-3">
-            <strong className="fs-4">{MOCK_REPORTS.filter((r) => r.format === 'pdf').length}</strong>
-            <span className="text-muted small">PDF</span>
-          </div>
-        </div>
-        <div className="col-6 col-sm-3">
-          <div className="mini-card text-center p-3">
-            <strong className="fs-4">{MOCK_REPORTS.filter((r) => r.format === 'excel').length}</strong>
-            <span className="text-muted small">Excel</span>
-          </div>
-        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mt-1 mb-4">
+        {['all', 'ready', 'generating', 'pdf', 'excel'].map((s) => {
+          const config = STATUS_CONFIGS[s];
+          let count = 0;
+          if (s === 'all') count = MOCK_REPORTS.length;
+          else if (s === 'ready' || s === 'generating') count = MOCK_REPORTS.filter((r) => r.status === s).length;
+          else count = MOCK_REPORTS.filter((r) => r.format === s).length;
+
+          const isActive = filter === s;
+
+          return (
+            <div key={s} className="col">
+              <div
+                className={`mini-card text-center p-2.5 h-100 d-flex flex-column align-items-center justify-content-center gap-1 border rounded ${
+                  isActive ? config.activeClass : 'bg-white border-light-subtle text-muted'
+                }`}
+                style={{ cursor: 'pointer', transition: 'all 0.2s ease', minHeight: '85px' }}
+                onClick={() => { setFilter(s); setPage(1); }}
+              >
+                <i className={`bi ${config.icon} fs-5`} style={{ color: isActive ? 'inherit' : config.color }} />
+                <strong className="fs-5 lh-1 text-dark fw-bold">{count}</strong>
+                <span className="small text-capitalize" style={{ fontSize: '11px', fontWeight: 500 }}>{config.label}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <ReusableDataTable

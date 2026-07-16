@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { MOCK_NOTIFICATIONS } from '../../services/mockData';
-import kcirilogo from '../../assets/kciri_logo.png';
-import tidcologo from '../../assets/tidco-logo.png';
+
 
 export const Navbar = () => {
   const { user, toggleSidebar } = useApp();
@@ -43,11 +42,11 @@ export const Navbar = () => {
 
         <Link to="/health" className="navbar-brand d-flex align-items-center me-3">
           <div className="d-flex align-items-center gap-2 border-end pe-3 me-3" style={{ height: '32px' }}>
-            <img src={tidcologo} alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
+            <img src="/images/tidco-logo.png" alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
             <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
-            <img src={kcirilogo} alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
+            <img src="/images/kciri_logo.png" alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
           </div>
-          <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>AI Progress Monitor</span>
+          <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>L&T Construction Monitoring</span>
         </Link>
 
 

@@ -28,7 +28,7 @@ export const CameraCard = ({ camera, onView, onToggle }: CameraCardProps) => {
 
       <div className="d-flex flex-wrap gap-3 small text-muted mb-3">
         <span><i className="bi bi-geo-alt me-1" />{camera.siteName || 'N/A'}</span>
-        <span><i className="bi bi-camera me-1" />{camera.type}</span>
+        {/* <span><i className="bi bi-camera me-1" />{camera.type}</span> */}
         {camera.lastOnline && (
           <span><i className="bi bi-clock me-1" />{camera.lastOnline}</span>
         )}
@@ -36,7 +36,7 @@ export const CameraCard = ({ camera, onView, onToggle }: CameraCardProps) => {
 
       {camera.healthScore !== undefined && (
         <div className="d-flex align-items-center gap-2 mb-3">
-          <span className="small fw-bold">Health:</span>
+          <span className="small fw-bold">Connectivity:</span>
           <div className="progress flex-grow-1" style={{ height: '6px' }}>
             <div
               className="progress-bar"
@@ -51,12 +51,12 @@ export const CameraCard = ({ camera, onView, onToggle }: CameraCardProps) => {
         </div>
       )}
 
-      {camera.rtspUrl && (
+      {/* {camera.rtspUrl && (
         <div className="small text-muted mb-3">
           <i className="bi bi-link-45deg me-1" />
           <code className="small">{camera.rtspUrl}</code>
         </div>
-      )}
+      )} */}
 
       <div className="d-flex gap-2">
         {onView && (

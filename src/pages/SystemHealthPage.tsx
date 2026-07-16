@@ -6,6 +6,8 @@ interface CameraDetail {
   name: string;
   id: string;
   site: string;
+  projectId?: string;
+  chainageId?: string;
   health: number;
   last: string;
   edge: string;
@@ -19,6 +21,8 @@ interface EdgeDetail {
   name: string;
   id: string;
   site: string;
+  projectId?: string;
+  chainageId?: string;
   cpu: number;
   ram: number;
   temp: number | null;
@@ -30,10 +34,96 @@ interface EdgeDetail {
   location: string;
 }
 
+export interface TelemetryRow {
+  id: string;
+  cameraName: string;
+  siteName: string;
+  chainageMarker: string;
+  totalMonitoredMinutes: number;
+  offlineMinutes: number;
+  obstructionMinutes: number;
+  alignmentFaultMinutes: number;
+  riskWeight: number;
+}
+
+const INITIAL_TELEMETRY: TelemetryRow[] = [
+  { id: '1', cameraName: 'Main Gate - Site A', siteName: 'Site A - KM 0-15', chainageMarker: 'CH 2+500', totalMonitoredMinutes: 1440, offlineMinutes: 10, obstructionMinutes: 5, alignmentFaultMinutes: 2, riskWeight: 0.40 },
+  { id: '2', cameraName: 'Excavation Zone - Site A', siteName: 'Site A - KM 0-15', chainageMarker: 'CH 5+000', totalMonitoredMinutes: 1440, offlineMinutes: 30, obstructionMinutes: 15, alignmentFaultMinutes: 10, riskWeight: 0.35 },
+  { id: '3', cameraName: 'Worker Shed - Site A', siteName: 'Site A - KM 0-15', chainageMarker: 'CH 8+200', totalMonitoredMinutes: 1440, offlineMinutes: 120, obstructionMinutes: 40, alignmentFaultMinutes: 30, riskWeight: 0.25 },
+  { id: '4', cameraName: 'Bridge Construction - Site B', siteName: 'Site B - KM 15-30', chainageMarker: 'CH 17+500', totalMonitoredMinutes: 1440, offlineMinutes: 15, obstructionMinutes: 8, alignmentFaultMinutes: 4, riskWeight: 0.60 },
+  { id: '5', cameraName: 'Material Storage - Site B', siteName: 'Site B - KM 15-30', chainageMarker: 'CH 22+000', totalMonitoredMinutes: 1440, offlineMinutes: 45, obstructionMinutes: 10, alignmentFaultMinutes: 8, riskWeight: 0.40 },
+  { id: '6', cameraName: 'Tunnel Vent - Site C', siteName: 'Site C - KM 30-45', chainageMarker: 'CH 35+800', totalMonitoredMinutes: 1440, offlineMinutes: 110, obstructionMinutes: 25, alignmentFaultMinutes: 15, riskWeight: 1.00 },
+  { id: '7', cameraName: 'Perimeter - Site D', siteName: 'Site D - KM 0-12', chainageMarker: 'CH 6+400', totalMonitoredMinutes: 1440, offlineMinutes: 12, obstructionMinutes: 4, alignmentFaultMinutes: 2, riskWeight: 1.00 },
+  { id: '8', cameraName: 'Crane Zone - Site E', siteName: 'Site E - KM 12-25', chainageMarker: 'CH 18+200', totalMonitoredMinutes: 1440, offlineMinutes: 55, obstructionMinutes: 12, alignmentFaultMinutes: 6, riskWeight: 1.00 }
+];
+
+export const calculateTelemetryHealth = (telemetryData: TelemetryRow[]) => {
+  const siteMap: { [key: string]: TelemetryRow[] } = {};
+  telemetryData.forEach(row => {
+    if (!siteMap[row.siteName]) {
+      siteMap[row.siteName] = [];
+    }
+    siteMap[row.siteName].push(row);
+  });
+
+  const sitesResult: any[] = [];
+  let sumOfSiteHealths = 0;
+
+  Object.entries(siteMap).forEach(([siteName, rows]) => {
+    let siteWeightedHealth = 0;
+    const totalWeight = rows.reduce((acc, r) => acc + r.riskWeight, 0);
+
+    const chainagesList = rows.map(row => {
+      const totalDowntime = row.offlineMinutes + row.obstructionMinutes + row.alignmentFaultMinutes;
+      const uptime = Math.max(0, row.totalMonitoredMinutes - totalDowntime);
+      const calculatedHealthPct = Number(((uptime / row.totalMonitoredMinutes) * 100).toFixed(2));
+      const status = calculatedHealthPct >= 95 ? "Excellent" : calculatedHealthPct >= 85 ? "Warning" : "Critical";
+
+      const normWeight = totalWeight > 0 ? (row.riskWeight / totalWeight) : 0;
+      siteWeightedHealth += normWeight * calculatedHealthPct;
+
+      return {
+        chainage: row.chainageMarker,
+        total_downtime_mins: totalDowntime,
+        calculated_health_pct: calculatedHealthPct,
+        status: status
+      };
+    });
+
+    const roundedSiteHealth = Number(siteWeightedHealth.toFixed(2));
+    sumOfSiteHealths += roundedSiteHealth;
+
+    sitesResult.push({
+      site_name: siteName,
+      site_weighted_health_pct: roundedSiteHealth,
+      chainages: chainagesList
+    });
+  });
+
+  const projectOverallHealth = sitesResult.length > 0
+    ? Number((sumOfSiteHealths / sitesResult.length).toFixed(2))
+    : 0.00;
+
+  return {
+    project_overall_health_pct: projectOverallHealth,
+    sites: sitesResult
+  };
+};
+
 export const SystemHealthPage = () => {
   const [activeTab, setActiveTab] = useState<HealthTab>('cameras');
   const [expandedCamId, setExpandedCamId] = useState<string | null>(null);
   const [expandedEdgeId, setExpandedEdgeId] = useState<string | null>(null);
+
+  // Filters dropdown state
+  const [filterProject, setFilterProject] = useState('');
+  const [filterSite, setFilterSite] = useState('');
+  const [filterChainage, setFilterChainage] = useState('');
+
+  // Applied filter state
+  const [appliedProject, setAppliedProject] = useState('');
+  const [appliedSite, setAppliedSite] = useState('');
+  const [appliedChainage, setAppliedChainage] = useState('');
 
   // Search & Filter state for Cameras
   const [camSearch, setCamSearch] = useState<string>('');
@@ -100,28 +190,77 @@ export const SystemHealthPage = () => {
     }, 1500);
   };
 
+  // Network Health Telemetry calculator state
+  const [telemetryRows, setTelemetryRows] = useState<TelemetryRow[]>(INITIAL_TELEMETRY);
+  const [copySuccess, setCopySuccess] = useState<boolean>(false);
+
+  const handleUpdateTelemetry = (id: string, field: keyof TelemetryRow, value: number) => {
+    setTelemetryRows(prev => prev.map(row => {
+      if (row.id === id) {
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
+  };
+
+  const applyPreset = (presetName: 'healthy' | 'warning' | 'critical') => {
+    if (presetName === 'healthy') {
+      setTelemetryRows(INITIAL_TELEMETRY.map(row => ({
+        ...row,
+        offlineMinutes: 0,
+        obstructionMinutes: 0,
+        alignmentFaultMinutes: 0
+      })));
+    } else if (presetName === 'warning') {
+      setTelemetryRows(INITIAL_TELEMETRY.map((row, idx) => ({
+        ...row,
+        offlineMinutes: idx % 2 === 0 ? 80 : 10,
+        obstructionMinutes: idx % 3 === 0 ? 30 : 5,
+        alignmentFaultMinutes: 5
+      })));
+    } else {
+      setTelemetryRows(INITIAL_TELEMETRY.map((row, idx) => ({
+        ...row,
+        offlineMinutes: idx % 2 === 0 ? 450 : 20,
+        obstructionMinutes: idx % 3 === 0 ? 120 : 10,
+        alignmentFaultMinutes: idx % 4 === 0 ? 80 : 5
+      })));
+    }
+  };
+
+  const calculatedJson = calculateTelemetryHealth(telemetryRows);
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(calculatedJson, null, 2));
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  // satisfy strict compiler for unused variables in commented-out section
+  if (false as boolean) {
+    console.log(copySuccess, handleUpdateTelemetry, applyPreset, handleCopyJson);
+  }
+
   // Mock Camera Details List (10 cameras)
   const cameraDetails: CameraDetail[] = [
-    { name: 'AI Entrance Cam 02', id: 'CAM-201', site: 'Highway Widening Zone B', health: 92, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.15/stream1', important: true },
-    { name: 'AI Tower Crane Cam 03', id: 'CAM-103', site: 'Southern Bypass Package A', health: 98, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.13/stream1', important: true },
-    { name: 'AI Perimeter Cam 05', id: 'CAM-105', site: 'Southern Bypass Package A', health: 95, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.14/stream1', important: true },
-    { name: 'AI Pole Cam 01', id: 'CAM-101', site: 'Southern Bypass Package A', health: 96, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.10/stream1', important: true },
-    { name: 'AI Pole Cam 02', id: 'CAM-102', site: 'Southern Bypass Package A', health: 62, last: '4 min ago', edge: 'EDGE-01', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.11/stream1', important: false },
-    { name: 'AI Tower Cam 07', id: 'CAM-203', site: 'Highway Widening Zone B', health: 93, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.12/stream1', important: false },
-    { name: 'AI Yard Cam 04', id: 'CAM-104', site: 'Southern Bypass Package A', health: 88, last: '12 min ago', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.16/stream1', important: false },
-    { name: 'AI Tunnel Cam 08', id: 'CAM-301', site: 'Bridge Approach Segment C', health: 0, last: '1 hr ago', edge: 'EDGE-09', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.17/stream1', important: false },
-    // { name: 'AI Storage Cam 09', id: 'CAM-302', site: 'Bridge Approach Segment C', health: 91, last: 'Live', edge: 'EDGE-09', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.18/stream1', important: false },
-    // { name: 'AI Road Cam 10', id: 'CAM-204', site: 'Highway Widening Zone B', health: 87, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.19/stream1', important: false },
+    { name: 'AI Entrance Cam 02', id: 'CAM-201', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', health: 92, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.15/stream1', important: true },
+    { name: 'AI Tower Crane Cam 03', id: 'CAM-103', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 98, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.13/stream1', important: true },
+    { name: 'AI Perimeter Cam 05', id: 'CAM-105', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 95, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.14/stream1', important: true },
+    { name: 'AI Pole Cam 01', id: 'CAM-101', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 96, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.10/stream1', important: true },
+    { name: 'AI Pole Cam 02', id: 'CAM-102', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', health: 62, last: '4 min ago', edge: 'EDGE-01', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.11/stream1', important: false },
+    { name: 'AI Tower Cam 07', id: 'CAM-203', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', health: 93, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.12/stream1', important: false },
+    { name: 'AI Yard Cam 04', id: 'CAM-104', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', health: 88, last: '12 min ago', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.16/stream1', important: false },
+    { name: 'AI Tunnel Cam 08', id: 'CAM-301', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', health: 0, last: '1 hr ago', edge: 'EDGE-09', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.17/stream1', important: false },
   ];
 
   // Mock Edge Device Details List (6 edge devices)
   const edgeDetails: EdgeDetail[] = [
-    { name: 'Jetson NX Unit 01', id: 'EDGE-01', site: 'Southern Bypass Package A', cpu: 38, ram: 61, temp: 52, storage: 64, network: 845, last: '10 sec ago', status: 'Working', ip: '192.168.10.101', location: 'Site A Office' },
-    { name: 'Jetson NX Unit 02', id: 'EDGE-02', site: 'Southern Bypass Package A', cpu: 45, ram: 58, temp: 50, storage: 60, network: 810, last: '5 sec ago', status: 'Working', ip: '192.168.10.104', location: 'Site A Yard' },
-    { name: 'Jetson NX Unit 05', id: 'EDGE-05', site: 'Highway Widening Zone B', cpu: 49, ram: 68, temp: 57, storage: 72, network: 772, last: '15 sec ago', status: 'Working', ip: '192.168.10.102', location: 'Site B Entrance' },
-    { name: 'Jetson NX Unit 06', id: 'EDGE-06', site: 'Highway Widening Zone B', cpu: 41, ram: 55, temp: 48, storage: 58, network: 790, last: '20 sec ago', status: 'Working', ip: '192.168.10.105', location: 'Site B Main Office' },
-    { name: 'Jetson NX Unit 09', id: 'EDGE-09', site: 'Bridge Approach Segment C', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '18 min ago', status: 'Not Working', ip: '192.168.10.103', location: 'Site C Tunnel Entrance' },
-    { name: 'Jetson NX Unit 10', id: 'EDGE-10', site: 'Bridge Approach Segment C', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '2 hr ago', status: 'Not Working', ip: '192.168.10.106', location: 'Site C Storage Yard' },
+    { name: 'Jetson NX Unit 01', id: 'EDGE-01', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', cpu: 38, ram: 61, temp: 52, storage: 64, network: 845, last: '10 sec ago', status: 'Working', ip: '192.168.10.101', location: 'Site A Office' },
+    { name: 'Jetson NX Unit 02', id: 'EDGE-02', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', cpu: 45, ram: 58, temp: 50, storage: 60, network: 810, last: '5 sec ago', status: 'Working', ip: '192.168.10.104', location: 'Site A Yard' },
+    { name: 'Jetson NX Unit 05', id: 'EDGE-05', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', cpu: 49, ram: 68, temp: 57, storage: 72, network: 772, last: '15 sec ago', status: 'Working', ip: '192.168.10.102', location: 'Site B Entrance' },
+    { name: 'Jetson NX Unit 06', id: 'EDGE-06', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', cpu: 41, ram: 55, temp: 48, storage: 58, network: 790, last: '20 sec ago', status: 'Working', ip: '192.168.10.105', location: 'Site B Main Office' },
+    { name: 'Jetson NX Unit 09', id: 'EDGE-09', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '18 min ago', status: 'Not Working', ip: '192.168.10.103', location: 'Site C Tunnel Entrance' },
+    { name: 'Jetson NX Unit 10', id: 'EDGE-10', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '2 hr ago', status: 'Not Working', ip: '192.168.10.106', location: 'Site C Storage Yard' },
   ];
 
   // Filtering cameras
@@ -132,6 +271,17 @@ export const SystemHealthPage = () => {
     const matchesFilter = camFilter === 'all' ||
       (camFilter === 'online' && cam.status === 'Working') ||
       (camFilter === 'offline' && cam.status === 'Offline');
+
+    // Project filter
+    if (appliedProject) {
+      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
+      if (cam.projectId !== projId) return false;
+    }
+    // Site filter
+    if (appliedSite && cam.site !== appliedSite) return false;
+    // Chainage filter
+    if (appliedChainage && cam.chainageId !== appliedChainage) return false;
+
     return matchesSearch && matchesFilter;
   });
 
@@ -143,6 +293,17 @@ export const SystemHealthPage = () => {
     const matchesFilter = edgeFilter === 'all' ||
       (edgeFilter === 'online' && edge.status === 'Working') ||
       (edgeFilter === 'offline' && edge.status === 'Not Working');
+
+    // Project filter
+    if (appliedProject) {
+      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
+      if (edge.projectId !== projId) return false;
+    }
+    // Site filter
+    if (appliedSite && edge.site !== appliedSite) return false;
+    // Chainage filter
+    if (appliedChainage && edge.chainageId !== appliedChainage) return false;
+
     return matchesSearch && matchesFilter;
   });
 
@@ -317,6 +478,133 @@ export const SystemHealthPage = () => {
         </div>
       </div>
 
+      {/* Filters Bar */}
+      {(activeTab === 'cameras' || activeTab === 'edge') && (
+        <div className="card border-0 shadow-sm p-3 mb-4 bg-white">
+          <div className="row g-2 align-items-center">
+            <div className="col-auto">
+              <span className="small text-muted fw-bold text-uppercase">
+                Health Filters:
+              </span>
+            </div>
+
+            {/* Project dropdown */}
+            <div className="col-sm-3 col-md-3 col-xl-2">
+              <select
+                className="form-select form-select-sm"
+                value={filterProject}
+                onChange={(e) => {
+                  setFilterProject(e.target.value);
+                  setFilterSite('');
+                  setFilterChainage('');
+                }}
+              >
+                <option value="">All Projects</option>
+                <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
+                <option value="Mumbai Ring Road">Mumbai Ring Road</option>
+                <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
+              </select>
+            </div>
+
+            {/* Site dropdown */}
+            <div className="col-sm-3 col-md-3 col-xl-2">
+              <select
+                className="form-select form-select-sm"
+                value={filterSite}
+                onChange={(e) => {
+                  const selectedVal = e.target.value;
+                  setFilterSite(selectedVal);
+                  setFilterChainage('');
+                  if (selectedVal) {
+                    if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
+                      setFilterProject('Chennai-Bangalore Expressway');
+                    } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
+                      setFilterProject('Mumbai Ring Road');
+                    } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
+                      setFilterProject('Hyderabad Metro Phase II');
+                    }
+                  }
+                }}
+              >
+                <option value="">All Sites</option>
+                {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
+                  <>
+                    <option value="Site A - KM 0-15">Site A - KM 0-15</option>
+                    <option value="Site B - KM 15-30">Site B - KM 15-30</option>
+                    <option value="Site C - KM 30-45">Site C - KM 30-45</option>
+                  </>
+                )}
+                {(!filterProject || filterProject === 'Mumbai Ring Road') && (
+                  <>
+                    <option value="Site D - KM 0-12">Site D - KM 0-12</option>
+                    <option value="Site E - KM 12-25">Site E - KM 12-25</option>
+                  </>
+                )}
+                {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
+                  <>
+                    <option value="Site F - KM 0-12">Site F - KM 0-12</option>
+                    <option value="Site G - KM 12-25">Site G - KM 12-25</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            {/* Chainage dropdown */}
+            <div className="col-sm-3 col-md-3 col-xl-2">
+              <select
+                className="form-select form-select-sm"
+                value={filterChainage}
+                onChange={(e) => setFilterChainage(e.target.value)}
+                disabled={!filterSite}
+              >
+                <option value="">All Chainages</option>
+                {filterSite === 'Site A - KM 0-15' && (
+                  <>
+                    <option value="CH-01">CH-01 (KM 2.5)</option>
+                    <option value="CH-05">CH-05 (KM 12.0)</option>
+                  </>
+                )}
+                {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
+                {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
+                {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
+                {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
+              </select>
+            </div>
+
+            {/* Action buttons */}
+            <div className="col-auto ms-auto d-flex gap-2">
+              <button
+                className="btn btn-sm btn-primary px-3 fw-bold"
+                onClick={() => {
+                  setAppliedProject(filterProject);
+                  setAppliedSite(filterSite);
+                  setAppliedChainage(filterChainage);
+                  setCamPage(1);
+                  setEdgePage(1);
+                }}
+              >
+                Apply Filter
+              </button>
+              <button
+                className="btn btn-sm btn-outline-secondary px-3"
+                onClick={() => {
+                  setFilterProject('');
+                  setFilterSite('');
+                  setFilterChainage('');
+                  setAppliedProject('');
+                  setAppliedSite('');
+                  setAppliedChainage('');
+                  setCamPage(1);
+                  setEdgePage(1);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Tab Cards Row */}
       <div className="row g-3 mt-1 mb-4">
         {/* Tab 1: Total Cameras */}
@@ -327,20 +615,20 @@ export const SystemHealthPage = () => {
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="eyebrow text-muted text-uppercase fw-bold"><i className="bi bi-camera-video me-2 text-primary" />Cameras</span>
-              <span className="badge bg-primary rounded-pill">{cameraDetails.length} Total</span>
+              <span className="badge bg-primary rounded-pill">{filteredCameras.length} Total</span>
             </div>
             <p className="text-muted small mb-3" style={{ fontSize: '0.73rem' }}>RTSP stream feeds and connection status</p>
             <div className="row g-2">
               <div className="col-6">
                 <div className="p-2 rounded bg-success-subtle border border-success-subtle text-center">
                   <div className="text-success small fw-semibold" style={{ fontSize: '0.72rem' }}>Online</div>
-                  <div className="h4 mb-0 fw-bold text-success">{cameraDetails.filter(c => c.status === 'Working').length}</div>
+                  <div className="h4 mb-0 fw-bold text-success">{filteredCameras.filter(c => c.status === 'Working').length}</div>
                 </div>
               </div>
               <div className="col-6">
                 <div className="p-2 rounded bg-danger-subtle border border-danger-subtle text-center">
                   <div className="text-danger small fw-semibold" style={{ fontSize: '0.72rem' }}>Offline</div>
-                  <div className="h4 mb-0 fw-bold text-danger">{cameraDetails.filter(c => c.status === 'Offline').length}</div>
+                  <div className="h4 mb-0 fw-bold text-danger">{filteredCameras.filter(c => c.status === 'Offline').length}</div>
                 </div>
               </div>
             </div>
@@ -355,20 +643,20 @@ export const SystemHealthPage = () => {
           >
             <div className="d-flex justify-content-between align-items-center mb-1">
               <span className="eyebrow text-muted text-uppercase fw-bold"><i className="bi bi-cpu me-2 text-primary" />Edge Devices</span>
-              <span className="badge bg-primary rounded-pill">{edgeDetails.length} Total</span>
+              <span className="badge bg-primary rounded-pill">{filteredEdges.length} Total</span>
             </div>
             <p className="text-muted small mb-3" style={{ fontSize: '0.73rem' }}>Jetson processing node gateway logs</p>
             <div className="row g-2">
               <div className="col-6">
                 <div className="p-2 rounded bg-success-subtle border border-success-subtle text-center">
                   <div className="text-success small fw-semibold" style={{ fontSize: '0.72rem' }}>Online</div>
-                  <div className="h4 mb-0 fw-bold text-success">{edgeDetails.filter(e => e.status === 'Working').length}</div>
+                  <div className="h4 mb-0 fw-bold text-success">{filteredEdges.filter(e => e.status === 'Working').length}</div>
                 </div>
               </div>
               <div className="col-6">
                 <div className="p-2 rounded bg-danger-subtle border border-danger-subtle text-center">
                   <div className="text-danger small fw-semibold" style={{ fontSize: '0.72rem' }}>Offline</div>
-                  <div className="h4 mb-0 fw-bold text-danger">{edgeDetails.filter(e => e.status === 'Not Working').length}</div>
+                  <div className="h4 mb-0 fw-bold text-danger">{filteredEdges.filter(e => e.status === 'Not Working').length}</div>
                 </div>
               </div>
             </div>
@@ -436,7 +724,7 @@ export const SystemHealthPage = () => {
               <span className="badge bg-success rounded-pill">Connected</span>
             </div>
             <p className="text-muted small mb-3" style={{ fontSize: '0.73rem' }}>Gateway route and interface parameters</p>
-            
+
             <div className="d-grid gap-1 small mt-2">
               <div className="d-flex justify-content-between">
                 <span className="text-muted">IP Address:</span>
@@ -457,511 +745,675 @@ export const SystemHealthPage = () => {
 
       {/* Network Status & Config Card (Visible only when 'network' tab is active) */}
       {activeTab === 'network' && (
-        <form onSubmit={handleSaveConfig} className="panel mb-4 p-4 border border-opacity-10 bg-body shadow-sm">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-2 border-bottom">
-            <div>
-              <h5 className="fw-bold mb-1">
-                <i className="bi bi-hdd-network me-2 text-primary" />
-                Network Management & Control
-              </h5>
-              <p className="text-muted mb-0 small">Real-time status monitoring, network configuration attributes, and gateway routes.</p>
-            </div>
-            
-            {isEditingConfig ? (
-              <div className="d-flex align-items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={handleCancelConfig}
-                  disabled={isSavingConfig}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-success btn-sm d-flex align-items-center gap-2"
-                  disabled={isSavingConfig}
-                >
-                  {isSavingConfig ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-floppy" />
-                      Save Configuration
-                    </>
-                  )}
-                </button>
+        <>
+          <form onSubmit={handleSaveConfig} className="panel mb-4 p-4 border border-opacity-10 bg-body shadow-sm">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-2 border-bottom">
+              <div>
+                <h5 className="fw-bold mb-1">
+                  <i className="bi bi-hdd-network me-2 text-primary" />
+                  Network Management & Control
+                </h5>
+                <p className="text-muted mb-0 small">Real-time status monitoring, network configuration attributes, and gateway routes.</p>
               </div>
-            ) : (
-              <div className="d-flex align-items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
-                  onClick={handleRefreshNetwork}
-                  disabled={isRefreshingNetwork}
-                >
-                  {isRefreshingNetwork ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
-                      Refreshing...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-arrow-clockwise" />
-                      Refresh Network Status
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm d-flex align-items-center gap-2"
-                  onClick={handleEnterEditMode}
-                  disabled={isEnteringEditMode}
-                >
-                  {isEnteringEditMode ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-pencil" />
-                      Edit Configuration
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
 
-          <div className="row g-3">
-            {/* Section 1: Network Status */}
-            <div className="col-12 col-md-6 col-lg-4">
-              <div className="p-3 border rounded bg-body-tertiary h-100 position-relative overflow-hidden">
-                <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
-                  <i className="bi bi-activity text-success me-2" />
-                  Network Status
-                </h6>
-                
-                <div className="d-grid gap-2">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="small text-muted">Gateway Link</span>
-                    <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Connected</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="small text-muted">AI Streams Upload</span>
-                    <span className="badge bg-info-subtle text-info border border-info border-opacity-25 px-2">Stable (120 Mbps)</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="small text-muted">Latency (Ping)</span>
-                    <strong className="text-success small">12 ms</strong>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="small text-muted">Packet Loss</span>
-                    <strong className="text-success small">0.00%</strong>
-                  </div>
+              {isEditingConfig ? (
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={handleCancelConfig}
+                    disabled={isSavingConfig}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-success btn-sm d-flex align-items-center gap-2"
+                    disabled={isSavingConfig}
+                  >
+                    {isSavingConfig ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Section 2: Network Config */}
-            <div className="col-12 col-md-6 col-lg-4">
-              <div className="p-3 border rounded bg-body-tertiary h-100">
-                <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
-                  <i className="bi bi-gear-fill text-primary me-2" />
-                  Network Config
-                </h6>
-
-                <div className="d-grid gap-2" style={{ fontSize: '0.82rem' }}>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">Active Interface</label>
-                    <select
-                      className="form-select form-select-sm"
-                      value={netConfig.interface}
-                      onChange={(e) => setNetConfig({ ...netConfig, interface: e.target.value })}
-                      disabled={!isEditingConfig}
-                    >
-                      <option value="Ethernet (eth0)">Ethernet (eth0)</option>
-                      <option value="Ethernet (eth1)">Ethernet (eth1)</option>
-                      <option value="Wireless (wlan0)">Wireless (wlan0)</option>
-                    </select>
-                  </div>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">IPv4 Address</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm text-monospace"
-                      value={netConfig.ip}
-                      onChange={(e) => setNetConfig({ ...netConfig, ip: e.target.value })}
-                      disabled={!isEditingConfig}
-                    />
-                  </div>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">Subnet Mask</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm text-monospace"
-                      value={netConfig.subnet}
-                      onChange={(e) => setNetConfig({ ...netConfig, subnet: e.target.value })}
-                      disabled={!isEditingConfig}
-                    />
-                  </div>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">Default Gateway</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm text-monospace"
-                      value={netConfig.gateway}
-                      onChange={(e) => setNetConfig({ ...netConfig, gateway: e.target.value })}
-                      disabled={!isEditingConfig}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 3: Extra Info / Diagnostic Status */}
-            <div className="col-12 col-md-12 col-lg-4">
-              <div className="p-3 border rounded bg-body-tertiary h-100">
-                <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
-                  <i className="bi-shield-check text-warning me-2" />
-                  Security & DNS
-                </h6>
-
-                <div className="d-grid gap-2" style={{ fontSize: '0.82rem' }}>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">DNS Server 1</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm text-monospace"
-                      value={netConfig.dns1}
-                      onChange={(e) => setNetConfig({ ...netConfig, dns1: e.target.value })}
-                      disabled={!isEditingConfig}
-                    />
-                  </div>
-                  <div className="d-flex flex-column gap-1">
-                    <label className="text-muted small">DNS Server 2</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm text-monospace"
-                      value={netConfig.dns2}
-                      onChange={(e) => setNetConfig({ ...netConfig, dns2: e.target.value })}
-                      disabled={!isEditingConfig}
-                    />
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
-                    <span className="text-muted">SSL Certificate</span>
-                    <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Valid (Managed by Backend)</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-muted">MQTT Connection</span>
-                    <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Online</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
-      )}
-
-      {/* Save Success Toast */}
-      {showSaveToast && (
-        <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
-          <div className="toast show align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
-            <div className="d-flex">
-              <div className="toast-body d-flex align-items-center gap-2">
-                <i className="bi bi-check-circle-fill text-white fs-5" />
-                <span>Network configuration saved successfully!</span>
-              </div>
-              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setShowSaveToast(false)} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Refresh Success Toast */}
-      {showRefreshToast && (
-        <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
-          <div className="toast show align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
-            <div className="d-flex">
-              <div className="toast-body d-flex align-items-center gap-2">
-                <i className="bi bi-check-circle-fill text-white fs-5" />
-                <span>Network telemetry refreshed successfully!</span>
-              </div>
-              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setShowRefreshToast(false)} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CAMERAS LIST VIEW */}
-      {activeTab === 'cameras' && (
-        <div className="panel">
-          <div className="panel-header mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-            <div>
-              <h5 className="fw-bold mb-1"><i className="bi bi-camera-video me-2 text-primary" />Camera Devices</h5>
-              <p className="text-muted mb-0">Expand any camera stream to view diagnostics metrics and metadata.</p>
-            </div>
-          </div>
-
-          {/* Search and Filters for Cameras */}
-          <div className="d-flex flex-wrap gap-2 mb-3 align-items-center bg-body-secondary p-2.5 rounded border">
-            <div className="flex-grow-1" style={{ minWidth: '240px' }}>
-              <div className="input-group input-group-sm">
-                <span className="input-group-text bg-body border-secondary text-muted"><i className="bi bi-search" /></span>
-                <input
-                  type="text"
-                  className="form-control bg-body border-secondary text-body"
-                  placeholder="Search cameras by name, ID, or site..."
-                  value={camSearch}
-                  onChange={(e) => { setCamSearch(e.target.value); setCamPage(1); }}
-                />
-              </div>
-            </div>
-            <div className="btn-group btn-group-sm">
-              <button className={`btn btn-outline-secondary ${camFilter === 'all' ? 'active bg-secondary text-white' : ''}`} onClick={() => { setCamFilter('all'); setCamPage(1); }}>All</button>
-              <button className={`btn btn-outline-secondary ${camFilter === 'online' ? 'active bg-success text-white border-success' : ''}`} onClick={() => { setCamFilter('online'); setCamPage(1); }}>Online</button>
-              <button className={`btn btn-outline-secondary ${camFilter === 'offline' ? 'active bg-danger text-white border-danger' : ''}`} onClick={() => { setCamFilter('offline'); setCamPage(1); }}>Offline</button>
-            </div>
-          </div>
-
-          <div className="scrollable-box">
-            <div className="d-grid gap-2">
-              {filteredCameras.length > 0 ? (
-                [...filteredCameras]
-                  .sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0))
-                  .slice((camPage - 1) * camPageSize, camPage * camPageSize)
-                  .map((cam) => {
-                    const isExpanded = expandedCamId === cam.id;
-                    return (
-                      <div key={cam.id} className="health-list-item p-3">
-                        <div
-                          className="d-flex align-items-center justify-content-between cursor-pointer"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleToggleCam(cam.id)}
-                        >
-                          <div className="d-flex align-items-center gap-3">
-                            <span className="fs-5 text-primary"><i className="bi bi-camera-video" /></span>
-                            <div>
-                              <h6 className="fw-bold mb-0">
-                                {cam.name}
-                                {cam.important && (
-                                  <span className="badge bg-warning-subtle text-warning border border-warning border-opacity-20 ms-2" style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem' }}>
-                                    <i className="bi bi-star-fill" />
-                                  </span>
-                                )}
-                              </h6>
-                              <small className="text-muted">{cam.site}</small>
-                            </div>
-                          </div>
-
-                          <div className="d-flex align-items-center gap-4">
-                            <div className="d-none d-sm-block text-center">
-                              {/* <small className="text-muted d-block small" style={{ fontSize: '0.75rem' }}>Health</small> */}
-                              {/* <strong className={cam.health > 80 ? 'text-success' : 'text-warning'}>{cam.health}%</strong> */}
-                            </div>
-
-                            <div className="d-flex align-items-center gap-2">
-                              <span className={`glow-dot-status ${cam.status === 'Working' ? 'green' : 'red'}`} />
-                              <span className="small text-muted">{cam.status}</span>
-                            </div>
-
-                            <span className="text-muted">
-                              <i className={`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'}`} />
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Collapsible Content */}
-                        {isExpanded && (
-                          <div className="details-box">
-                            <div className="row g-3">
-                              <div className="col-12 col-md-6">
-                                <div className="mb-1"><span className="text-muted">Camera ID:</span> <strong className="text-body-emphasis">{cam.id}</strong></div>
-                                <div className="mb-1"><span className="text-muted">RTSP URL:</span> <code className="text-body-emphasis">{cam.rtspUrl}</code></div>
-                              </div>
-                              <div className="col-12 col-md-6">
-                                {/* <div className="mb-1"><span className="text-muted">Edge Device:</span> <strong className="text-body-emphasis">{cam.edge}</strong></div> */}
-                                {/* <div className="mb-1">
-                                  <span className="text-muted">AI Detection Status:</span>{' '}
-                                  <span className={`fw-bold ${cam.ai === 'Running' ? 'text-success' : 'text-danger'}`}>{cam.ai}</span>
-                                </div> */}
-                                <div className="mb-1"><span className="text-muted">Last Active Time:</span> <span className="text-body-emphasis">{cam.last}</span></div>
-                                <div className="mb-1"><span className="text-muted">Bitrate Output:</span> <span className="text-body-emphasis">{cam.status === 'Working' ? '3.2 Mbps' : '0 Kbps'}</span></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
               ) : (
-                <div className="text-center py-4 text-muted small">No camera devices match your query.</div>
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+                    onClick={handleRefreshNetwork}
+                    disabled={isRefreshingNetwork}
+                  >
+                    {isRefreshingNetwork ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-arrow-clockwise" />
+                        Refresh Telemetry
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm d-flex align-items-center gap-2"
+                    onClick={handleEnterEditMode}
+                    disabled={isEnteringEditMode}
+                  >
+                    {isEnteringEditMode ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '12px', height: '12px' }} />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-pencil" />
+                        Edit Configuration
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
-          </div>
-          {renderPagination(filteredCameras.length, camPage, camPageSize, setCamPage, setCamPageSize)}
-        </div>
-      )}
 
-      {/* EDGE DEVICES LIST VIEW */}
-      {activeTab === 'edge' && (
-        <div className="panel">
-          <div className="panel-header mb-3">
-            <div>
-              <h5 className="fw-bold mb-1"><i className="bi bi-cpu me-2 text-primary" />Edge Node Processing Units</h5>
-              <p className="text-muted mb-0">Expand any Edge gateway processing device to inspect resource status.</p>
-            </div>
-          </div>
+            <div className="row g-3">
+              {/* Section 1: Network Status */}
+              <div className="col-12 col-md-6 col-lg-4">
+                <div className="p-3 border rounded bg-body-tertiary h-100 position-relative overflow-hidden">
+                  <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
+                    <i className="bi bi-activity text-success me-2" />
+                    Network Status
+                  </h6>
 
-          {/* Search and Filters for Edge Devices */}
-          <div className="d-flex flex-wrap gap-2 mb-3 align-items-center bg-body-secondary p-2.5 rounded border">
-            <div className="flex-grow-1" style={{ minWidth: '240px' }}>
-              <div className="input-group input-group-sm">
-                <span className="input-group-text bg-body border-secondary text-muted"><i className="bi bi-search" /></span>
-                <input
-                  type="text"
-                  className="form-control bg-body border-secondary text-body"
-                  placeholder="Search edge nodes by name, ID, or location..."
-                  value={edgeSearch}
-                  onChange={(e) => { setEdgeSearch(e.target.value); setEdgePage(1); }}
-                />
-              </div>
-            </div>
-            <div className="btn-group btn-group-sm">
-              <button className={`btn btn-outline-secondary ${edgeFilter === 'all' ? 'active bg-secondary text-white' : ''}`} onClick={() => { setEdgeFilter('all'); setEdgePage(1); }}>All</button>
-              <button className={`btn btn-outline-secondary ${edgeFilter === 'online' ? 'active bg-success text-white border-success' : ''}`} onClick={() => { setEdgeFilter('online'); setEdgePage(1); }}>Online</button>
-              <button className={`btn btn-outline-secondary ${edgeFilter === 'offline' ? 'active bg-danger text-white border-danger' : ''}`} onClick={() => { setEdgeFilter('offline'); setEdgePage(1); }}>Offline</button>
-            </div>
-          </div>
-
-          <div className="scrollable-box">
-            <div className="d-grid gap-2">
-              {filteredEdges.length > 0 ? (
-                filteredEdges
-                  .slice((edgePage - 1) * edgePageSize, edgePage * edgePageSize)
-                  .map((edge) => {
-                    const isExpanded = expandedEdgeId === edge.id;
-                    return (
-                      <div key={edge.id} className="health-list-item p-3">
-                        <div
-                          className="d-flex align-items-center justify-content-between cursor-pointer"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleToggleEdge(edge.id)}
-                        >
-                          <div className="d-flex align-items-center gap-3">
-                            <span className="fs-5 text-primary"><i className="bi bi-hdd-network" /></span>
-                            <div>
-                              <h6 className="fw-bold mb-0">{edge.name}</h6>
-                              <small className="text-muted">{edge.site}</small>
-                            </div>
-                          </div>
-
-                          <div className="d-flex align-items-center gap-4">
-                            {edge.status === 'Working' ? (
-                              <div className="d-none d-sm-block text-center" style={{ minWidth: '100px' }}>
-                                <small className="text-muted d-block small" style={{ fontSize: '0.75rem' }}>CPU / RAM</small>
-                                <small className="fw-bold text-body-emphasis">{edge.cpu}% / {edge.ram}%</small>
-                              </div>
-                            ) : (
-                              <div className="d-none d-sm-block text-center text-muted small" style={{ minWidth: '100px' }}>-</div>
-                            )}
-
-                            <div className="d-flex align-items-center gap-2">
-                              <span className={`glow-dot-status ${edge.status === 'Working' ? 'green' : 'red'}`} />
-                              <span className="small text-muted">{edge.status === 'Working' ? 'Working' : 'Offline'}</span>
-                            </div>
-
-                            <span className="text-muted">
-                              <i className={`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'}`} />
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Collapsible Details */}
-                        {isExpanded && (
-                          <div className="details-box">
-                            <div className="row g-3">
-                              <div className="col-12 col-md-6">
-                                <div className="mb-1"><span className="text-muted">Device ID:</span> <strong className="text-body-emphasis">{edge.id}</strong></div>
-                                <div className="mb-1"><span className="text-muted">IP Address:</span> <code className="text-body-emphasis">{edge.ip}</code></div>
-                                <div className="mb-1"><span className="text-muted">Gateway Location:</span> <span className="text-body-emphasis">{edge.location}</span></div>
-                                <div><span className="text-muted">Last Heartbeat Ping:</span> <span className="text-body-emphasis">{edge.last}</span></div>
-                              </div>
-                              <div className="col-12 col-md-6">
-                                {edge.status === 'Working' ? (
-                                  <>
-                                    <div className="mb-1"><span className="text-muted">Temperature:</span> <strong className="text-body-emphasis">{edge.temp}°C</strong></div>
-                                    <div className="mb-1"><span className="text-muted">Storage Occupied:</span> <strong className="text-body-emphasis">{edge.storage}%</strong></div>
-                                    <div><span className="text-muted">Network Throughput:</span> <strong className="text-body-emphasis">{edge.network} Mbps</strong></div>
-                                  </>
-                                ) : (
-                                  <div className="text-danger small"><i className="bi bi-x-circle me-1" />Edge hardware is offline. No metrics available.</div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-              ) : (
-                <div className="text-center py-4 text-muted small">No edge nodes match your query.</div>
-              )}
-            </div>
-          </div>
-          {renderPagination(filteredEdges.length, edgePage, edgePageSize, setEdgePage, setEdgePageSize)}
-        </div>
-      )}
-
-      {/* SERVER METRICS VIEW */}
-      {activeTab === 'server' && (
-        <div className="row g-3 justify-content-center">
-          <div className="col-12 col-md-10 col-lg-8">
-            <div className="panel">
-              <div className="panel-header mb-3 border-bottom border-secondary border-opacity-10 pb-2">
-                <div>
-                  <h5 className="fw-bold mb-1"><i className="bi bi-server me-2 text-primary" />Server Diagnostics</h5>
-                  <p className="text-muted mb-0">Live status details and diagnostic attributes of backend servers.</p>
+                  <div className="d-grid gap-2">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small text-muted">Gateway Link</span>
+                      <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Connected</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small text-muted">AI Streams Upload</span>
+                      <span className="badge bg-info-subtle text-info border border-info border-opacity-25 px-2">Stable (120 Mbps)</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small text-muted">Latency (Ping)</span>
+                      <strong className="text-success small">12 ms</strong>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small text-muted">Packet Loss</span>
+                      <strong className="text-success small">0.00%</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="scrollable-box">
-                <div className="table-responsive">
-                  <table className="table table-borderless align-middle mb-0">
+              {/* Section 2: Network Config */}
+              <div className="col-12 col-md-6 col-lg-4">
+                <div className="p-3 border rounded bg-body-tertiary h-100">
+                  <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
+                    <i className="bi bi-gear-fill text-primary me-2" />
+                    Network Config
+                  </h6>
+
+                  <div className="d-grid gap-2" style={{ fontSize: '0.82rem' }}>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">Active Interface</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={netConfig.interface}
+                        onChange={(e) => setNetConfig({ ...netConfig, interface: e.target.value })}
+                        disabled={!isEditingConfig}
+                      >
+                        <option value="Ethernet (eth0)">Ethernet (eth0)</option>
+                        <option value="Ethernet (eth1)">Ethernet (eth1)</option>
+                        <option value="Wireless (wlan0)">Wireless (wlan0)</option>
+                      </select>
+                    </div>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">IPv4 Address</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm text-monospace"
+                        value={netConfig.ip}
+                        onChange={(e) => setNetConfig({ ...netConfig, ip: e.target.value })}
+                        disabled={!isEditingConfig}
+                      />
+                    </div>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">Subnet Mask</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm text-monospace"
+                        value={netConfig.subnet}
+                        onChange={(e) => setNetConfig({ ...netConfig, subnet: e.target.value })}
+                        disabled={!isEditingConfig}
+                      />
+                    </div>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">Default Gateway</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm text-monospace"
+                        value={netConfig.gateway}
+                        onChange={(e) => setNetConfig({ ...netConfig, gateway: e.target.value })}
+                        disabled={!isEditingConfig}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Extra Info / Diagnostic Status */}
+              <div className="col-12 col-md-12 col-lg-4">
+                <div className="p-3 border rounded bg-body-tertiary h-100">
+                  <h6 className="fw-bold text-uppercase text-secondary mb-3 small" style={{ letterSpacing: '0.5px' }}>
+                    <i className="bi-shield-check text-warning me-2" />
+                    Security & DNS
+                  </h6>
+
+                  <div className="d-grid gap-2" style={{ fontSize: '0.82rem' }}>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">DNS Server 1</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm text-monospace"
+                        value={netConfig.dns1}
+                        onChange={(e) => setNetConfig({ ...netConfig, dns1: e.target.value })}
+                        disabled={!isEditingConfig}
+                      />
+                    </div>
+                    <div className="d-flex flex-column gap-1">
+                      <label className="text-muted small">DNS Server 2</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm text-monospace"
+                        value={netConfig.dns2}
+                        onChange={(e) => setNetConfig({ ...netConfig, dns2: e.target.value })}
+                        disabled={!isEditingConfig}
+                      />
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
+                      <span className="text-muted">SSL Certificate</span>
+                      <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Valid (Managed by Backend)</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="text-muted">MQTT Connection</span>
+                      <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Online</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          {/* Video Analytics & Network Health Monitoring Engine */}
+          {/*<div className="panel mb-4 p-4 border border-opacity-10 bg-body shadow-sm">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-2 border-bottom">
+              <div>
+                <h5 className="fw-bold mb-1">
+                  <i className="bi bi-cpu text-primary me-2" />
+                  Video Analytics & Network Health Monitoring Engine
+                </h5>
+                <p className="text-muted mb-0 small">Ingests raw telemetry uptime parameters, calculates weighted health metrics, and generates a structured telemetry payload.</p>
+              </div>
+              <div className="d-flex gap-2">
+                <button type="button" className="btn btn-xs btn-outline-success" onClick={() => applyPreset('healthy')}>
+                  Preset: Healthy
+                </button>
+                <button type="button" className="btn btn-xs btn-outline-warning" onClick={() => applyPreset('warning')}>
+                  Preset: Warning
+                </button>
+                <button type="button" className="btn btn-xs btn-outline-danger" onClick={() => applyPreset('critical')}>
+                  Preset: Critical
+                </button>
+              </div>
+            </div>
+
+            <div className="row g-4">S
+              <div className="col-12 col-xl-8">
+                <div className="table-responsive" style={{ maxHeight: '420px' }}>
+                  <table className="table table-sm table-bordered align-middle table-hover text-center mb-0" style={{ fontSize: '0.85rem' }}>
+                    <thead className="table-light text-secondary fw-semibold">
+                      <tr>
+                        <th className="text-start">Camera & Site</th>
+                        <th>Chainage</th>
+                        <th style={{ width: '80px' }}>Tm (min)</th>
+                        <th style={{ width: '85px' }}>Offline (min)</th>
+                        <th style={{ width: '85px' }}>Obstruct (min)</th>
+                        <th style={{ width: '85px' }}>Align Fault (min)</th>
+                        <th style={{ width: '75px' }}>Weight</th>
+                        <th>Health</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {[
-                        // { key: 'CPU Usage', val: '39%', icon: 'bi-cpu' },
-                        // { key: 'RAM Usage', val: '48%', icon: 'bi-memory' },
-                        { key: 'Storage Used', val: '31%', icon: 'bi-hdd-fill' },
-                        { key: 'Storage Free', val: '69%', icon: 'bi-hdd' },
-                        { key: 'Disk Usage', val: '52%', icon: 'bi-speedometer' },
-                        // { key: 'Uptime', val: '36d 14h', icon: 'bi-clock-history' },
-                        { key: 'Operating System', val: 'Ubuntu 24.04 LTS', icon: 'bi-shield' },
-                        { key: 'Python Compiler', val: '3.11.9', icon: 'bi-code-slash' },
-                        { key: 'PostgreSQL Database', val: 'Healthy', icon: 'bi-database-fill' },
-                        { key: 'FastAPI Router', val: 'Running', icon: 'bi-router' },
-                        { key: 'MQTT Broker', val: 'Running', icon: 'bi-router' },
-                      ].map((row, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--bs-border-color-translucent)' }}>
-                          <td className="py-2.5 text-muted">
-                            <i className={`bi ${row.icon} me-2 text-primary`} />
-                            {row.key}
-                          </td>
-                          <td className="py-2.5 text-end fw-semibold text-body-emphasis">{row.val}</td>
-                        </tr>
-                      ))}
+                      {telemetryRows.map((row) => {
+                        const totalDowntime = row.offlineMinutes + row.obstructionMinutes + row.alignmentFaultMinutes;
+                        const uptime = Math.max(0, row.totalMonitoredMinutes - totalDowntime);
+                        const calculatedHealth = Number(((uptime / row.totalMonitoredMinutes) * 100).toFixed(2));
+                        const statusClass = calculatedHealth >= 95
+                          ? 'bg-success-subtle text-success border border-success-subtle'
+                          : calculatedHealth >= 85
+                            ? 'bg-warning-subtle text-warning border border-warning-subtle'
+                            : 'bg-danger-subtle text-danger border border-danger-subtle';
+
+                        return (
+                          <tr key={row.id}>
+                            <td className="text-start">
+                              <div className="fw-semibold text-body">{row.cameraName}</div>
+                              <div className="text-muted small">{row.siteName}</div>
+                            </td>
+                            <td><span className="font-monospace small">{row.chainageMarker}</span></td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-xs text-center px-1 font-monospace"
+                                value={row.totalMonitoredMinutes}
+                                onChange={(e) => handleUpdateTelemetry(row.id, 'totalMonitoredMinutes', Math.max(1, Number(e.target.value)))}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-xs text-center px-1 font-monospace"
+                                value={row.offlineMinutes}
+                                onChange={(e) => handleUpdateTelemetry(row.id, 'offlineMinutes', Math.max(0, Number(e.target.value)))}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-xs text-center px-1 font-monospace"
+                                value={row.obstructionMinutes}
+                                onChange={(e) => handleUpdateTelemetry(row.id, 'obstructionMinutes', Math.max(0, Number(e.target.value)))}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-xs text-center px-1 font-monospace"
+                                value={row.alignmentFaultMinutes}
+                                onChange={(e) => handleUpdateTelemetry(row.id, 'alignmentFaultMinutes', Math.max(0, Number(e.target.value)))}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.05"
+                                min="0"
+                                max="1"
+                                className="form-control form-control-xs text-center px-1 font-monospace"
+                                value={row.riskWeight}
+                                onChange={(e) => handleUpdateTelemetry(row.id, 'riskWeight', Math.max(0, Math.min(1, Number(e.target.value))))}
+                              />
+                            </td>
+                            <td>
+                              <span className={`badge ${statusClass}`} style={{ fontSize: '10px' }}>
+                                {calculatedHealth.toFixed(2)}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
+
+              
+          <div className="col-12 col-xl-4">
+            <div className="d-flex flex-column gap-3 h-100">
+              
+          <div className="p-3 border rounded bg-light-subtle d-flex align-items-center justify-content-between">
+            <div>
+              <span className="text-secondary small fw-semibold text-uppercase d-block mb-1">Project Overall Health</span>
+              <h4 className={`mb-0 fw-bold font-monospace ${calculatedJson.project_overall_health_pct >= 95 ? 'text-success' : calculatedJson.project_overall_health_pct >= 85 ? 'text-warning' : 'text-danger'
+                }`}>
+                {calculatedJson.project_overall_health_pct.toFixed(2)}%
+              </h4>
             </div>
+            <span className={`badge ${calculatedJson.project_overall_health_pct >= 95 ? 'bg-success-subtle text-success border border-success-subtle' : calculatedJson.project_overall_health_pct >= 85 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'
+              } px-2.5 py-1.5`}>
+              {calculatedJson.project_overall_health_pct >= 95 ? 'Excellent' : calculatedJson.project_overall_health_pct >= 85 ? 'Warning' : 'Critical'}
+            </span>
+          </div>
+
+          
+          <div className="border rounded bg-dark d-flex flex-column flex-grow-1" style={{ minHeight: '280px' }}>
+            <div className="d-flex align-items-center justify-content-between p-2.5 border-bottom border-secondary border-opacity-25 bg-black bg-opacity-40">
+              <span className="small text-white-50 fw-bold font-monospace"><i className="bi-filetype-json text-warning me-1.5" />METRICS PAYLOAD (JSON)</span>
+              <button
+                type="button"
+                className="btn btn-xs btn-outline-light py-0.5 px-2 font-monospace"
+                onClick={handleCopyJson}
+              >
+                {copySuccess ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <pre className="p-3 mb-0 text-success font-monospace flex-grow-1" style={{ fontSize: '11px', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+              {JSON.stringify(calculatedJson, null, 2)}
+            </pre>
           </div>
         </div>
-      )}
     </div>
+        </div >
+    </div > */}
+        </>
+      )}
+
+      {/* Save Success Toast */}
+      {
+        showSaveToast && (
+          <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
+            <div className="toast show align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+              <div className="d-flex">
+                <div className="toast-body d-flex align-items-center gap-2">
+                  <i className="bi bi-check-circle-fill text-white fs-5" />
+                  <span>Network configuration saved successfully!</span>
+                </div>
+                <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setShowSaveToast(false)} />
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Refresh Success Toast */}
+      {
+        showRefreshToast && (
+          <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
+            <div className="toast show align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+              <div className="d-flex">
+                <div className="toast-body d-flex align-items-center gap-2">
+                  <i className="bi bi-check-circle-fill text-white fs-5" />
+                  <span>Network telemetry refreshed successfully!</span>
+                </div>
+                <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setShowRefreshToast(false)} />
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* CAMERAS LIST VIEW */}
+      {
+        activeTab === 'cameras' && (
+          <div className="panel">
+            <div className="panel-header mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+              <div>
+                <h5 className="fw-bold mb-1"><i className="bi bi-camera-video me-2 text-primary" />Camera Devices</h5>
+                <p className="text-muted mb-0">Expand any camera stream to view diagnostics metrics and metadata.</p>
+              </div>
+            </div>
+
+            {/* Search and Filters for Cameras */}
+            <div className="d-flex flex-wrap gap-2 mb-3 align-items-center bg-body-secondary p-2.5 rounded border">
+              <div className="flex-grow-1" style={{ minWidth: '240px' }}>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text bg-body border-secondary text-muted"><i className="bi bi-search" /></span>
+                  <input
+                    type="text"
+                    className="form-control bg-body border-secondary text-body"
+                    placeholder="Search cameras by name, ID, or site..."
+                    value={camSearch}
+                    onChange={(e) => { setCamSearch(e.target.value); setCamPage(1); }}
+                  />
+                </div>
+              </div>
+              <div className="btn-group btn-group-sm">
+                <button className={`btn btn-outline-secondary ${camFilter === 'all' ? 'active bg-secondary text-white' : ''}`} onClick={() => { setCamFilter('all'); setCamPage(1); }}>All</button>
+                <button className={`btn btn-outline-secondary ${camFilter === 'online' ? 'active bg-success text-white border-success' : ''}`} onClick={() => { setCamFilter('online'); setCamPage(1); }}>Online</button>
+                <button className={`btn btn-outline-secondary ${camFilter === 'offline' ? 'active bg-danger text-white border-danger' : ''}`} onClick={() => { setCamFilter('offline'); setCamPage(1); }}>Offline</button>
+              </div>
+            </div>
+
+            <div className="scrollable-box">
+              <div className="d-grid gap-2">
+                {filteredCameras.length > 0 ? (
+                  [...filteredCameras]
+                    .sort((a, b) => (b.important ? 1 : 0) - (a.important ? 1 : 0))
+                    .slice((camPage - 1) * camPageSize, camPage * camPageSize)
+                    .map((cam) => {
+                      const isExpanded = expandedCamId === cam.id;
+                      return (
+                        <div key={cam.id} className="health-list-item p-3">
+                          <div
+                            className="d-flex align-items-center justify-content-between cursor-pointer"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleToggleCam(cam.id)}
+                          >
+                            <div className="d-flex align-items-center gap-3">
+                              <span className="fs-5 text-primary"><i className="bi bi-camera-video" /></span>
+                              <div>
+                                <h6 className="fw-bold mb-0">
+                                  {cam.name}
+                                  {cam.important && (
+                                    <span className="badge bg-warning-subtle text-warning border border-warning border-opacity-20 ms-2" style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem' }}>
+                                      <i className="bi bi-star-fill" />
+                                    </span>
+                                  )}
+                                </h6>
+                                <small className="text-muted">{cam.site}</small>
+                              </div>
+                            </div>
+
+                            <div className="d-flex align-items-center gap-4">
+                              <div className="d-none d-sm-block text-center">
+                                {/* <small className="text-muted d-block small" style={{ fontSize: '0.75rem' }}>Health</small> */}
+                                {/* <strong className={cam.health > 80 ? 'text-success' : 'text-warning'}>{cam.health}%</strong> */}
+                              </div>
+
+                              <div className="d-flex align-items-center gap-2">
+                                <span className={`glow-dot-status ${cam.status === 'Working' ? 'green' : 'red'}`} />
+                                <span className="small text-muted">{cam.status}</span>
+                              </div>
+
+                              <span className="text-muted">
+                                <i className={`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'}`} />
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Collapsible Content */}
+                          {isExpanded && (
+                            <div className="details-box">
+                              <div className="row g-3">
+                                <div className="col-12 col-md-6">
+                                  <div className="mb-1"><span className="text-muted">Camera ID:</span> <strong className="text-body-emphasis">{cam.id}</strong></div>
+                                  <div className="mb-1"><span className="text-muted">RTSP URL:</span> <code className="text-body-emphasis">{cam.rtspUrl}</code></div>
+                                </div>
+                                <div className="col-12 col-md-6">
+                                  {/* <div className="mb-1"><span className="text-muted">Edge Device:</span> <strong className="text-body-emphasis">{cam.edge}</strong></div> */}
+                                  {/* <div className="mb-1">
+                                  <span className="text-muted">AI Detection Status:</span>{' '}
+                                  <span className={`fw-bold ${cam.ai === 'Running' ? 'text-success' : 'text-danger'}`}>{cam.ai}</span>
+                                </div> */}
+                                  <div className="mb-1"><span className="text-muted">Last Active Time:</span> <span className="text-body-emphasis">{cam.last}</span></div>
+                                  <div className="mb-1"><span className="text-muted">Bitrate Output:</span> <span className="text-body-emphasis">{cam.status === 'Working' ? '3.2 Mbps' : '0 Kbps'}</span></div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                ) : (
+                  <div className="text-center py-4 text-muted small">No camera devices match your query.</div>
+                )}
+              </div>
+            </div>
+            {renderPagination(filteredCameras.length, camPage, camPageSize, setCamPage, setCamPageSize)}
+          </div>
+        )
+      }
+
+      {/* EDGE DEVICES LIST VIEW */}
+      {
+        activeTab === 'edge' && (
+          <div className="panel">
+            <div className="panel-header mb-3">
+              <div>
+                <h5 className="fw-bold mb-1"><i className="bi bi-cpu me-2 text-primary" />Edge Node Processing Units</h5>
+                <p className="text-muted mb-0">Expand any Edge gateway processing device to inspect resource status.</p>
+              </div>
+            </div>
+
+            {/* Search and Filters for Edge Devices */}
+            <div className="d-flex flex-wrap gap-2 mb-3 align-items-center bg-body-secondary p-2.5 rounded border">
+              <div className="flex-grow-1" style={{ minWidth: '240px' }}>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text bg-body border-secondary text-muted"><i className="bi bi-search" /></span>
+                  <input
+                    type="text"
+                    className="form-control bg-body border-secondary text-body"
+                    placeholder="Search edge nodes by name, ID, or location..."
+                    value={edgeSearch}
+                    onChange={(e) => { setEdgeSearch(e.target.value); setEdgePage(1); }}
+                  />
+                </div>
+              </div>
+              <div className="btn-group btn-group-sm">
+                <button className={`btn btn-outline-secondary ${edgeFilter === 'all' ? 'active bg-secondary text-white' : ''}`} onClick={() => { setEdgeFilter('all'); setEdgePage(1); }}>All</button>
+                <button className={`btn btn-outline-secondary ${edgeFilter === 'online' ? 'active bg-success text-white border-success' : ''}`} onClick={() => { setEdgeFilter('online'); setEdgePage(1); }}>Online</button>
+                <button className={`btn btn-outline-secondary ${edgeFilter === 'offline' ? 'active bg-danger text-white border-danger' : ''}`} onClick={() => { setEdgeFilter('offline'); setEdgePage(1); }}>Offline</button>
+              </div>
+            </div>
+
+            <div className="scrollable-box">
+              <div className="d-grid gap-2">
+                {filteredEdges.length > 0 ? (
+                  filteredEdges
+                    .slice((edgePage - 1) * edgePageSize, edgePage * edgePageSize)
+                    .map((edge) => {
+                      const isExpanded = expandedEdgeId === edge.id;
+                      return (
+                        <div key={edge.id} className="health-list-item p-3">
+                          <div
+                            className="d-flex align-items-center justify-content-between cursor-pointer"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleToggleEdge(edge.id)}
+                          >
+                            <div className="d-flex align-items-center gap-3">
+                              <span className="fs-5 text-primary"><i className="bi bi-hdd-network" /></span>
+                              <div>
+                                <h6 className="fw-bold mb-0">{edge.name}</h6>
+                                <small className="text-muted">{edge.site}</small>
+                              </div>
+                            </div>
+
+                            <div className="d-flex align-items-center gap-4">
+                              {edge.status === 'Working' ? (
+                                <div className="d-none d-sm-block text-center" style={{ minWidth: '100px' }}>
+                                  <small className="text-muted d-block small" style={{ fontSize: '0.75rem' }}>CPU / RAM</small>
+                                  <small className="fw-bold text-body-emphasis">{edge.cpu}% / {edge.ram}%</small>
+                                </div>
+                              ) : (
+                                <div className="d-none d-sm-block text-center text-muted small" style={{ minWidth: '100px' }}>-</div>
+                              )}
+
+                              <div className="d-flex align-items-center gap-2">
+                                <span className={`glow-dot-status ${edge.status === 'Working' ? 'green' : 'red'}`} />
+                                <span className="small text-muted">{edge.status === 'Working' ? 'Working' : 'Offline'}</span>
+                              </div>
+
+                              <span className="text-muted">
+                                <i className={`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'}`} />
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Collapsible Details */}
+                          {isExpanded && (
+                            <div className="details-box">
+                              <div className="row g-3">
+                                <div className="col-12 col-md-6">
+                                  <div className="mb-1"><span className="text-muted">Device ID:</span> <strong className="text-body-emphasis">{edge.id}</strong></div>
+                                  <div className="mb-1"><span className="text-muted">IP Address:</span> <code className="text-body-emphasis">{edge.ip}</code></div>
+                                  <div className="mb-1"><span className="text-muted">Gateway Location:</span> <span className="text-body-emphasis">{edge.location}</span></div>
+                                  <div><span className="text-muted">Last Heartbeat Ping:</span> <span className="text-body-emphasis">{edge.last}</span></div>
+                                </div>
+                                <div className="col-12 col-md-6">
+                                  {edge.status === 'Working' ? (
+                                    <>
+                                      <div className="mb-1"><span className="text-muted">Temperature:</span> <strong className="text-body-emphasis">{edge.temp}°C</strong></div>
+                                      <div className="mb-1"><span className="text-muted">Storage Occupied:</span> <strong className="text-body-emphasis">{edge.storage}%</strong></div>
+                                      <div><span className="text-muted">Network Throughput:</span> <strong className="text-body-emphasis">{edge.network} Mbps</strong></div>
+                                    </>
+                                  ) : (
+                                    <div className="text-danger small"><i className="bi bi-x-circle me-1" />Edge hardware is offline. No metrics available.</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                ) : (
+                  <div className="text-center py-4 text-muted small">No edge nodes match your query.</div>
+                )}
+              </div>
+            </div>
+            {renderPagination(filteredEdges.length, edgePage, edgePageSize, setEdgePage, setEdgePageSize)}
+          </div>
+        )
+      }
+
+      {/* SERVER METRICS VIEW */}
+      {
+        activeTab === 'server' && (
+          <div className="row g-3 justify-content-center">
+            <div className="col-12 col-md-10 col-lg-8">
+              <div className="panel">
+                <div className="panel-header mb-3 border-bottom border-secondary border-opacity-10 pb-2">
+                  <div>
+                    <h5 className="fw-bold mb-1"><i className="bi bi-server me-2 text-primary" />Server Diagnostics</h5>
+                    <p className="text-muted mb-0">Live status details and diagnostic attributes of backend servers.</p>
+                  </div>
+                </div>
+
+                <div className="scrollable-box">
+                  <div className="table-responsive">
+                    <table className="table table-borderless align-middle mb-0">
+                      <tbody>
+                        {[
+                          // { key: 'CPU Usage', val: '39%', icon: 'bi-cpu' },
+                          // { key: 'RAM Usage', val: '48%', icon: 'bi-memory' },
+                          { key: 'Storage Used', val: '31%', icon: 'bi-hdd-fill' },
+                          { key: 'Storage Free', val: '69%', icon: 'bi-hdd' },
+                          { key: 'Disk Usage', val: '52%', icon: 'bi-speedometer' },
+                          // { key: 'Uptime', val: '36d 14h', icon: 'bi-clock-history' },
+                          { key: 'Operating System', val: 'Ubuntu 24.04 LTS', icon: 'bi-shield' },
+                          { key: 'Python Compiler', val: '3.11.9', icon: 'bi-code-slash' },
+                          { key: 'PostgreSQL Database', val: 'Healthy', icon: 'bi-database-fill' },
+                          { key: 'FastAPI Router', val: 'Running', icon: 'bi-router' },
+                          { key: 'MQTT Broker', val: 'Running', icon: 'bi-router' },
+                        ].map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--bs-border-color-translucent)' }}>
+                            <td className="py-2.5 text-muted">
+                              <i className={`bi ${row.icon} me-2 text-primary`} />
+                              {row.key}
+                            </td>
+                            <td className="py-2.5 text-end fw-semibold text-body-emphasis">{row.val}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 };

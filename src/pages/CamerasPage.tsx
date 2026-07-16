@@ -147,7 +147,7 @@ export const CamerasPage = () => {
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
-       {/* Dynamic Modal CSS */}
+      {/* Dynamic Modal CSS */}
       <style dangerouslySetInnerHTML={{
         __html: `
         .live-stream-overlay {
@@ -503,7 +503,7 @@ export const CamerasPage = () => {
                         {timestamp}
                       </div>
                       <div className="position-absolute bottom-0 start-0 p-3 text-white font-monospace small bg-dark bg-opacity-70 rounded-end">
-                        Hz: 30 FPS | Res: 1920x1080 | Bitrate: {activeCamera.type === 'ptz' ? '4.8' : '3.2'} Mbps
+                        Hz: 30 FPS | Res: 1920x1080 | Bitrate: {activeCamera.type === 'ptz' ? '4.8' : '3.2'} Mbps | PTZ: P {Math.round(camOffset.x / 2.5)}° / T {Math.round(-camOffset.y / 2.5)}° / Z {camOffset.zoom.toFixed(1)}x
                       </div>
                       {ptzAction && (
                         <div className="position-absolute bottom-0 end-0 p-3 text-warning fw-bold font-monospace small bg-black bg-opacity-70 rounded-start">
@@ -558,6 +558,22 @@ export const CamerasPage = () => {
                         <h6 className="fw-bold mb-3 border-bottom border-secondary pb-2">
                           <i className="bi bi-sliders me-2 text-primary" />PTZ Controller
                         </h6>
+
+                        {/* Coordinates display */}
+                        <div className="d-flex align-items-center justify-content-between mb-3 gap-2" style={{ fontSize: '11px' }}>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Pan</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(camOffset.x / 2.5)}°</div>
+                          </div>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Tilt</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(-camOffset.y / 2.5)}°</div>
+                          </div>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Zoom</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{camOffset.zoom.toFixed(2)}x</div>
+                          </div>
+                        </div>
 
                         {/* Directional Pad */}
                         <div className="my-4">

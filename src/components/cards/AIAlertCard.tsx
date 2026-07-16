@@ -14,42 +14,44 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView }: AIAlert
   const severityBadge = SEVERITY_BADGES[alert.severity] || 'text-bg-secondary';
 
   return (
-    <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}` }}>
-      <div className="d-flex align-items-start gap-3">
-        <span className="metric-icon" style={{ background: `${config.color}20`, color: config.color }}>
-          <i className={config.icon} aria-hidden="true" />
-        </span>
-        <div className="flex-grow-1 min-width-0">
-          <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-            <h6 className="fw-bold mb-0">{config.label}</h6>
-            <span className={`badge ${severityBadge}`}>{alert.severity}</span>
-            <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-info' : 'text-bg-success'}`}>
-              {alert.status}
-            </span>
+    <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}`, padding: '16px' }}>
+      <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-3">
+        <div className="d-flex align-items-center gap-3 flex-grow-1 min-width-0">
+          <span className="metric-icon" style={{ background: `${config.color}20`, color: config.color, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+            <i className={config.icon} aria-hidden="true" style={{ fontSize: '20px' }} />
+          </span>
+          <div className="flex-grow-1 min-width-0">
+            <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <h6 className="fw-bold mb-0">{config.label}</h6>
+              <span className={`badge ${severityBadge}`}>{alert.severity}</span>
+              <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-info' : 'text-bg-success'}`}>
+                {alert.status}
+              </span>
+            </div>
+            <p className="text-muted small mb-1">{alert.description}</p>
+            <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
+              <span><i className="bi bi-camera-video me-1" />{alert.cameraName || 'N/A'}</span>
+              <span><i className="bi bi-geo-alt me-1" />{alert.siteName || 'N/A'}</span>
+              <span><i className="bi bi-clock me-1" />{timeAgo}</span>
+            </div>
           </div>
-          <p className="text-muted small mb-1">{alert.description}</p>
-          <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
-            <span><i className="bi bi-camera-video me-1" />{alert.cameraName || 'N/A'}</span>
-            <span><i className="bi bi-geo-alt me-1" />{alert.siteName || 'N/A'}</span>
-            <span><i className="bi bi-clock me-1" />{timeAgo}</span>
-          </div>
-          <div className="d-flex gap-2 mt-2">
-            {onView && (
-              <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-                <i className="bi bi-eye me-1" />View
-              </button>
-            )}
-            {alert.status === 'new' && onAcknowledge && (
-              <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id)}>
-                <i className="bi bi-check-circle me-1" />Acknowledge
-              </button>
-            )}
-            {alert.status === 'acknowledged' && onResolve && (
-              <button className="btn btn-sm btn-outline-success" onClick={() => onResolve(alert.id)}>
-                <i className="bi bi-check2-all me-1" />Resolve
-              </button>
-            )}
-          </div>
+        </div>
+        <div className="d-flex gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
+          {onView && (
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
+              <i className="bi bi-eye me-1" />View
+            </button>
+          )}
+          {alert.status === 'new' && onAcknowledge && (
+            <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id)}>
+              <i className="bi bi-check-circle me-1" />Acknowledge
+            </button>
+          )}
+          {alert.status === 'acknowledged' && onResolve && (
+            <button className="btn btn-sm btn-outline-success" onClick={() => onResolve(alert.id)}>
+              <i className="bi bi-check2-all me-1" />Resolve
+            </button>
+          )}
         </div>
       </div>
     </div>
