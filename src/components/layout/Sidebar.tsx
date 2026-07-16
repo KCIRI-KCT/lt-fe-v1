@@ -75,7 +75,7 @@ export const Sidebar = () => {
         ];
       case 'project_manager':
         return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
+          { label: 'Dashboard', path: '/project-manager', icon: 'bi bi-speedometer' },
           { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
           { label: 'Alert', path: '/ai-monitoring', icon: 'bi bi-robot' },
           { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
