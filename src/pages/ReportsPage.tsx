@@ -74,6 +74,8 @@ export const ReportsPage = () => {
 
   const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+  const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
       <div className="page-heading">
