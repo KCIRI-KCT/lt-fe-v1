@@ -214,22 +214,134 @@ export const deleteCamera = (id: string) => {
 
 // AI Alerts
 const INITIAL_AI_ALERTS: AIAlert[] = [
-  { id: '1', cameraId: '1', cameraName: 'Main Gate - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', type: 'helmet_violation', severity: 'high', timestamp: new Date(Date.now() - 300000).toISOString(), description: 'Worker detected without helmet at main gate entry', status: 'new' },
-  { id: '2', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'vest_violation', severity: 'medium', timestamp: new Date(Date.now() - 1800000).toISOString(), description: '3 workers without safety vests in excavation zone', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 900000).toISOString() },
+  {
+    id: 'ppe-001',
+    cameraId: '5',
+    cameraName: 'Camera 5',
+    siteId: '3',
+    siteName: 'Site C - KM 30-45',
+    siteCode: 'Site-C',
+    projectId: '1',
+    chainageId: 'CH-15',
+    chainageLabel: '2+500 m',
+    type: 'no_ppe',
+    severity: 'critical',
+    timestamp: new Date('2026-07-17T14:00:00+05:30').toISOString(),
+    description: 'No Vest',
+    status: 'new',
+    detailFields: [
+      { label: 'Site Engineer', value: 'Ganesh' },
+      { label: 'Camera', value: 'Camera 5' },
+      { label: 'Date', value: '17/7/2026' },
+      { label: 'Time', value: '2:00 PM' },
+    ],
+  },
+  {
+    id: 'ppe-002',
+    cameraId: '2',
+    cameraName: 'Camera 2',
+    siteId: '2',
+    siteName: 'Site B - KM 15-30',
+    siteCode: 'Site-B',
+    projectId: '1',
+    chainageId: 'CH-10',
+    chainageLabel: '5+000 m',
+    type: 'no_ppe',
+    severity: 'critical',
+    timestamp: new Date('2026-07-17T14:10:00+05:30').toISOString(),
+    description: 'No Vest, No Helmet, No Boots',
+    status: 'new',
+    detailFields: [
+      { label: 'Site Engineer', value: 'Kalisha' },
+      { label: 'Camera', value: 'Camera 2' },
+      { label: 'Date', value: '17/7/2026' },
+      { label: 'Time', value: '2:10 PM' },
+    ],
+  },
+  {
+    id: 'ppe-003',
+    cameraId: '2',
+    cameraName: 'Camera 2',
+    siteId: '4',
+    siteName: 'Site D - KM 0-12',
+    siteCode: 'Site-D',
+    projectId: '2',
+    chainageId: 'CH-20',
+    chainageLabel: '1+000 m',
+    type: 'no_ppe',
+    severity: 'critical',
+    timestamp: new Date('2026-07-17T14:30:00+05:30').toISOString(),
+    description: 'No Glove',
+    status: 'new',
+    detailFields: [
+      { label: 'Site Engineer', value: 'Velan' },
+      { label: 'Camera', value: 'Camera 2' },
+      { label: 'Date', value: '17/7/2026' },
+      { label: 'Time', value: '2:30 PM' },
+    ],
+  },
   { id: '3', cameraId: '4', cameraName: 'Bridge Construction - Site B', siteId: '2', siteName: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', type: 'fall_detected', severity: 'critical', timestamp: new Date(Date.now() - 3600000).toISOString(), description: 'Possible fall detected near bridge pier edge', status: 'new' },
   { id: '4', cameraId: '5', cameraName: 'Material Storage - Site B', siteId: '2', siteName: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', type: 'restricted_zone', severity: 'high', timestamp: new Date(Date.now() - 7200000).toISOString(), description: 'Unauthorized personnel in restricted storage area', status: 'resolved', acknowledgedBy: 'Deepa Nair', acknowledgedAt: new Date(Date.now() - 5400000).toISOString(), resolvedAt: new Date(Date.now() - 3600000).toISOString() },
   { id: '5', cameraId: '7', cameraName: 'Perimeter - Site D', siteId: '4', siteName: 'Site D - KM 0-12', projectId: '2', chainageId: 'CH-20', type: 'fire_detected', severity: 'critical', timestamp: new Date(Date.now() - 600000).toISOString(), description: 'Fire detected near perimeter fence, possible trash burning', status: 'new' },
-  { id: '6', cameraId: '8', cameraName: 'Crane Zone - Site E', siteId: '5', siteName: 'Site E - KM 12-25', projectId: '2', chainageId: 'CH-25', type: 'mask_violation', severity: 'low', timestamp: new Date(Date.now() - 14400000).toISOString(), description: 'Worker without mask in dust-prone crane zone', status: 'dismissed' },
   { id: '7', cameraId: '3', cameraName: 'Worker Shed - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', type: 'worker_count', severity: 'medium', timestamp: new Date(Date.now() - 28800000).toISOString(), description: 'Worker count exceeds safe limit in rest area', status: 'resolved', resolvedAt: new Date(Date.now() - 21600000).toISOString() },
   { id: '8', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'smoke_detected', severity: 'high', timestamp: new Date(Date.now() - 43200000).toISOString(), description: 'Smoke detected near excavation machinery', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 36000000).toISOString() },
 ];
 export const MOCK_AI_ALERTS: AIAlert[] = (() => {
+  const requiredPpeAlerts = INITIAL_AI_ALERTS.filter((alert) => alert.type === 'no_ppe');
+  const blockedTypes = new Set(['helmet_violation', 'vest_violation', 'mask_violation']);
   const data = storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
   if (!data || data.length === 0 || !data[0].projectId) {
     storage.set(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+    return storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
   }
-  return storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+
+  const withoutBlockedTypes = data.filter((a) => !blockedTypes.has(a.type));
+  const byId = new Map(withoutBlockedTypes.map((a) => [a.id, a]));
+
+  for (const required of requiredPpeAlerts) {
+    const existing = byId.get(required.id);
+    byId.set(required.id, {
+      ...(existing || required),
+      ...required,
+      type: 'no_ppe',
+      severity: 'critical',
+      status: existing?.status || 'new',
+      detailFields: required.detailFields,
+      siteCode: required.siteCode,
+      chainageLabel: required.chainageLabel,
+    });
+  }
+
+  const orderedIds = new Set(requiredPpeAlerts.map((alert) => alert.id));
+  const normalized = [
+    ...requiredPpeAlerts.map((alert) => byId.get(alert.id) as AIAlert),
+    ...withoutBlockedTypes.filter((alert) => !orderedIds.has(alert.id)),
+  ];
+
+  storage.set(KEYS.AI_ALERTS, normalized);
+  return normalized;
 })();
+
+export const updateAIAlertStatus = (id: string, status: AIAlert['status'], extra: Partial<AIAlert> = {}) => {
+  const alerts = storage.get<AIAlert[]>(KEYS.AI_ALERTS, MOCK_AI_ALERTS);
+  const updated = alerts.map((a) => {
+    if (a.id === id) {
+      const resolvedAt = status === 'resolved' ? new Date().toISOString() : a.resolvedAt;
+      const acknowledgedAt = status === 'acknowledged' ? new Date().toISOString() : a.acknowledgedAt;
+      return { ...a, status, resolvedAt, acknowledgedAt, ...extra };
+    }
+    return a;
+  });
+  storage.set(KEYS.AI_ALERTS, updated);
+
+  const idx = MOCK_AI_ALERTS.findIndex(a => a.id === id);
+  if (idx >= 0) {
+    const resolvedAt = status === 'resolved' ? new Date().toISOString() : MOCK_AI_ALERTS[idx].resolvedAt;
+    const acknowledgedAt = status === 'acknowledged' ? new Date().toISOString() : MOCK_AI_ALERTS[idx].acknowledgedAt;
+    MOCK_AI_ALERTS[idx] = { ...MOCK_AI_ALERTS[idx], status, resolvedAt, acknowledgedAt, ...extra };
+  }
+};
+
 
 // Incidents
 const INITIAL_INCIDENTS: Incident[] = [
@@ -276,7 +388,7 @@ export const MOCK_REPORTS: Report[] = (() => {
 })();
 
 // Dashboard
-export const MOCK_PPE_COMPLIANCE: PPECompliance = { helmet: 94, vest: 89, mask: 76, boots: 82, gloves: 71 };
+export const MOCK_PPE_COMPLIANCE: PPECompliance = { helmet: 89, vest: 81, mask: 85, boots: 79, gloves: 74 };
 export const MOCK_SITE_PROGRESS: SiteProgress[] = [
   { siteId: '1', siteName: 'Site A - KM 0-15', planned: 38, actual: 35, variance: -3 },
   { siteId: '2', siteName: 'Site B - KM 15-30', planned: 32, actual: 34, variance: 2 },
@@ -306,7 +418,9 @@ export const MOCK_SYSTEM_HEALTH: SystemHealth = {
 
 // Notifications
 export const MOCK_NOTIFICATIONS = [
-  { title: 'New AI Alert: Helmet Violation', time: '5 minutes ago', path: '/ai-monitoring', variant: 'danger' },
+  { title: 'PPE Violation [Critical] - No Vest (Site-C, 2+500 m)', time: '2:00 PM', path: '/ai-monitoring', variant: 'danger' },
+  { title: 'PPE Violation [Critical] - No Vest, No Helmet, No Boots (Site-B, 5+000 m)', time: '2:10 PM', path: '/ai-monitoring', variant: 'danger' },
+  { title: 'PPE Violation [Critical] - No Glove (Site-D, 1+000 m)', time: '2:30 PM', path: '/ai-monitoring', variant: 'danger' },
   { title: 'Fire Detected at Site D', time: '10 minutes ago', path: '/incidents', variant: 'danger' },
   { title: 'Daily Safety Report Ready', time: '1 hour ago', path: '/reports', variant: 'primary' },
   { title: 'Camera #3 Offline', time: '2 hours ago', path: '/cameras', variant: 'warning' },

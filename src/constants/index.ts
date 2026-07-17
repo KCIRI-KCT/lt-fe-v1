@@ -95,7 +95,7 @@ export const AI_ALERT_CONFIG: Record<string, { label: string; icon: string; colo
   fire_detected: { label: 'Fire Detected', icon: 'bi bi-fire', color: '#dc2626' },
   smoke_detected: { label: 'Smoke Detected', icon: 'bi bi-cloud-fog2', color: '#6b7280' },
   worker_count: { label: 'Worker Count Alert', icon: 'bi bi-people', color: '#2563eb' },
-  no_ppe: { label: 'No PPE Detected', icon: 'bi bi-shield-slash', color: '#dc2626' },
+  no_ppe: { label: 'PPE Violation', icon: 'bi bi-shield-slash', color: '#dc2626' },
 };
 
 // ============================================================================

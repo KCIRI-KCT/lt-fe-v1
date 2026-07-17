@@ -273,8 +273,10 @@ export interface AIAlert {
   cameraName?: string;
   siteId: string;
   siteName?: string;
+  siteCode?: string;
   projectId?: string;
   chainageId?: string;
+  chainageLabel?: string;
   type: AIAlertType;
   severity: AlertSeverity;
   timestamp: string;
@@ -285,6 +287,7 @@ export interface AIAlert {
   acknowledgedBy?: string;
   acknowledgedAt?: string;
   resolvedAt?: string;
+  detailFields?: Array<{ label: string; value: string }>;
 }
 
 export type AIAlertType =

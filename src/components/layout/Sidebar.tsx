@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
-import { getNavItemsForRole } from '../../utils/navigation';
 
 
 export const Sidebar = () => {
