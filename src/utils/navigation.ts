@@ -52,7 +52,7 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
       return [
         { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-        { label: 'Hitl ppe', path: '/ai-monitoring', icon: 'bi bi-shield-fill-check' },
+        { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
@@ -68,7 +68,7 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
       return [
         { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-        { label: 'HITL - Notify', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
+        { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];

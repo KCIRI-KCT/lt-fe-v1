@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { AIAlertCard } from '../components/cards/AIAlertCard';
-import { MOCK_AI_ALERTS, MOCK_SITES } from '../services/mockData';
+import { MOCK_AI_ALERTS, MOCK_SITES, updateAIAlertStatus } from '../services/mockData';
 import { AI_ALERT_CONFIG } from '../constants';
 import { useApp } from '../hooks/useApp';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
+import SupervisorHITLPPEPage from '../HITL - PPE/pages/SupervisorHITLPPEPage';
+import type { AIAlert } from '../types';
 
 const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color: string }> = {
   all: { icon: 'bi-grid-fill', activeClass: 'bg-primary-subtle border-primary text-primary', color: '#0d6efd' },
@@ -15,9 +17,29 @@ const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color:
 
 export const AIMonitoringPage = () => {
   const { user } = useApp();
+  const hiddenTypesForProjectManager = new Set(['helmet_violation', 'vest_violation', 'mask_violation']);
+  const [alerts, setAlerts] = useState<AIAlert[]>(() => [...MOCK_AI_ALERTS]);
   const [filter, setFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [solvingAlertId, setSolvingAlertId] = useState<string | null>(null);
+
+  const handleAcknowledge = (id: string) => {
+    updateAIAlertStatus(id, 'acknowledged');
+    setAlerts([...MOCK_AI_ALERTS]);
+    console.log('Acknowledge', id);
+  };
+
+  const handleResolve = (id: string) => {
+    updateAIAlertStatus(id, 'resolved');
+    setAlerts([...MOCK_AI_ALERTS]);
+    console.log('Resolve', id);
+  };
+
+  const handleSolve = (id: string) => {
+    setSolvingAlertId(id);
+    console.log('Solve clicked for alert', id);
+  };
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -29,7 +51,8 @@ export const AIMonitoringPage = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-  const filtered = MOCK_AI_ALERTS.filter((a) => {
+  const filtered = alerts.filter((a) => {
+    if (user?.role === 'project_manager' && hiddenTypesForProjectManager.has(a.type)) return false;
     if (filter !== 'all' && a.status !== filter) return false;
     if (typeFilter !== 'all' && a.type !== typeFilter) return false;
 
@@ -49,10 +72,11 @@ export const AIMonitoringPage = () => {
     return true;
   });
 
-  const selectedAlert = selectedAlertId ? MOCK_AI_ALERTS.find((a) => a.id === selectedAlertId) || null : null;
+  const selectedAlert = selectedAlertId ? alerts.find((a) => a.id === selectedAlertId) || null : null;
+  const solvingAlert = solvingAlertId ? alerts.find((a) => a.id === solvingAlertId) || null : null;
 
   const handleViewAlert = (id: string) => {
-    if (user?.role === 'project_manager') {
+    if (user?.role === 'project_manager' || user?.role === 'site_engineer' || user?.role === 'safety_officer') {
       setSelectedAlertId(id);
       return;
     }
@@ -195,7 +219,7 @@ export const AIMonitoringPage = () => {
       <div className="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mt-1 mb-4">
         {['all', 'new', 'acknowledged', 'resolved', 'dismissed'].map((s) => {
           const config = STATUS_CONFIGS[s];
-          const count = s === 'all' ? MOCK_AI_ALERTS.length : MOCK_AI_ALERTS.filter((a) => a.status === s).length;
+          const count = s === 'all' ? alerts.length : alerts.filter((a) => a.status === s).length;
           const isActive = filter === s;
 
           return (
@@ -223,10 +247,10 @@ export const AIMonitoringPage = () => {
           className={`btn btn-sm ${typeFilter === 'no_ppe' ? 'btn-primary' : 'btn-outline-secondary'}`}
           onClick={() => setTypeFilter('no_ppe')}
         >
-          <i className="bi bi-person-check-fill me-1" />PPE Compilence
+          <i className="bi bi-person-check-fill me-1" />PPE Compliance
         </button>
         {Object.entries(AI_ALERT_CONFIG)
-          .filter(([key]) => key !== 'no_ppe')
+          .filter(([key]) => key !== 'no_ppe' && !(user?.role === 'project_manager' && hiddenTypesForProjectManager.has(key)))
           .map(([key, config]) => (
           <button
             key={key}
@@ -252,14 +276,49 @@ export const AIMonitoringPage = () => {
           <AIAlertCard
             key={alert.id}
             alert={alert}
-            onAcknowledge={(id) => console.log('Acknowledge', id)}
-            onResolve={(id) => console.log('Resolve', id)}
+            userRole={user?.role}
+            onAcknowledge={handleAcknowledge}
+            onResolve={handleResolve}
+            onSolve={handleSolve}
             onView={handleViewAlert}
           />
         ))
       )}
 
       <AlertDetailModal alert={selectedAlert} onClose={() => setSelectedAlertId(null)} />
+
+      {solvingAlert && (
+        <>
+          <div className="modal-backdrop fade show" style={{ zIndex: 1040 }} onClick={() => setSolvingAlertId(null)} />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ zIndex: 1050, overflowY: 'auto' }}>
+            <div className="modal-dialog modal-dialog-centered modal-lg">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-dark text-white border-0 py-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
+                  <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i className="bi bi-shield-fill-check text-success" />
+                    PPE Inspection - Solve Violation
+                  </h5>
+                  <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setSolvingAlertId(null)} />
+                </div>
+                <div className="modal-body p-0">
+                  <SupervisorHITLPPEPage
+                    isModal={true}
+                    taskId={solvingAlert.id}
+                    initialSiteName={solvingAlert.siteCode || solvingAlert.siteName}
+                    initialChainage={solvingAlert.chainageLabel || solvingAlert.chainageId}
+                    onClose={() => setSolvingAlertId(null)}
+                    onSubmitSuccess={() => {
+                      updateAIAlertStatus(solvingAlert.id, 'resolved');
+                      setAlerts([...MOCK_AI_ALERTS]);
+                      setSolvingAlertId(null);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

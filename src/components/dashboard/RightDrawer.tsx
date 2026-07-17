@@ -1,3 +1,6 @@
+import { MOCK_AI_ALERTS } from '../../services/mockData';
+import { AI_ALERT_CONFIG } from '../../constants';
+
 interface AlertItem {
   id: string;
   title: string;
@@ -18,15 +21,28 @@ const SEVERITY_COLORS: Record<string, string> = {
   low: 'secondary',
 };
 
-const MOCK_DRAWER_ALERTS: AlertItem[] = [
-  { id: '1', title: 'Critical Fall Hazard near Pier 3 scaffolding', time: '2 mins ago', type: 'AI Incident', severity: 'critical' },
-  { id: '2', title: 'Unauthorized person entered Piling area', time: '15 mins ago', type: 'PPE Intrusion', severity: 'high' },
-  { id: '3', title: 'Dump Truck exceeding speed limit on access road', time: '40 mins ago', type: 'Speed Violation', severity: 'medium' },
-  { id: '4', title: 'Daily Compaction Audit report is ready', time: '1 hr ago', type: 'Report Out', severity: 'low' },
-  { id: '5', title: 'Concrete Cube strength test pending approval', time: '2 hrs ago', type: 'Quality Check', severity: 'high' },
-];
+const getTimeAgo = (timestamp: string) => {
+  const diffMs = Date.now() - new Date(timestamp).getTime();
+  const mins = Math.max(1, Math.floor(diffMs / 60000));
+  if (mins < 60) return `${mins} mins ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+};
 
 export const RightDrawer = ({ isOpen, onClose }: RightDrawerProps) => {
+  const drawerAlerts: AlertItem[] = [...MOCK_AI_ALERTS]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 6)
+    .map((alert) => ({
+      id: alert.id,
+      title: alert.description,
+      time: getTimeAgo(alert.timestamp),
+      type: AI_ALERT_CONFIG[alert.type]?.label || 'AI Alert',
+      severity: alert.severity,
+    }));
+
   return (
     <>
       {/* Backdrop overlay */}
@@ -94,7 +110,7 @@ export const RightDrawer = ({ isOpen, onClose }: RightDrawerProps) => {
               Real-Time Severity Alerts
             </span>
             <div className="d-grid gap-2">
-              {MOCK_DRAWER_ALERTS.map((alert) => {
+              {drawerAlerts.map((alert) => {
                 const color = SEVERITY_COLORS[alert.severity] || 'secondary';
                 return (
                   <div

@@ -143,17 +143,17 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           icon: 'bi-robot',
           desc: 'AI threat detections grouped by severity.',
           stats: [
-            { label: 'Critical Severity', value: '1 unresolved', trend: 'Action needed', isPositive: false },
-            { label: 'High Severity', value: '3 items', trend: 'PPE violation', isPositive: false },
-            { label: 'Medium Severity', value: '8 items', trend: 'Restricted zones', isPositive: true },
-            { label: 'Low Severity', value: '2 items', trend: 'Mask alerts', isPositive: true },
+            { label: 'Critical Severity', value: '3 unresolved', trend: 'Immediate action needed', isPositive: false },
+            { label: 'PPE Violations', value: '3 items', trend: 'No Vest / No Boots / No Glove', isPositive: false },
+            { label: 'Medium Severity', value: '5 items', trend: 'Worker and smoke events', isPositive: true },
+            { label: 'Resolved Alerts', value: '2 items', trend: 'Controlled and closed', isPositive: true },
           ],
           chartColor: '#dc2626',
           miniChartData: [22, 19, 18, 15, 17, 16, 14],
           contractors: [
-            { name: 'Helmet Violation', value: '6 alerts today', status: 'High' },
-            { name: 'Restricted Zone', value: '4 alerts today', status: 'Medium' },
-            { name: 'Wrong-way Vehicle', value: '1 alert today', status: 'Low' },
+            { name: 'PPE Violation [Critical]', value: 'No Vest - Site-C (2+500 m)', status: 'Critical' },
+            { name: 'PPE Violation [Critical]', value: 'No Vest, No Helmet, No Boots - Site-B (5+000 m)', status: 'Critical' },
+            { name: 'PPE Violation [Critical]', value: 'No Glove - Site-D (1+000 m)', status: 'Critical' },
           ],
         };
       case 'quality-inspections':
@@ -238,17 +238,17 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           icon: 'bi-person-check-fill',
           desc: 'AI compliance checks on helmet, safety vests, protective boots, and gloves.',
           stats: [
-            { label: 'Helmet Compliance', value: '94.0%', trend: 'Optimal', isPositive: true },
-            { label: 'Safety Vest Compliance', value: '89.0%', trend: 'Good', isPositive: true },
-            { label: 'Safety Boots Compliance', value: '82.0%', trend: 'Moderate', isPositive: true },
-            { label: 'Safety Gloves Compliance', value: '71.0%', trend: 'Needs focus', isPositive: false },
+            { label: 'Helmet Compliance', value: '89.0%', trend: '-3.0% vs yesterday', isPositive: false },
+            { label: 'Safety Vest Compliance', value: '81.0%', trend: 'Critical watchlist', isPositive: false },
+            { label: 'Safety Boots Compliance', value: '79.0%', trend: 'Needs corrective action', isPositive: false },
+            { label: 'Safety Gloves Compliance', value: '74.0%', trend: 'Training required', isPositive: false },
           ],
           chartColor: '#16a34a',
-          miniChartData: [88, 89, 90, 89, 91, 91, 91.2],
+          miniChartData: [90, 88, 87, 85, 84, 82, 81],
           contractors: [
-            { name: 'L&T Infrastructure', value: '94% Rate', status: 'Excellent' },
-            { name: 'Vijay Projects Ltd', value: '89% Rate', status: 'Approved' },
-            { name: 'Hindustan Heavy Co', value: '85% Rate', status: 'Approved' },
+            { name: 'Site-C | Camera 5', value: 'No Vest | Engineer: Ganesh | 2:00 PM', status: 'Critical' },
+            { name: 'Site-B | Camera 2', value: 'No Vest, No Helmet, No Boots | Engineer: Kalisha | 2:10 PM', status: 'Critical' },
+            { name: 'Site-D | Camera 2', value: 'No Glove | Engineer: Velan | 2:30 PM', status: 'Critical' },
           ],
         };
       case 'active-incidents':
