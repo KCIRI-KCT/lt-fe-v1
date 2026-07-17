@@ -545,7 +545,7 @@ export const ProjectManagerDashboard = () => {
           >
             <span className="notification-dot bg-danger" style={{ width: 6, height: 6, position: 'absolute', top: 8, right: 12 }} />
             <i className="bi bi-bell-fill me-1.5 text-primary" />
-            <span>Alert Center ({MOCK_AI_ALERTS.length})</span>
+            <span>Notification Center ({MOCK_AI_ALERTS.length})</span>
           </button>
         </div>
       </section>

@@ -214,6 +214,28 @@ export const deleteCamera = (id: string) => {
 
 // AI Alerts
 const INITIAL_AI_ALERTS: AIAlert[] = [
+  {
+    id: 'ppe-001',
+    cameraId: '8',
+    cameraName: 'Camera 8',
+    siteId: '1',
+    siteName: 'Site A - KM 0-15',
+    siteCode: 'Site-A',
+    projectId: '1',
+    chainageId: 'CH-01',
+    chainageLabel: '1+500 m',
+    type: 'no_ppe',
+    severity: 'high',
+    timestamp: new Date(Date.now() - 300000).toISOString(),
+    description: 'No helmet, No Vest',
+    status: 'new',
+    detailFields: [
+      { label: 'Site Engineer', value: 'Ramesh' },
+      { label: 'Camera', value: 'Camera 8' },
+      { label: 'Date', value: '17/7/2026' },
+      { label: 'Time', value: '12:00 PM' },
+    ],
+  },
   { id: '1', cameraId: '1', cameraName: 'Main Gate - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', type: 'helmet_violation', severity: 'high', timestamp: new Date(Date.now() - 300000).toISOString(), description: 'Worker detected without helmet at main gate entry', status: 'new' },
   { id: '2', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'vest_violation', severity: 'medium', timestamp: new Date(Date.now() - 1800000).toISOString(), description: '3 workers without safety vests in excavation zone', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 900000).toISOString() },
   { id: '3', cameraId: '4', cameraName: 'Bridge Construction - Site B', siteId: '2', siteName: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', type: 'fall_detected', severity: 'critical', timestamp: new Date(Date.now() - 3600000).toISOString(), description: 'Possible fall detected near bridge pier edge', status: 'new' },
@@ -224,11 +246,35 @@ const INITIAL_AI_ALERTS: AIAlert[] = [
   { id: '8', cameraId: '2', cameraName: 'Excavation Zone - Site A', siteId: '1', siteName: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', type: 'smoke_detected', severity: 'high', timestamp: new Date(Date.now() - 43200000).toISOString(), description: 'Smoke detected near excavation machinery', status: 'acknowledged', acknowledgedBy: 'Suresh Reddy', acknowledgedAt: new Date(Date.now() - 36000000).toISOString() },
 ];
 export const MOCK_AI_ALERTS: AIAlert[] = (() => {
+  const ppeTemplate = INITIAL_AI_ALERTS[0];
   const data = storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
   if (!data || data.length === 0 || !data[0].projectId) {
     storage.set(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+    return storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
   }
-  return storage.get<AIAlert[]>(KEYS.AI_ALERTS, INITIAL_AI_ALERTS);
+
+  const hasPpeViolation = data.some((a) => a.id === 'ppe-001' || (a.type === 'no_ppe' && a.description === 'No helmet, No Vest'));
+  if (!hasPpeViolation) {
+    const merged = [INITIAL_AI_ALERTS[0], ...data];
+    storage.set(KEYS.AI_ALERTS, merged);
+    return merged;
+  }
+
+  const normalized = data.map((a) => {
+    if (a.id !== 'ppe-001' && a.type !== 'no_ppe') return a;
+
+    return {
+      ...a,
+      cameraId: ppeTemplate.cameraId,
+      cameraName: ppeTemplate.cameraName,
+      siteCode: ppeTemplate.siteCode,
+      chainageLabel: ppeTemplate.chainageLabel,
+      detailFields: ppeTemplate.detailFields,
+    };
+  });
+
+  storage.set(KEYS.AI_ALERTS, normalized);
+  return normalized;
 })();
 
 // Incidents

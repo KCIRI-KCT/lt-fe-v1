@@ -12,6 +12,8 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView }: AIAlert
   const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
   const timeAgo = getTimeAgo(alert.timestamp);
   const severityBadge = SEVERITY_BADGES[alert.severity] || 'text-bg-secondary';
+  const locationLabel = alert.siteCode || alert.siteName || 'N/A';
+  const chainageLabel = alert.chainageLabel || alert.chainageId;
 
   return (
     <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}`, padding: '16px' }}>
@@ -30,8 +32,9 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView }: AIAlert
             </div>
             <p className="text-muted small mb-1">{alert.description}</p>
             <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
-              <span><i className="bi bi-camera-video me-1" />{alert.cameraName || 'N/A'}</span>
-              <span><i className="bi bi-geo-alt me-1" />{alert.siteName || 'N/A'}</span>
+              {alert.cameraName && <span><i className="bi bi-camera-video me-1" />{alert.cameraName}</span>}
+              <span><i className="bi bi-geo-alt me-1" />{locationLabel}</span>
+              {chainageLabel && <span><i className="bi bi-signpost-split me-1" />{chainageLabel}</span>}
               <span><i className="bi bi-clock me-1" />{timeAgo}</span>
             </div>
           </div>

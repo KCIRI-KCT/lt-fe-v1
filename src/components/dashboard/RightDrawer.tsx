@@ -159,12 +159,9 @@ export const RightDrawer = ({ isOpen, onClose }: RightDrawerProps) => {
         </div>
 
         {/* Drawer Footer */}
-        <div className="p-3 bg-light border-top d-flex gap-2 justify-content-between">
-          <button className="btn btn-outline-secondary w-100 btn-xs py-1" style={{ fontSize: '11px' }} onClick={onClose}>
-            Close Drawer
-          </button>
+        <div className="p-3 bg-light border-top d-flex justify-content-center">
           <button
-            className="btn btn-primary w-100 btn-xs py-1"
+            className="btn btn-primary btn-xs py-1 px-4"
             style={{ fontSize: '11px' }}
             onClick={() => {
               alert('Acknowledge all notifications clicked');

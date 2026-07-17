@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { AIAlertCard } from '../components/cards/AIAlertCard';
 import { MOCK_AI_ALERTS, MOCK_SITES } from '../services/mockData';
 import { AI_ALERT_CONFIG } from '../constants';
+import { useApp } from '../hooks/useApp';
+import { AlertDetailModal } from '../components/common/AlertDetailModal';
 
 const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color: string }> = {
   all: { icon: 'bi-grid-fill', activeClass: 'bg-primary-subtle border-primary text-primary', color: '#0d6efd' },
@@ -12,8 +14,10 @@ const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color:
 };
 
 export const AIMonitoringPage = () => {
+  const { user } = useApp();
   const [filter, setFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -44,6 +48,16 @@ export const AIMonitoringPage = () => {
 
     return true;
   });
+
+  const selectedAlert = selectedAlertId ? MOCK_AI_ALERTS.find((a) => a.id === selectedAlertId) || null : null;
+
+  const handleViewAlert = (id: string) => {
+    if (user?.role === 'project_manager') {
+      setSelectedAlertId(id);
+      return;
+    }
+    console.log('View', id);
+  };
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -205,7 +219,15 @@ export const AIMonitoringPage = () => {
       {/* Type filter */}
       <div className="d-flex flex-wrap gap-2 mb-4">
         <button className={`btn btn-sm ${typeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setTypeFilter('all')}>All Types</button>
-        {Object.entries(AI_ALERT_CONFIG).map(([key, config]) => (
+        <button
+          className={`btn btn-sm ${typeFilter === 'no_ppe' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => setTypeFilter('no_ppe')}
+        >
+          <i className="bi bi-person-check-fill me-1" />PPE Compilence
+        </button>
+        {Object.entries(AI_ALERT_CONFIG)
+          .filter(([key]) => key !== 'no_ppe')
+          .map(([key, config]) => (
           <button
             key={key}
             className={`btn btn-sm ${typeFilter === key ? 'btn-primary' : 'btn-outline-secondary'}`}
@@ -213,7 +235,7 @@ export const AIMonitoringPage = () => {
           >
             <i className={`${config.icon} me-1`} />{config.label}
           </button>
-        ))}
+          ))}
       </div>
 
       {/* Alerts list */}
@@ -232,10 +254,12 @@ export const AIMonitoringPage = () => {
             alert={alert}
             onAcknowledge={(id) => console.log('Acknowledge', id)}
             onResolve={(id) => console.log('Resolve', id)}
-            onView={(id) => console.log('View', id)}
+            onView={handleViewAlert}
           />
         ))
       )}
+
+      <AlertDetailModal alert={selectedAlert} onClose={() => setSelectedAlertId(null)} />
     </div>
   );
 };
