@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { MOCK_NOTIFICATIONS } from '../../services/mockData';
+import { Menu, Clock, Bell, VideoOff, TriangleAlert, Cpu } from 'lucide-react';
 
 
 export const Navbar = () => {
@@ -31,51 +32,49 @@ export const Navbar = () => {
     <nav className="navbar admin-navbar navbar-expand bg-white">
       <div className="container-fluid px-3 px-lg-4">
         <button
-          className="btn btn-sm btn-link text-body me-2 border-0 p-0"
+          className="btn btn-sm btn-link text-body me-2 border-0 p-0 d-flex align-items-center justify-content-center"
           type="button"
           onClick={toggleSidebar}
           aria-label="Toggle Sidebar"
           title="Toggle Sidebar"
         >
-          <i className="bi bi-list fs-3" />
+          <Menu size={24} />
         </button>
 
-        <Link to="/health" className="navbar-brand d-flex align-items-center me-3">
-          <div className="d-flex align-items-center gap-2 border-end pe-3 me-3" style={{ height: '32px' }}>
-            <img src="/images/tidco-logo.png" alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
-            <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
-            <img src="/images/kciri_logo.png" alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
-          </div>
-          <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>L&T Construction Monitoring</span>
-        </Link>
+        <div className="d-flex align-items-center gap-2 border-end pe-3 me-3" style={{ height: '32px' }}>
+          <img src="/images/tidco-logo.png" alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
+          <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
+          <img src="/images/kciri_logo.png" alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
+        </div>
+        <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>L&T Construction Monitoring</span>
 
 
         <div className="navbar-actions ms-auto">
           {currentTime && (
-            <div className="d-none d-md-flex align-items-center me-3 small text-muted font-monospace border-end pe-3" style={{ height: '24px' }}>
-              <i className="bi bi-clock me-2 text-primary" />
+            <div className="d-none d-md-flex align-items-center me-3 small text-muted font-monospace border-end pe-3 gap-2" style={{ height: '24px' }}>
+              <Clock size={16} className="text-primary" />
               <span>{currentTime}</span>
             </div>
           )}
 
           <div className="dropdown">
             <button
-              className="icon-button"
+              className="icon-button d-flex align-items-center justify-content-center"
               type="button"
               data-bs-toggle="dropdown"
               aria-expanded="false"
               aria-label="Notifications"
             >
               <span className="notification-dot" />
-              <i className="bi bi-bell" aria-hidden="true" />
+              <Bell size={18} />
             </button>
             <div className="dropdown-menu dropdown-menu-end notification-menu p-3" style={{ width: '320px', maxHeight: '420px', overflowY: 'auto' }}>
               <div className="dropdown-header fw-bold text-body border-bottom pb-2 mb-2 px-0">Notifications</div>
               {user?.role === 'admin' ? (
                 <div className="d-grid gap-3">
                   <div>
-                    <span className="small text-danger fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <i className="bi bi-camera-video-off-fill" /> CAMERA FAILURES
+                    <span className="small text-danger fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <VideoOff size={12} /> CAMERA FAILURES
                     </span>
                     <div className="d-grid gap-1.5 ps-1">
                       <div className="py-1" style={{ fontSize: '0.78rem' }}>
@@ -90,8 +89,8 @@ export const Navbar = () => {
                   </div>
 
                   <div>
-                    <span className="small text-warning fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <i className="bi bi-exclamation-triangle-fill" /> NETWORK FAILURES
+                    <span className="small text-warning fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <TriangleAlert size={12} /> NETWORK FAILURES
                     </span>
                     <div className="d-grid gap-1.5 ps-1">
                       <div className="py-1" style={{ fontSize: '0.78rem' }}>
@@ -106,8 +105,8 @@ export const Navbar = () => {
                   </div>
 
                   <div>
-                    <span className="small text-info fw-bold d-flex align-items-center gap-1 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <i className="bi bi-cpu-fill" /> SYSTEM MALFUNCTIONS
+                    <span className="small text-info fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
+                      <Cpu size={12} /> SYSTEM MALFUNCTIONS
                     </span>
                     <div className="d-grid gap-1.5 ps-1">
                       <div className="py-1" style={{ fontSize: '0.78rem' }}>

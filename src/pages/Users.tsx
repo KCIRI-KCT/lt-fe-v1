@@ -108,8 +108,8 @@ export const Users = () => {
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    let valA = (a as any)[sortBy] || '';
-    let valB = (b as any)[sortBy] || '';
+    let valA = a[sortBy as keyof UserProfile] || '';
+    let valB = b[sortBy as keyof UserProfile] || '';
 
     if (typeof valA === 'string') valA = valA.toLowerCase();
     if (typeof valB === 'string') valB = valB.toLowerCase();

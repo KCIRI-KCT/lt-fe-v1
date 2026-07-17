@@ -219,10 +219,11 @@ export const ReportsPage = () => {
       <div className="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mt-1 mb-4">
         {['all', 'ready', 'generating', 'pdf', 'excel'].map((s) => {
           const config = STATUS_CONFIGS[s];
-          let count = 0;
-          if (s === 'all') count = MOCK_REPORTS.length;
-          else if (s === 'ready' || s === 'generating') count = MOCK_REPORTS.filter((r) => r.status === s).length;
-          else count = MOCK_REPORTS.filter((r) => r.format === s).length;
+          const count = s === 'all'
+            ? MOCK_REPORTS.length
+            : (s === 'ready' || s === 'generating')
+              ? MOCK_REPORTS.filter((r) => r.status === s).length
+              : MOCK_REPORTS.filter((r) => r.format === s).length;
 
           const isActive = filter === s;
 

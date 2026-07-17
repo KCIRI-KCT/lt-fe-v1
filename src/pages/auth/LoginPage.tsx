@@ -23,7 +23,7 @@ export const LoginPage = () => {
       const targetPath = matchedUser ? getFirstSidebarRoute(matchedUser.role) : '/health';
       navigate(targetPath);
     } catch {
-      setError('Invalid credentials. Try: karthee@kciri.com');
+      setError('Invalid credentials. Try: karthee@lt.com');
     } finally {
       setLoading(false);
     }
@@ -34,8 +34,8 @@ export const LoginPage = () => {
       <div className="auth-page">
         <div className="auth-card">
           <div className="text-center mb-4">
-            <img src="/images/lt-logo.png" alt="KCIRI" style={{ height: '60px' }} />
-            <h2 className="h4 mt-3 fw-bold">AI Progress Monitor</h2>
+            <img src="/images/lt-logo.png" alt="LT" style={{ height: '60px' }} />
+            <h2 className="h4 mt-3 fw-bold">L&T CONSTRUCTION MONITORING</h2>
             <p className="text-muted small">Enterprise Construction Monitoring Platform</p>
           </div>
 
@@ -50,7 +50,7 @@ export const LoginPage = () => {
                 type="email"
                 className="form-control"
                 id="email"
-                placeholder="karthee@kciri.com"
+                placeholder="Enter Email ID"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -63,7 +63,7 @@ export const LoginPage = () => {
                 type="password"
                 className="form-control"
                 id="password"
-                placeholder="Enter password"
+                placeholder="Enter Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -86,7 +86,7 @@ export const LoginPage = () => {
                 <button
                   key={u.id}
                   type="button"
-                  className="btn btn-light btn-sm text-start"
+                  className="btn btn-secondary btn-sm text-start"
                   onClick={() => { setEmail(u.email); setPassword('demo123'); }}
                 >
                   <span className="badge me-2" style={{ fontSize: '0.65rem' }}>{u.role.replace('_', ' ')}</span>

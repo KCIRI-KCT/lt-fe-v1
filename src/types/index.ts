@@ -7,12 +7,10 @@ export type Theme = 'light' | 'dark';
 
 /** User roles for permission-based rendering */
 export type UserRole =
-  | 'super_admin'
   | 'admin'
-  | 'project_director'
   | 'project_manager'
-  | 'site_supervisor'
   | 'site_engineer'
+  | 'site_supervisor'
   | 'safety_manager'
   | 'safety_officer';
 
@@ -51,11 +49,13 @@ export interface SidebarState {
 /** Global application context */
 export interface AppContextState {
   theme: Theme;
+  sidebarTheme: 'dark' | 'light';
   user: UserProfile;
   auth: AuthState;
   sidebar: SidebarState;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  toggleSidebarTheme: () => void;
   toggleSidebar: () => void;
   closeMobileSidebar: () => void;
   setSidebarMini: (mini: boolean) => void;

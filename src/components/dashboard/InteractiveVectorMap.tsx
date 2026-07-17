@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { MOCK_CHAINAGES } from '../../services/mockData';
 
 interface InteractiveVectorMapProps {
@@ -15,18 +15,22 @@ export const InteractiveVectorMap = ({
   onActionClick,
 }: InteractiveVectorMapProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Record<string, any>>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [hoveredChainageId, setHoveredChainageId] = useState<string | null>(null);
 
-  // Filter chainages
-  const filteredChainages = MOCK_CHAINAGES.filter((ch) => {
-    if (selectedProject && ch.project !== selectedProject) return false;
-    if (selectedSite && ch.site !== selectedSite) return false;
-    if (selectedChainage && ch.id !== selectedChainage) return false;
-    return true;
-  });
+  // Filter chainages memoized to prevent infinite renders or dependency warnings
+  const filteredChainages = useMemo(() => {
+    return MOCK_CHAINAGES.filter((ch) => {
+      if (selectedProject && ch.project !== selectedProject) return false;
+      if (selectedSite && ch.site !== selectedSite) return false;
+      if (selectedChainage && ch.id !== selectedChainage) return false;
+      return true;
+    });
+  }, [selectedProject, selectedSite, selectedChainage]);
 
   // Load Leaflet dynamically
   useEffect(() => {
@@ -47,7 +51,7 @@ export const InteractiveVectorMap = ({
       jsScript.onload = () => setMapLoaded(true);
       document.body.appendChild(jsScript);
     } else {
-      setMapLoaded(true);
+      setTimeout(() => setMapLoaded(true), 0);
     }
   }, []);
 
@@ -55,6 +59,7 @@ export const InteractiveVectorMap = ({
   useEffect(() => {
     if (!mapLoaded || !mapContainerRef.current) return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L = (window as any).L;
     if (!L) return;
 
@@ -128,7 +133,7 @@ export const InteractiveVectorMap = ({
     } else {
       map.setView([20.5937, 78.9629], 5);
     }
-  }, [mapLoaded, selectedProject, selectedSite, selectedChainage]);
+  }, [mapLoaded, selectedProject, selectedSite, selectedChainage, filteredChainages, onActionClick]);
 
   return (
     <div className="d-flex flex-column h-100 bg-white">

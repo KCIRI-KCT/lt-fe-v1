@@ -2,6 +2,8 @@
 interface KpiPopoverProps {
   cardId: string;
   onClose: () => void;
+  selectedProject?: string;
+  selectedSite?: string;
 }
 
 interface MetricBreakdown {
@@ -11,7 +13,7 @@ interface MetricBreakdown {
   isPositive?: boolean;
 }
 
-export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
+export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: KpiPopoverProps) => {
   // Return different dynamic info based on which card is clicked
   const getCardDetails = (): {
     title: string;
@@ -20,7 +22,8 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
     stats: MetricBreakdown[];
     chartColor: string;
     miniChartData: number[];
-    contractors: { name: string; value: string; status: string }[];
+    contractors: { name: string; value: string; status: string; project?: string }[];
+    breakdownTitle?: string;
   } => {
     switch (cardId) {
       case 'total-workers':
@@ -36,10 +39,13 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           ],
           chartColor: '#2563eb',
           miniChartData: [60, 65, 70, 75, 82, 88, 94],
+          breakdownTitle: 'Site-Wise Workforce Breakdown',
           contractors: [
-            { name: 'L&T Infrastructure', value: '1,200 Present', status: 'Optimal' },
-            { name: 'Vijay Projects Ltd', value: '850 Present', status: 'Optimal' },
-            { name: 'Hindustan Heavy Co', value: '630 Present', status: 'Understaffed' },
+            { name: 'Site A - KM 0-15', value: '280 Present', status: 'Optimal', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site B - KM 15-30', value: '245 Present', status: 'Optimal', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site C - KM 30-45', value: '260 Present', status: 'Optimal', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site D - KM 0-12', value: '190 Present', status: 'Optimal', project: 'Mumbai Ring Road' },
+            { name: 'Site E - KM 12-25', value: '210 Present', status: 'Optimal', project: 'Mumbai Ring Road' },
           ],
         };
       case 'safety-compliance':
@@ -55,10 +61,13 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           ],
           chartColor: '#16a34a',
           miniChartData: [85, 87, 86, 89, 90, 90, 91.2],
+          breakdownTitle: 'Site-Wise Safety Compliance Score',
           contractors: [
-            { name: 'L&T Infrastructure', value: '96% Score', status: 'Excellent' },
-            { name: 'Vijay Projects Ltd', value: '88% Score', status: 'Warning' },
-            { name: 'Hindustan Heavy Co', value: '90% Score', status: 'Good' },
+            { name: 'Site A - KM 0-15', value: '92% Score', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site B - KM 15-30', value: '88% Score', status: 'Good', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site C - KM 30-45', value: '95% Score', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site D - KM 0-12', value: '85% Score', status: 'Good', project: 'Mumbai Ring Road' },
+            { name: 'Site E - KM 12-25', value: '90% Score', status: 'Excellent', project: 'Mumbai Ring Road' },
           ],
         };
       case 'overall-progress':
@@ -75,9 +84,9 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           chartColor: '#0f766e',
           miniChartData: [5, 12, 18, 22, 28, 31, 33.7],
           contractors: [
-            { name: 'Chennai Expressway', value: '35% Completed', status: 'On track' },
-            { name: 'Mumbai Ring Road', value: '22% Completed', status: 'Delayed' },
-            { name: 'Hyderabad Metro', value: '15% Completed', status: 'Delayed' },
+            { name: 'Chennai Expressway', value: '35% Completed', status: 'On track', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Mumbai Ring Road', value: '22% Completed', status: 'Delayed', project: 'Mumbai Ring Road' },
+            { name: 'Hyderabad Metro', value: '15% Completed', status: 'Delayed', project: 'Hyderabad Metro Phase II' },
           ],
         };
       case 'live-cameras':
@@ -94,9 +103,9 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           chartColor: '#2563eb',
           miniChartData: [15, 15, 14, 14, 15, 15, 14],
           contractors: [
-            { name: 'Site A - KM 0-15', value: '8 Online, 0 Offline', status: 'Online' },
-            { name: 'Site B - KM 15-30', value: '6 Online, 0 Offline', status: 'Online' },
-            { name: 'Site C - KM 30-45', value: '0 Online, 1 Offline', status: 'Offline' },
+            { name: 'Site A - KM 0-15', value: '8 Online, 0 Offline', status: 'Online', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site B - KM 15-30', value: '6 Online, 0 Offline', status: 'Online', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site C - KM 30-45', value: '0 Online, 1 Offline', status: 'Offline', project: 'Chennai-Bangalore Expressway' },
           ],
         };
       case 'vehicles':
@@ -245,7 +254,13 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
           ],
           chartColor: '#16a34a',
           miniChartData: [90, 88, 87, 85, 84, 82, 81],
+          breakdownTitle: 'Site-Wise PPE Compliance Rate',
           contractors: [
+            { name: 'Site A - KM 0-15', value: '92% Rate', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site B - KM 15-30', value: '88% Rate', status: 'Good', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site C - KM 30-45', value: '95% Rate', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
+            { name: 'Site D - KM 0-12', value: '85% Rate', status: 'Good', project: 'Mumbai Ring Road' },
+            { name: 'Site E - KM 12-25', value: '90% Rate', status: 'Excellent', project: 'Mumbai Ring Road' },
             { name: 'Site-C | Camera 5', value: 'No Vest | Engineer: Ganesh | 2:00 PM', status: 'Critical' },
             { name: 'Site-B | Camera 2', value: 'No Vest, No Helmet, No Boots | Engineer: Kalisha | 2:10 PM', status: 'Critical' },
             { name: 'Site-D | Camera 2', value: 'No Glove | Engineer: Velan | 2:30 PM', status: 'Critical' },
@@ -294,6 +309,12 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
   };
 
   const details = getCardDetails();
+
+  const filteredContractors = details.contractors.filter((c: any) => {
+    if (selectedSite && c.name !== selectedSite) return false;
+    if (selectedProject && c.project && c.project !== selectedProject) return false;
+    return true;
+  });
 
   return (
     <div
@@ -354,16 +375,16 @@ export const KpiPopover = ({ cardId, onClose }: KpiPopoverProps) => {
             {/* Right Column: List of active sub-components/contractors */}
             <div className="col-12 col-md-6">
               <div className="small fw-bold text-muted text-uppercase mb-2" style={{ letterSpacing: '0.5px' }}>
-                Station / Contractor Breakdown
+                {details.breakdownTitle || 'Station / Contractor Breakdown'}
               </div>
               <div className="d-grid gap-1.5">
-                {details.contractors.map((c, i) => (
+                {filteredContractors.map((c, i) => (
                   <div
                     key={i}
                     className="d-flex align-items-center justify-content-between p-2 rounded border bg-light-subtle"
                   >
-                    <span className="fw-semibold text-body text-truncate" style={{ maxWidth: '140px' }}>{c.name}</span>
-                    <div className="d-flex align-items-center gap-2">
+                    <span className="fw-semibold text-body text-truncate flex-grow-1 me-2">{c.name}</span>
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
                       <span className="text-muted">{c.value}</span>
                       <span
                         className={`badge ${c.status === 'Optimal' || c.status === 'Excellent' || c.status === 'Approved' || c.status === 'Online' || c.status === 'Healthy'

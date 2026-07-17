@@ -16,7 +16,7 @@ lt-fe-v1/
 ├── public/                   # Static assets (logos, icons)
 ├── src/                      # Application source code
 │   ├── api/                  # API clients and integration layer
-│   ├── assets/               # Local static images (L&T, KCIRI, and AI logos)
+│   ├── assets/               # Local static images (L&T, LT, and AI logos)
 │   ├── components/           # Reusable UI component library
 │   │   ├── cards/            # KPI metrics, AI alert cards, incident indicators
 │   │   ├── charts/           # Incident trends and statistical analytics

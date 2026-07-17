@@ -17,7 +17,7 @@ const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color:
 
 export const AIMonitoringPage = () => {
   const { user } = useApp();
-  const hiddenTypesForProjectManager = new Set(['helmet_violation', 'vest_violation', 'mask_violation']);
+  const hiddenTypes = new Set(['helmet_violation', 'vest_violation', 'mask_violation']);
   const [alerts, setAlerts] = useState<AIAlert[]>(() => [...MOCK_AI_ALERTS]);
   const [filter, setFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -52,7 +52,7 @@ export const AIMonitoringPage = () => {
   const [appliedChainage, setAppliedChainage] = useState('');
 
   const filtered = alerts.filter((a) => {
-    if (user?.role === 'project_manager' && hiddenTypesForProjectManager.has(a.type)) return false;
+    if (hiddenTypes.has(a.type)) return false;
     if (filter !== 'all' && a.status !== filter) return false;
     if (typeFilter !== 'all' && a.type !== typeFilter) return false;
 
@@ -250,7 +250,7 @@ export const AIMonitoringPage = () => {
           <i className="bi bi-person-check-fill me-1" />PPE Compliance
         </button>
         {Object.entries(AI_ALERT_CONFIG)
-          .filter(([key]) => key !== 'no_ppe' && !(user?.role === 'project_manager' && hiddenTypesForProjectManager.has(key)))
+          .filter(([key]) => key !== 'no_ppe' && !hiddenTypes.has(key))
           .map(([key, config]) => (
           <button
             key={key}
