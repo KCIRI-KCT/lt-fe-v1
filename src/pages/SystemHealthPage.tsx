@@ -57,7 +57,18 @@ const INITIAL_TELEMETRY: TelemetryRow[] = [
   { id: '8', cameraName: 'Crane Zone - Site E', siteName: 'Site E - KM 12-25', chainageMarker: 'CH 18+200', totalMonitoredMinutes: 1440, offlineMinutes: 55, obstructionMinutes: 12, alignmentFaultMinutes: 6, riskWeight: 1.00 }
 ];
 
-export const calculateTelemetryHealth = (telemetryData: TelemetryRow[]) => {
+interface SiteHealthResult {
+  site_name: string;
+  site_weighted_health_pct: number;
+  chainages: {
+    chainage: string;
+    total_downtime_mins: number;
+    calculated_health_pct: number;
+    status: "Excellent" | "Warning" | "Critical";
+  }[];
+}
+
+const calculateTelemetryHealth = (telemetryData: TelemetryRow[]) => {
   const siteMap: { [key: string]: TelemetryRow[] } = {};
   telemetryData.forEach(row => {
     if (!siteMap[row.siteName]) {
@@ -66,7 +77,7 @@ export const calculateTelemetryHealth = (telemetryData: TelemetryRow[]) => {
     siteMap[row.siteName].push(row);
   });
 
-  const sitesResult: any[] = [];
+  const sitesResult: SiteHealthResult[] = [];
   let sumOfSiteHealths = 0;
 
   Object.entries(siteMap).forEach(([siteName, rows]) => {
@@ -77,7 +88,7 @@ export const calculateTelemetryHealth = (telemetryData: TelemetryRow[]) => {
       const totalDowntime = row.offlineMinutes + row.obstructionMinutes + row.alignmentFaultMinutes;
       const uptime = Math.max(0, row.totalMonitoredMinutes - totalDowntime);
       const calculatedHealthPct = Number(((uptime / row.totalMonitoredMinutes) * 100).toFixed(2));
-      const status = calculatedHealthPct >= 95 ? "Excellent" : calculatedHealthPct >= 85 ? "Warning" : "Critical";
+      const status: "Excellent" | "Warning" | "Critical" = calculatedHealthPct >= 95 ? "Excellent" : calculatedHealthPct >= 85 ? "Warning" : "Critical";
 
       const normWeight = totalWeight > 0 ? (row.riskWeight / totalWeight) : 0;
       siteWeightedHealth += normWeight * calculatedHealthPct;
@@ -943,7 +954,7 @@ export const SystemHealthPage = () => {
                     </div>
                     <div className="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
                       <span className="text-muted">SSL Certificate</span>
-                      <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Valid (Managed by Backend)</span>
+                      <span className="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Valid</span>
                     </div>
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="text-muted">MQTT Connection</span>

@@ -2,11 +2,26 @@
 // User Form Page — Custom Form for User creation and editing
 // ============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MOCK_USERS, upsertUser } from '../services/mockData';
 import type { UserProfile } from '../types';
 import { ROLE_OPTIONS } from '../constants';
+
+// Auto-generate employee ID function
+const generateEmployeeId = (dateString: string) => {
+  if (!dateString) return '';
+  const year = dateString.split('-')[0] || new Date().getFullYear().toString();
+  
+  // Find matching users in that year
+  const matchingUsers = MOCK_USERS.filter((u) => {
+    const uDate = u.joiningDate || u.joinedAt || '';
+    return uDate.startsWith(year);
+  });
+  
+  const seq = String(matchingUsers.length + 1).padStart(3, '0');
+  return `LT-${year}-${seq}`;
+};
 
 export const UserFormPage = () => {
   const { id } = useParams();
@@ -14,66 +29,29 @@ export const UserFormPage = () => {
   const isEdit = !!id && id !== 'add';
   const user = isEdit ? MOCK_USERS.find((u) => u.id === id) : undefined;
 
+  const today = new Date().toISOString().split('T')[0];
+
   // Form Field States
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [department, setDepartment] = useState('');
-  const [location, setLocation] = useState('');
-  const [workspace, setWorkspace] = useState('');
-  const [avatar, setAvatar] = useState('');
-  const [joiningDate, setJoiningDate] = useState('');
-  const [createdAt, setCreatedAt] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
-  const [role, setRole] = useState('');
-  const [address, setAddress] = useState('');
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone] = useState(user?.phone || '');
+  const [department] = useState(user?.department || '');
+  const [location] = useState(user?.location || '');
+  const [workspace] = useState(user?.workspace || '');
+  const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [joiningDate, setJoiningDate] = useState(user?.joiningDate || user?.joinedAt || today);
+  const [createdAt, setCreatedAt] = useState(user?.createdAt || today);
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || generateEmployeeId(today));
+  const [role, setRole] = useState(user?.role || '');
+  const [address, setAddress] = useState(user?.address || '');
 
   // Dynamic Custom Roles List (persisted in localStorage)
   const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>(() => {
-    const saved = localStorage.getItem('kciri-custom-roles');
+    const saved = localStorage.getItem('lt-custom-role');
     return saved ? JSON.parse(saved) : [];
   });
   const [showAddRoleInput, setShowAddRoleInput] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
-
-  // Auto-generate employee ID function
-  const generateEmployeeId = (dateString: string) => {
-    if (!dateString) return '';
-    const year = dateString.split('-')[0] || new Date().getFullYear().toString();
-    
-    // Find matching users in that year
-    const matchingUsers = MOCK_USERS.filter((u) => {
-      const uDate = u.joiningDate || u.joinedAt || '';
-      return uDate.startsWith(year);
-    });
-    
-    const seq = String(matchingUsers.length + 1).padStart(3, '0');
-    return `LT-${year}-${seq}`;
-  };
-
-  // Load existing values or default values
-  useEffect(() => {
-    if (isEdit && user) {
-      setName(user.name || '');
-      setEmail(user.email || '');
-      setPhone(user.phone || '');
-      setDepartment(user.department || '');
-      setLocation(user.location || '');
-      setWorkspace(user.workspace || '');
-      setAvatar(user.avatar || '');
-      setJoiningDate(user.joiningDate || user.joinedAt || '');
-      setCreatedAt(user.createdAt || new Date().toISOString().split('T')[0]);
-      setEmployeeId(user.employeeId || '');
-      setRole(user.role || '');
-      setAddress(user.address || '');
-    } else {
-      const today = new Date().toISOString().split('T')[0];
-      setCreatedAt(today);
-      setJoiningDate(today);
-      // Auto generate initial ID for today
-      setEmployeeId(generateEmployeeId(today));
-    }
-  }, [isEdit, user]);
 
   // Regenerate Employee ID when joiningDate changes in create mode
   const handleJoiningDateChange = (dateVal: string) => {
@@ -98,7 +76,7 @@ export const UserFormPage = () => {
 
     const updated = [...customRoles, { value, label }];
     setCustomRoles(updated);
-    localStorage.setItem('kciri-custom-roles', JSON.stringify(updated));
+    localStorage.setItem('lt-custom-role', JSON.stringify(updated));
     setRole(value); // Auto-select new role
     setNewRoleLabel('');
     setShowAddRoleInput(false);

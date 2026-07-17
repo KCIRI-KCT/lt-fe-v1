@@ -4,7 +4,7 @@
 
 export const APP_NAME = 'AI Progress Monitor';
 export const APP_VERSION = '1.0.0';
-export const COMPANY_NAME = 'KCIRI';
+export const COMPANY_NAME = 'LT';
 
 // ============================================================================
 // Storage Keys
@@ -129,9 +129,9 @@ export const ROLE_COLORS: Record<string, string> = {
 // ============================================================================
 
 export const ROLE_OPTIONS = [
-  { value: 'super_admin', label: 'Super Admin' },
+  // { value: 'super_admin', label: 'Super Admin' },
   { value: 'admin', label: 'Admin' },
-  { value: 'project_director', label: 'Project Director' },
+  // { value: 'project_director', label: 'Project Director' },
   { value: 'project_manager', label: 'Project Manager' },
   { value: 'site_supervisor', label: 'Site Supervisor' },
   { value: 'site_engineer', label: 'Site Engineer' },

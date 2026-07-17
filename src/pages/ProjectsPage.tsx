@@ -174,8 +174,8 @@ export const ProjectsPage = () => {
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    let valA = (a as any)[sortBy] || '';
-    let valB = (b as any)[sortBy] || '';
+    let valA = a[sortBy as keyof ProjectSiteRow] || '';
+    let valB = b[sortBy as keyof ProjectSiteRow] || '';
 
     if (typeof valA === 'string') valA = valA.toLowerCase();
     if (typeof valB === 'string') valB = valB.toLowerCase();

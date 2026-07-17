@@ -1,24 +1,94 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
+import { getNavItemsForRole } from '../../utils/navigation';
+import * as Lucide from 'lucide-react';
+
+const mapIconName = (name: string): string => {
+  if (!name) return 'CircleHelp';
+  const cleanName = name.replace('bi bi-', '').replace('bi-', '');
+  switch (cleanName) {
+    case 'speedometer':
+    case 'speedometer2':
+      return 'LayoutDashboard';
+    case 'camera-video-fill':
+    case 'camera-video':
+    case 'camera':
+      return 'Camera';
+    case 'cpu-fill':
+    case 'cpu':
+      return 'Cpu';
+    case 'heart-pulse':
+      return 'HeartPulse';
+    case 'building-fill':
+    case 'building':
+      return 'Building2';
+    case 'person-badge-fill':
+    case 'person-badge':
+      return 'Users';
+    case 'chat-left-text-fill':
+    case 'chat-left-text':
+    case 'chat-dots':
+    case 'message':
+      return 'MessageSquare';
+    case 'bell-fill':
+    case 'bell':
+      return 'Bell';
+    case 'shield-fill-check':
+    case 'shield-check':
+      return 'ShieldCheck';
+    case 'file-earmark-bar-graph-fill':
+    case 'file-earmark-bar-graph':
+      return 'FileBarChart';
+    case 'gear-fill':
+    case 'gear':
+    case 'settings':
+      return 'Settings';
+    case 'box-arrow-right':
+    case 'logout':
+      return 'LogOut';
+    case 'card-list':
+    case 'list':
+      return 'List';
+    case 'plus-circle-fill':
+    case 'plus-circle':
+      return 'PlusCircle';
+    case 'pencil-fill':
+    case 'pencil':
+      return 'Pencil';
+    case 'trash-fill':
+    case 'trash':
+      return 'Trash';
+    case 'person-plus-fill':
+    case 'person-plus':
+      return 'UserPlus';
+    case 'activity':
+      return 'Activity';
+    case 'cone-striped':
+      return 'AlertTriangle';
+    default:
+      return cleanName
+        .split(/[-_]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('');
+  }
+};
+
+const RenderIcon = ({ name, size = 18, className }: { name: string; size?: number; className?: string }) => {
+  const mappedName = mapIconName(name);
+  const IconComponent = (Lucide as any)[mappedName];
+  if (IconComponent) {
+    return <IconComponent size={size} className={className} />;
+  }
+  return <i className={`${name} ${className || ''}`} aria-hidden="true" />;
+};
 
 
 export const Sidebar = () => {
-  const { sidebar, closeMobileSidebar, user } = useApp();
+  const { sidebar, closeMobileSidebar, user, sidebarTheme, toggleSidebarTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  const [sidebarTheme, setSidebarTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('sidebar-theme');
-    return (saved as 'dark' | 'light') || 'dark'; // Default to dark blue
-  });
-
-  const toggleSidebarTheme = () => {
-    const next = sidebarTheme === 'dark' ? 'light' : 'dark';
-    setSidebarTheme(next);
-    localStorage.setItem('sidebar-theme', next);
-  };
 
   const handleNavClick = () => {
     closeMobileSidebar();
@@ -31,99 +101,21 @@ export const Sidebar = () => {
     }));
   };
 
-  // Define navigation config per role matching the reference table:
-  const getNavItemsForRole = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return [
-          { label: 'System Health', path: '/health', icon: 'bi bi-cpu-fill' },
-          {
-            label: 'Camera',
-            path: '/cameras',
-            icon: 'bi bi-camera-video-fill',
-            children: [
-              { label: 'All Cameras', path: '/cameras', icon: 'bi bi-card-list' },
-              { label: 'Add Camera', path: '/cameras/create', icon: 'bi bi-plus-circle-fill' },
-              { label: 'Update Camera', path: '/cameras/edit', icon: 'bi bi-pencil-fill' },
-              { label: 'Remove Camera', path: '/cameras/delete', icon: 'bi bi-trash-fill' },
-            ]
-          },
-          {
-            label: 'Project Management',
-            path: '/projects',
-            icon: 'bi bi-building-fill',
-            children: [
-              { label: 'All Projects', path: '/projects', icon: 'bi bi-card-list' },
-              { label: 'Add Project', path: '/projects/create', icon: 'bi bi-plus-circle-fill' },
-              { label: 'Update Project', path: '/projects/edit', icon: 'bi bi-pencil-fill' },
-              { label: 'Delete Request', path: '/projects/delete', icon: 'bi bi-trash-fill' },
-            ]
-          },
-          {
-            label: 'User Create',
-            path: '/users',
-            icon: 'bi bi-person-badge-fill',
-            children: [
-              { label: 'All Users', path: '/users', icon: 'bi bi-card-list' },
-              { label: 'Add User', path: '/users/create', icon: 'bi bi-person-plus-fill' },
-              { label: 'Update User', path: '/users/edit', icon: 'bi bi-pencil-fill' },
-              { label: 'Remove User', path: '/users/delete', icon: 'bi bi-trash-fill' },
-            ]
-          },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      case 'project_manager':
-        return [
-          { label: 'Dashboard', path: '/project-manager', icon: 'bi bi-speedometer' },
-          { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-          { label: 'Alert', path: '/ai-monitoring', icon: 'bi bi-robot' },
-          { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      case 'site_supervisor':
-        return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-          { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-          { label: 'Hitl ppe', path: '/ai-monitoring', icon: 'bi bi-shield-fill-check' },
-          { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      case 'site_engineer':
-        return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-          { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-          { label: 'Alert', path: '/ai-monitoring', icon: 'bi bi-robot' },
-          { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      case 'safety_manager':
-        return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-          { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-          { label: 'HITL - Notify', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
-          { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      case 'safety_officer':
-        return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-          { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-          { label: 'Hitl ppe', path: '/ai-monitoring', icon: 'bi bi-shield-fill-check' },
-          { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-      default:
-        return [
-          { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-          { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
-        ];
-    }
-  };
-
   const finalItems = getNavItemsForRole(user?.role || 'admin');
 
-  // Automatically open dropdowns matching the current path
-  useEffect(() => {
+  // Track previous path and mini state to adjust openMenus state during rendering
+  const [prevPath, setPrevPath] = useState(location.pathname);
+  const [prevMini, setPrevMini] = useState(sidebar.mini);
+
+  if (sidebar.mini !== prevMini) {
+    setPrevMini(sidebar.mini);
+    if (sidebar.mini) {
+      setOpenMenus({});
+    }
+  }
+
+  if (location.pathname !== prevPath) {
+    setPrevPath(location.pathname);
     const currentPath = location.pathname;
     const newOpenMenus = { ...openMenus };
     let updated = false;
@@ -141,14 +133,7 @@ export const Sidebar = () => {
     if (updated) {
       setOpenMenus(newOpenMenus);
     }
-  }, [location.pathname]);
-
-  // Collapse submenus when sidebar mini mode is active
-  useEffect(() => {
-    if (sidebar.mini) {
-      setOpenMenus({});
-    }
-  }, [sidebar.mini]);
+  }
 
   return (
     <>
@@ -195,13 +180,13 @@ export const Sidebar = () => {
                   >
                     <div className="d-flex align-items-center gap-2">
                       <span className="nav-icon">
-                        <i className={item.icon} aria-hidden="true" />
+                        <RenderIcon name={item.icon} size={20} />
                       </span>
                       <span className="nav-text">{item.label}</span>
                     </div>
                     {!sidebar.mini && (
                       <span className="nav-arrow text-muted me-1 small">
-                        <i className={`bi ${isMenuOpen ? 'bi-chevron-down' : 'bi-chevron-right'}`} />
+                        <RenderIcon name={isMenuOpen ? 'chevron-down' : 'chevron-right'} size={14} />
                       </span>
                     )}
                   </div>
@@ -216,8 +201,8 @@ export const Sidebar = () => {
                           to={child.path}
                           onClick={handleNavClick}
                         >
-                          <span className="nav-icon" style={{ width: '22px', height: '22px', fontSize: '0.65rem' }}>
-                            <i className={child.icon} aria-hidden="true" />
+                          <span className="nav-icon" style={{ width: '22px', height: '22px' }}>
+                            <RenderIcon name={child.icon} size={14} />
                           </span>
                           <span className="nav-text">{child.label}</span>
                         </NavLink>
@@ -237,7 +222,7 @@ export const Sidebar = () => {
                 onClick={handleNavClick}
               >
                 <span className="nav-icon">
-                  <i className={item.icon} aria-hidden="true" />
+                  <RenderIcon name={item.icon} size={20} />
                 </span>
                 <span className="nav-text">{item.label}</span>
               </NavLink>
@@ -246,11 +231,11 @@ export const Sidebar = () => {
         </nav>
 
         {/* Theme Switcher Toggle */}
-        <div className="sidebar-theme-toggle mt-auto p-3 border-top border-secondary border-opacity-10 d-flex align-items-center justify-content-between" style={{ minHeight: '57px' }}>
+        <div className={`sidebar-theme-toggle mt-auto border-top border-secondary border-opacity-10 d-flex align-items-center ${sidebar.mini ? 'p-2 justify-content-center' : 'p-3 justify-content-between'}`} style={{ minHeight: '57px' }}>
           {!sidebar.mini ? (
             <>
-              <span className="small text-muted fw-semibold" style={{ fontSize: '0.75rem', color: 'var(--admin-sidebar-text)' }}>
-                <i className={`bi ${sidebarTheme === 'dark' ? 'bi-moon-stars-fill' : 'bi-sun-fill'} me-2`} style={{ color: 'var(--admin-sidebar-icon)' }} />
+              <span className="small text-muted fw-semibold d-flex align-items-center gap-2" style={{ fontSize: '0.75rem', color: 'var(--admin-sidebar-text)' }}>
+                <RenderIcon name={sidebarTheme === 'dark' ? 'moon' : 'sun'} />
                 {sidebarTheme === 'dark' ? 'Dark Blue Sidebar' : 'White Sidebar'}
               </span>
               <div className="form-check form-switch mb-0">
@@ -268,12 +253,12 @@ export const Sidebar = () => {
           ) : (
             <button
               type="button"
-              className="btn btn-sm btn-link p-0 text-muted mx-auto d-flex align-items-center justify-content-center"
+              className="btn btn-sm btn-link p-0 mx-auto d-flex align-items-center justify-content-center"
               onClick={toggleSidebarTheme}
               title={sidebarTheme === 'dark' ? 'Switch to White Sidebar' : 'Switch to Dark Blue Sidebar'}
-              style={{ color: 'var(--admin-sidebar-text)', width: '32px', height: '32px' }}
+              style={{ color: 'var(--admin-sidebar-text)', width: '40px', height: '40px' }}
             >
-              <i className={`bi ${sidebarTheme === 'dark' ? 'bi-moon-stars-fill' : 'bi-sun-fill'} fs-5`} style={{ color: 'var(--admin-sidebar-icon)' }} />
+              <RenderIcon name={sidebarTheme === 'dark' ? 'moon' : 'sun'} size={18} />
             </button>
           )}
         </div>
@@ -281,8 +266,8 @@ export const Sidebar = () => {
         {/* Static Session Activity Log displaying recent 3 activities */}
         {!sidebar.mini && (
           <div className="sidebar-activity p-3 border-top border-secondary border-opacity-10">
-            <div className="fw-bold mb-2 small text-uppercase text-muted" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
-              <i className="bi bi-activity me-1 text-primary" />Session Activity
+            <div className="fw-bold mb-2 small text-uppercase text-muted d-flex align-items-center gap-1.5" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
+              <RenderIcon name="activity" className="text-primary" size={18} /> Session Activity
             </div>
             <div className="d-grid gap-2" style={{ fontSize: '0.72rem' }}>
               <div className="d-flex align-items-center gap-2 text-muted">

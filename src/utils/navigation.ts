@@ -58,7 +58,7 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
       ];
     case 'site_engineer':
       return [
-        { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
+        { label: 'Dashboard', path: '/site-engineer', icon: 'bi bi-speedometer2' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },

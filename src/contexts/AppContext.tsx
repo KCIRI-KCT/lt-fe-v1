@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import type { Theme, UserProfile, AppContextState, UserRole } from '../types';
 import { AppContext } from './appContextBase';
 import { STORAGE_KEYS, BREAKPOINTS } from '../constants';
@@ -119,18 +119,30 @@ function getInitialToken(): string {
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<Theme>(getPreferredTheme);
+  const [sidebarTheme, setSidebarThemeState] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('sidebar-theme');
+    return (saved as 'dark' | 'light') || 'dark';
+  });
   const [sidebarMini, setSidebarMiniState] = useState<boolean>(() => isDesktop() && getSavedItem(STORAGE_KEYS.SIDEBAR_MINI) === 'true');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [authUser, setAuthUser] = useState<UserProfile>(getInitialUser);
   const [authToken, setAuthToken] = useState<string>(getInitialToken);
 
   const isAuthenticated = true; // Demo mode always authenticated
-  const permissions = ROLE_PERMISSIONS[authUser.role] || [];
+  const permissions = useMemo(() => ROLE_PERMISSIONS[authUser.role] || [], [authUser.role]);
 
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light');
     document.documentElement.setAttribute('data-bs-theme', 'light');
+  }, []);
+
+  const toggleSidebarTheme = useCallback(() => {
+    setSidebarThemeState((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('sidebar-theme', next);
+      return next;
+    });
   }, []);
 
   // Handle breakpoint changes
@@ -210,11 +222,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const value: AppContextState = {
     theme,
+    sidebarTheme,
     user: authUser,
     auth: { isAuthenticated, user: authUser, token: authToken, permissions },
     sidebar: { mini: sidebarMini, open: sidebarOpen },
     setTheme,
     toggleTheme,
+    toggleSidebarTheme,
     toggleSidebar,
     closeMobileSidebar,
     setSidebarMini,

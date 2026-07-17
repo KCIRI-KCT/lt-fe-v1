@@ -3,11 +3,13 @@ import type { AppContextState } from '../types';
 
 export const defaultAppContext: AppContextState = {
   theme: 'light',
+  sidebarTheme: 'dark',
   user: { id: '', name: '', email: '', role: 'admin', avatar: '', workspace: '' },
   auth: { isAuthenticated: true, user: null, token: null, permissions: [] },
   sidebar: { mini: false, open: false },
   setTheme: () => {},
   toggleTheme: () => {},
+  toggleSidebarTheme: () => {},
   toggleSidebar: () => {},
   closeMobileSidebar: () => {},
   setSidebarMini: () => {},

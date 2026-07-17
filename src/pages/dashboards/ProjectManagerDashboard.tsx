@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { InteractiveVectorMap } from '../../components/dashboard/InteractiveVectorMap';
@@ -6,6 +6,7 @@ import { PlanVsActualChart } from '../../components/charts/PlanVsActualChart';
 import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
+import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
 import {
   MOCK_AI_ALERTS,
   MOCK_CHAINAGES,
@@ -78,12 +79,10 @@ export const ProjectManagerDashboard = () => {
   // Budget Burn Rate card tab state
   const [budgetTab] = useState<'summary' | 'simulator'>('summary');
   const [simProgress, setSimProgress] = useState<number>(32.5);
+  const [prevSpentPct, setPrevSpentPct] = useState<number>(32.5);
 
   // Active leaderboard details index
   const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
-
-  // Operations console active tab state
-  const [opsTab, setOpsTab] = useState<'materials' | 'machinery'>('materials');
 
   // ── FILTERED DATA COMPUTATIONS ──
   const activeChainages = MOCK_CHAINAGES.filter((ch) => {
@@ -232,7 +231,7 @@ export const ProjectManagerDashboard = () => {
 
 
   // 2. Dynamic Safety Leaderboard logic
-  let leaderboardTitle = 'Safety Leaderboard';
+  let leaderboardTitle: string;
   let leaderboardItems: Array<{
     rank: number;
     name: string;
@@ -242,7 +241,7 @@ export const ProjectManagerDashboard = () => {
     medal: string;
     isSelected?: boolean;
     details: { ppe: number; barricade: string; days: number; speed: number; violation: string; }
-  }> = [];
+  }>;
 
   if (appliedChainage) {
     const selectedCh = MOCK_CHAINAGES.find(c => c.id === appliedChainage);
@@ -411,9 +410,9 @@ export const ProjectManagerDashboard = () => {
   };
 
   // 5. Dynamic Budget calculations
-  let totalBudgetCr = 1050;
-  let spentCr = 342;
-  let spentPct = 32.5;
+  let totalBudgetCr: number;
+  let spentCr: number;
+  let spentPct: number;
 
   const matchedProject = MOCK_PROJECTS.find(p => p.name === appliedProject);
   if (matchedProject) {
@@ -443,9 +442,10 @@ export const ProjectManagerDashboard = () => {
   const dueAmountCr = Math.round(remainingCr * 0.12 * 10) / 10;
 
   // Sync slider target completion whenever filters adjust the spentPct
-  useEffect(() => {
+  if (spentPct !== prevSpentPct) {
+    setPrevSpentPct(spentPct);
     setSimProgress(spentPct);
-  }, [spentPct]);
+  }
 
   // 6. Dynamic AI Alerts list
   const filteredAlerts = MOCK_AI_ALERTS.filter((alert) => {
@@ -514,7 +514,7 @@ export const ProjectManagerDashboard = () => {
       style={{
         minHeight: 'calc(100vh - 72px)',
         background: 'var(--admin-bg, #f5f7fb)',
-        fontFamily: '"Source Sans 3", "Segoe UI", sans-serif',
+        fontFamily: '"Inter", "Segoe UI", sans-serif',
       }}
     >
       {/* ── 1. Greeting & Top Horizontal Action Bar (Velzon/Aurora style) ── */}
@@ -1063,118 +1063,24 @@ export const ProjectManagerDashboard = () => {
           </div>
         </div>
 
-        {/* Box 2: Operations & Material Console */}
-        <div className="col-12 col-lg-6">
-          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '380px' }}>
-            <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-              <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-cpu text-primary fs-5" />
-                <h3 className="h6 mb-0 fw-bold">Operations & Material Console</h3>
-              </div>
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`btn btn-xs py-1 px-2.5 ${opsTab === 'materials' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  style={{ fontSize: '10px' }}
-                  onClick={() => setOpsTab('materials')}
-                >
-                  Materials
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-xs py-1 px-2.5 ${opsTab === 'machinery' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  style={{ fontSize: '10px' }}
-                  onClick={() => setOpsTab('machinery')}
-                >
-                  Machinery
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-grow-1 d-flex flex-column justify-content-center">
-              {opsTab === 'materials' && (
-                <div className="d-grid gap-3" style={{ fontSize: '12.5px' }}>
-                  {/* Cement */}
-                  <div>
-                    <div className="d-flex justify-content-between mb-0.5">
-                      <span className="text-body fw-medium">Cement Stock (Grade 53)</span>
-                      <span className="text-muted fw-bold">1,450 / 2,000 Bags <span className="badge bg-success-subtle text-success ms-1">72%</span></span>
-                    </div>
-                    <div className="progress" style={{ height: '6px' }}>
-                      <div className="progress-bar bg-success" style={{ width: '72%' }} />
-                    </div>
-                    <small className="text-muted" style={{ fontSize: '10.5px' }}>Estimated exhaustion: 7 days remaining</small>
-                  </div>
-
-                  {/* Rebar Steel */}
-                  <div>
-                    <div className="d-flex justify-content-between mb-0.5">
-                      <span className="text-body fw-medium">Rebar Reinforcement Steel</span>
-                      <span className="text-muted fw-bold">18.5 / 25.0 Tons <span className="badge bg-success-subtle text-success ms-1">74%</span></span>
-                    </div>
-                    <div className="progress" style={{ height: '6px' }}>
-                      <div className="progress-bar bg-success" style={{ width: '74%' }} />
-                    </div>
-                    <small className="text-muted" style={{ fontSize: '10.5px' }}>Estimated exhaustion: 5 days remaining</small>
-                  </div>
-
-                  {/* Coarse Aggregate */}
-                  <div>
-                    <div className="d-flex justify-content-between mb-0.5">
-                      <span className="text-body fw-medium">Coarse / Fine Aggregates</span>
-                      <span className="text-muted fw-bold">780 / 1,200 m³ <span className="badge bg-primary-subtle text-primary ms-1">65%</span></span>
-                    </div>
-                    <div className="progress" style={{ height: '6px' }}>
-                      <div className="progress-bar bg-primary" style={{ width: '65%' }} />
-                    </div>
-                    <small className="text-muted" style={{ fontSize: '10.5px' }}>Estimated exhaustion: 12 days remaining</small>
-                  </div>
-
-                  {/* Diesel Fuel */}
-                  <div>
-                    <div className="d-flex justify-content-between mb-0.5">
-                      <span className="text-body fw-medium">Diesel Machinery Fuel Tank</span>
-                      <span className="text-muted fw-bold">3,100 / 4,000 L <span className="badge bg-success-subtle text-success ms-1">77%</span></span>
-                    </div>
-                    <div className="progress" style={{ height: '6px' }}>
-                      <div className="progress-bar bg-success" style={{ width: '77%' }} />
-                    </div>
-                    <small className="text-muted" style={{ fontSize: '10.5px' }}>Estimated exhaustion: 4 days remaining</small>
-                  </div>
-                </div>
-              )}
-
-
-
-              {opsTab === 'machinery' && (
-                <div className="d-flex flex-column gap-2" style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                  {[
-                    { tag: 'Excavator EX-04', status: 'Running', detail: 'Consumption: 14.2 L/hr | Safe Speed: OK', badge: 'bg-success-subtle text-success border' },
-                    { tag: 'Piling Rig PR-02', status: 'Running', detail: 'Drill Depth: 18.5m | Safe Perimeter: OK', badge: 'bg-success-subtle text-success border' },
-                    { tag: 'Crawler Crane CC-01', status: 'Idle', detail: 'Awaiting aggregate concrete layout delivery', badge: 'bg-warning-subtle text-warning border' },
-                    { tag: 'Dumper Truck DT-11', status: 'Moving', detail: 'Speed: 24 km/h | Fuel level: 82% | GPS Locked', badge: 'bg-success-subtle text-success border' }
-                  ].map((m, i) => (
-                    <div key={i} className="d-flex align-items-center justify-content-between p-2 rounded border bg-light-subtle" style={{ fontSize: '12.5px' }}>
-                      <div>
-                        <div className="fw-semibold text-dark">{m.tag}</div>
-                        <small className="text-muted">{m.detail}</small>
-                      </div>
-                      <span className={`badge ${m.badge} p-1.5 fw-bold`}>
-                        {m.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Box 2: Worker Attendance Console */}
+        <WorkerAttendanceConsole
+          selectedProject={appliedProject}
+          selectedSite={appliedSite}
+          selectedChainage={appliedChainage}
+          userRole={user?.role}
+        />
 
       </section>
 
       {/* ── 6. Floating Popover Modal & Alerts Drawer Overlay ── */}
       {activeKpiCardId && (
-        <KpiPopover cardId={activeKpiCardId} onClose={() => setActiveKpiCardId(null)} />
+        <KpiPopover
+          cardId={activeKpiCardId}
+          onClose={() => setActiveKpiCardId(null)}
+          selectedProject={appliedProject}
+          selectedSite={appliedSite}
+        />
       )}
 
       {activeStationId && (

@@ -25,15 +25,15 @@ export const CamerasPage = () => {
   const [showActionToast, setShowActionToast] = useState(false);
 
   useEffect(() => {
-    let timer: any;
+    let timer: ReturnType<typeof setInterval> | undefined;
     if (isRecording) {
       timer = setInterval(() => {
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
-    } else {
-      setRecordingSeconds(0);
     }
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [isRecording]);
 
   const formatDuration = (sec: number) => {
@@ -45,11 +45,13 @@ export const CamerasPage = () => {
   const handleToggleRecording = (camName: string) => {
     if (isRecording) {
       setIsRecording(false);
+      setRecordingSeconds(0);
       setActionToastMsg(`Video recording saved as ${camName.replace(/\s+/g, '_')}_clip.mp4 to local logs.`);
       setShowActionToast(true);
       setTimeout(() => setShowActionToast(false), 3000);
     } else {
       setIsRecording(true);
+      setRecordingSeconds(0);
       setActionToastMsg(`Recording started for ${camName}...`);
       setShowActionToast(true);
       setTimeout(() => setShowActionToast(false), 2500);
@@ -158,10 +160,20 @@ export const CamerasPage = () => {
           padding: 1.5rem;
         }
         .live-stream-modal {
-          background: var(--admin-sidebar-soft, #1f2937);
-          color: #ffffff; width: 100%;
+          background: #111827 !important;
+          color: #ffffff !important; width: 100%;
           border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
           border: 1px solid rgba(255,255,255,0.1);
+        }
+        .live-stream-modal h5, 
+        .live-stream-modal h6, 
+        .live-stream-modal span, 
+        .live-stream-modal div {
+          color: #ffffff;
+        }
+        .live-stream-modal .text-muted, 
+        .live-stream-modal label {
+          color: rgba(255, 255, 255, 0.6) !important;
         }
         .stream-viewscreen {
           background: #000; border-radius: 6px; position: relative;
@@ -555,7 +567,7 @@ export const CamerasPage = () => {
                   {/* Controls (Hidden for Admin Role) */}
                   {!isAdmin && (
                     <div className="col-12 col-lg-4 d-flex flex-column justify-content-between">
-                      <div className="panel bg-dark bg-opacity-50 border-secondary p-3">
+                      <div className="p-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
                         <h6 className="fw-bold mb-3 border-bottom border-secondary pb-2">
                           <i className="bi bi-sliders me-2 text-primary" />PTZ Controller
                         </h6>
@@ -617,7 +629,7 @@ export const CamerasPage = () => {
                         </div>
                       </div>
 
-                      <div className="panel bg-dark bg-opacity-20 border-secondary p-2 text-muted small mt-2">
+                      <div className="p-2 border border-secondary rounded text-muted small mt-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
                         <i className="bi bi-info-circle me-2" />
                         Interactive PTZ controller moves simulated workspace coordinates and adjusts zoom scaling factors.
                       </div>

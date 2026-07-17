@@ -24,6 +24,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage').then((m) => ({ de
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage').then((m) => ({ default: m.SystemHealthPage })));
 const ProjectManagerDashboard = lazy(() => import('./pages/dashboards/ProjectManagerDashboard').then((m) => ({ default: m.ProjectManagerDashboard })));
+const SiteEngineerDashboard = lazy(() => import('./pages/dashboards/SiteEngineerDashboard').then((m) => ({ default: m.SiteEngineerDashboard })));
 const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
 const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const UserFormPage = lazy(() => import('./pages/UserFormPage').then((m) => ({ default: m.UserFormPage })));
@@ -136,6 +137,7 @@ function App() {
                   <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
                     <Route path="/health" element={<SystemHealthPage />} />
                     <Route path="/project-manager" element={<ProjectManagerDashboard />} />
+                    <Route path="/site-engineer" element={<SiteEngineerDashboard />} />
                   </Route>
 
                   {/* User pages */}
