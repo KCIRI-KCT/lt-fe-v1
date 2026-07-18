@@ -24,6 +24,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage').then((m) => ({ de
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage').then((m) => ({ default: m.SystemHealthPage })));
 const ProjectManagerDashboard = lazy(() => import('./pages/dashboards/ProjectManagerDashboard').then((m) => ({ default: m.ProjectManagerDashboard })));
+const SafetyOfficerDashboard = lazy(() => import('./pages/dashboards/safety/SafetyOfficerDashboard').then((m) => ({ default: m.SafetyOfficerDashboard })));
 const SiteEngineerDashboard = lazy(() => import('./pages/dashboards/SiteEngineerDashboard').then((m) => ({ default: m.SiteEngineerDashboard })));
 const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
 const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
@@ -166,6 +167,11 @@ function App() {
                   </Route>
                   <Route element={<ProtectedRoute requiredRoles={['admin', 'site_engineer'] as UserRole[]} />}>
                     <Route path="/site-engineer" element={<SiteEngineerDashboard />} />
+                  </Route>
+
+                  {/* Safety Officer Dashboard */}
+                  <Route element={<ProtectedRoute requiredRoles={['admin', 'safety_officer'] as UserRole[]} />}>
+                    <Route path="/safety-officer" element={<SafetyOfficerDashboard />} />
                   </Route>
 
                   {/* User pages */}

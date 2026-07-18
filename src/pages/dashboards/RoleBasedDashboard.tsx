@@ -1,13 +1,12 @@
 import { useApp } from '../../hooks/useApp';
 import { SuperAdminDashboard } from './SuperAdminDashboard';
-
 import { SiteEngineerDashboard } from './SiteEngineerDashboard';
 import { ProjectManagerDashboard } from './ProjectManagerDashboard';
+import { SafetyOfficerDashboard } from './safety/SafetyOfficerDashboard';
 
 // Role-specific dashboards can be built similarly
 const SafetyManagerDashboard = SuperAdminDashboard;
 const SiteSupervisorDashboard = SuperAdminDashboard;
-const SafetyOfficerDashboard = SuperAdminDashboard;
 
 export const RoleBasedDashboard = () => {
   const { user } = useApp();

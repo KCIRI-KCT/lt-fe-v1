@@ -305,6 +305,44 @@ export type AlertSeverity = 'critical' | 'high' | 'medium' | 'low';
 export type AlertStatus = 'new' | 'acknowledged' | 'resolved' | 'dismissed';
 
 // ============================================================================
+// PPE Violation Acknowledgment & Notification System
+// ============================================================================
+
+/** Roles that can acknowledge PPE violations */
+export type PPEAcknowledgerRole = 'project_manager' | 'site_manager' | 'site_engineer' | 'safety_manager';
+
+/** PPE Acknowledgment record */
+export interface PPEAcknowledgement {
+  id: string;
+  alertId: string;
+  acknowledgedBy: string;
+  acknowledgedByName: string;
+  acknowledgedByRole: PPEAcknowledgerRole;
+  acknowledgedAt: string;
+  siteName: string;
+  chainageName: string;
+  notes?: string;
+}
+
+/** PPE Notification sent to Safety Officer */
+export interface PPENotification {
+  id: string;
+  alertId: string;
+  alertDescription: string;
+  acknowledgedBy: string;
+  acknowledgedByName: string;
+  acknowledgedByRole: string;
+  acknowledgedAt: string;
+  siteName: string;
+  chainageName: string;
+  status: 'pending_review' | 'in_progress' | 'resolved';
+  safetyOfficerId?: string;
+  safetyOfficerName?: string;
+  resolvedAt?: string;
+  hitlSubmissionData?: Record<string, unknown>;
+}
+
+// ============================================================================
 // Incidents
 // ============================================================================
 
