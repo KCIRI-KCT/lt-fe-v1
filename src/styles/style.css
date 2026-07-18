@@ -222,6 +222,87 @@ a {
   background: #22c55e;
 }
 
+/* ── Notification Animations ─────────────────────────────────── */
+
+/* Bell shake when new notification arrives */
+@keyframes bell-shake {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(-18deg); }
+  20%  { transform: rotate(18deg); }
+  30%  { transform: rotate(-14deg); }
+  40%  { transform: rotate(14deg); }
+  50%  { transform: rotate(-10deg); }
+  60%  { transform: rotate(10deg); }
+  70%  { transform: rotate(-6deg); }
+  80%  { transform: rotate(6deg); }
+  90%  { transform: rotate(-3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Pulsing danger ring around the notification dot */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70%  { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Toast slide-in from top-right */
+@keyframes toast-slide-in {
+  0%   { opacity: 0; transform: translateX(110%) scale(0.92); }
+  60%  { opacity: 1; transform: translateX(-6px) scale(1.02); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toast-slide-out {
+  0%   { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(110%) scale(0.92); }
+}
+
+/* Progress bar countdown for toast auto-dismiss */
+@keyframes toast-progress {
+  0%   { width: 100%; }
+  100% { width: 0%; }
+}
+
+/* Button pulse glow when there are new notifications */
+@keyframes btn-notify-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+}
+
+/* Inline alert flash (the banner between greeting and button) */
+@keyframes alert-flash-in {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.bell-shake {
+  display: inline-block;
+  transform-origin: top center;
+  animation: bell-shake 0.7s ease-in-out;
+}
+
+.notification-dot-pulse {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+.notif-toast {
+  animation: toast-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.notif-toast.hiding {
+  animation: toast-slide-out 0.35s ease-in forwards;
+}
+
+.notif-btn-glow {
+  animation: btn-notify-glow 1.8s ease-in-out infinite;
+}
+
+.notif-inline-alert {
+  animation: alert-flash-in 0.4s ease-out forwards;
+}
+
+
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -1854,4 +1935,30 @@ body, p, span, td, th, input, select, textarea, button {
 .sidebar-theme-toggle button:hover,
 .sidebar-theme-toggle button:hover svg {
   color: var(--admin-sidebar-text-strong) !important;
+}
+
+/* Accessibility Center Styles */
+html.a11y-text-large {
+  font-size: 15.5px !important;
+}
+html.a11y-text-xl {
+  font-size: 18.0px !important;
+}
+html.a11y-high-contrast {
+  --admin-bg: #000000 !important;
+  --admin-surface: #000000 !important;
+  --admin-surface-soft: #121212 !important;
+  --admin-border: #ffffff !important;
+  --admin-text: #ffff00 !important;
+  --admin-muted: #ffffff !important;
+  --admin-muted-light: #ffffff !important;
+  --admin-primary: #ffff00 !important;
+  --admin-secondary: #00ffff !important;
+  color: #ffff00 !important;
+}
+html.a11y-high-contrast * {
+  border-color: #ffffff !important;
+}
+html.a11y-grayscale {
+  filter: grayscale(100%);
 }

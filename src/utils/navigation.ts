@@ -28,7 +28,7 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
           ]
         },
         {
-          label: 'User Create',
+          label: 'User Management',
           path: '/users',
           icon: 'bi bi-person-badge-fill',
           children: [
@@ -40,46 +40,56 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
         },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     case 'project_manager':
       return [
-        { label: 'Dashboard', path: '/project-manager', icon: 'bi bi-speedometer2' },
+        { label: 'Executive Dashboard', path: '/project-manager', icon: 'bi bi-speedometer2' },
+        { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
+        { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
-        { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     case 'site_supervisor':
       return [
-        { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
+        { label: 'Executive Dashboard', path: '/project-manager', icon: 'bi bi-speedometer2' },
+        { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
+        { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
-        { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     case 'site_engineer':
       return [
-        { label: 'Dashboard', path: '/site-engineer', icon: 'bi bi-speedometer2' },
+        { label: 'Live Monitoring', path: '/site-engineer', icon: 'bi bi-speedometer2' },
+        { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
+        { label: 'Activity Recognition', path: '/ai-monitoring', icon: 'bi bi-activity' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-        { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
-        { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
+        { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     case 'safety_manager':
       return [
-        { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-        { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
+        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-shield-fill-check' },
+        { label: 'Intrusion Detection', path: '/intrusion-detection', icon: 'bi bi-shield-exclamation' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
-        { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
+        { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
+        { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     case 'safety_officer':
       return [
-        { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
-        { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
-        { label: 'Hitl ppe', path: '/ai-monitoring', icon: 'bi bi-shield-fill-check' },
-        { label: 'Report', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
+        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-shield-fill-check' },
+        { label: 'Intrusion Detection', path: '/intrusion-detection', icon: 'bi bi-shield-exclamation' },
+        { label: 'HITL Operations', path: '/ai-monitoring', icon: 'bi bi-person-video3' },
+        { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];
+
     default:
       return [
         { label: 'Dashboard', path: '/health', icon: 'bi bi-speedometer' },
