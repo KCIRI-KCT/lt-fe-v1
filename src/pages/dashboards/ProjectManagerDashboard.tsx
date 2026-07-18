@@ -7,6 +7,7 @@ import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
+import { useNotifications, ToastStack, InlineAlertBanner } from '../../components/common/NotificationToast';
 import {
   MOCK_AI_ALERTS,
   MOCK_CHAINAGES,
@@ -14,6 +15,7 @@ import {
   MOCK_SITES,
   MOCK_CAMERAS,
   MOCK_INCIDENTS,
+  MOCK_PPE_COMPLIANCE,
 } from '../../services/mockData';
 
 // Week-wise, Month-wise, Year-wise Plan vs Actual data
@@ -48,6 +50,7 @@ const PLAN_VS_ACTUAL_YEARLY = [
 export const ProjectManagerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useApp();
+  const { toasts, inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(22000);
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -164,6 +167,22 @@ export const ProjectManagerDashboard = () => {
   });
   const aiAlertsVal = activeAlertsList.length.toString();
 
+  // PPE Compliance — computed from real PPE compliance data
+  const basePpeAvg = Math.round(
+    (MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask +
+     MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5
+  );
+  const ppeComplianceVal = (!appliedProject && !appliedSite && !appliedChainage)
+    ? `${basePpeAvg}%`
+    : (() => {
+        // Adjust PPE compliance based on ppePending across active chainages
+        const totalPpePending = activeChainages.reduce((sum, ch) => sum + ch.ppePending, 0);
+        const totalWorkers = activeChainages.reduce((sum, ch) => sum + ch.workers, 0) || 1;
+        const violationRate = Math.min(30, (totalPpePending / totalWorkers) * 100);
+        const dynamicPpe = Math.max(60, Math.round(basePpeAvg - violationRate));
+        return `${dynamicPpe}%`;
+      })();
+
   // Quality Audits
   const qualityAuditsVal = (!appliedProject && !appliedSite && !appliedChainage)
     ? '22'
@@ -225,7 +244,7 @@ export const ProjectManagerDashboard = () => {
     // { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
     // { id: 'ai-health', title: 'AI Server Health', value: aiHealthVal, subtitle: aiHealthSubtitle, trend: aiHealthTrend, isPositive: aiHealthIsPositive, icon: 'bi-cpu-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     // { id: 'active-incidents', title: 'Active Incidents', value: incidentsVal, subtitle: 'Open hazard reviews', trend: incidentsTrend, isPositive: incidentsCount === 0, icon: 'bi-exclamation-triangle-fill', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
-    { id: 'ppe-compliance', title: 'PPE Compliance', value: safetyScoreVal, subtitle: 'Overall rate today', trend: '+0.5%', isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Helmet ${MOCK_PPE_COMPLIANCE.helmet}%`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
   ];
 
 
@@ -510,7 +529,7 @@ export const ProjectManagerDashboard = () => {
 
   return (
     <div
-      className="container-fluid px-4 py-3 d-flex flex-column gap-3"
+      className="container-fluid px-3 px-md-4 py-3 d-flex flex-column gap-3"
       style={{
         minHeight: 'calc(100vh - 72px)',
         background: 'var(--admin-bg, #f5f7fb)',
@@ -518,33 +537,67 @@ export const ProjectManagerDashboard = () => {
       }}
     >
       {/* ── 1. Greeting & Top Horizontal Action Bar (Velzon/Aurora style) ── */}
-      <section className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-        <div>
+      <section className="d-flex flex-column flex-lg-row justify-content-between align-items-stretch align-items-lg-center gap-3">
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           <h2 className="h4 mb-0 fw-bold text-body">Good Morning, {user?.name}!</h2>
           <p className="text-muted mb-0 small">Here's a comprehensive real-time status of your construction sites today.</p>
         </div>
 
-        <div className="d-flex align-items-center gap-2">
-          {/* Weather Widget */}
-          {/* <div className="badge bg-white text-secondary border px-3 py-2 d-flex align-items-center gap-1.5 shadow-sm">
-            <span role="img" aria-label="sun">☀️</span>
-            <span className="fw-semibold">32°C Chennai</span>
-          </div> */}
+        {inlineAlert && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '84px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1050,
+              width: '90%',
+              maxWidth: '480px',
+              pointerEvents: 'auto',
+            }}
+          >
+            <InlineAlertBanner alert={inlineAlert} />
+          </div>
+        )}
 
-          {/* AI Server Status Indicator */}
-          {/* <div className="badge bg-white text-secondary border px-3 py-2 d-flex align-items-center gap-1.5 shadow-sm">
-            <span className="status-dot bg-success" style={{ width: 8, height: 8 }} />
-            <span className="fw-semibold text-muted">AI inference: Active</span>
-          </div> */}
-
+        <div className="d-flex align-items-center justify-content-lg-end gap-2" style={{ flex: '0 0 auto' }}>
           {/* Notifications button */}
           <button
-            className="btn btn-white border bg-white position-relative shadow-sm py-1.5 px-3 text-secondary"
-            onClick={() => setDrawerOpen(true)}
+            className={`btn btn-white border bg-white position-relative shadow-sm py-1.5 px-3 text-secondary ${unreadCount > 0 ? 'notif-btn-glow' : ''}`}
+            onClick={() => { setDrawerOpen(true); clearUnread(); }}
             aria-label="Open Alerts Drawer"
           >
-            <span className="notification-dot bg-danger" style={{ width: 6, height: 6, position: 'absolute', top: 8, right: 12 }} />
-            <i className="bi bi-bell-fill me-1.5 text-primary" />
+            {/* Pulsing dot */}
+            <span
+              className="notification-dot-pulse"
+              style={{
+                width: 8, height: 8,
+                borderRadius: '50%',
+                background: '#dc2626',
+                position: 'absolute',
+                top: 6, right: 10,
+                display: 'inline-block',
+              }}
+            />
+            {/* Unread count badge */}
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-6px', right: '-6px',
+                  background: '#dc2626', color: '#fff',
+                  fontSize: '9px', fontWeight: 700,
+                  borderRadius: '10px', padding: '1px 5px',
+                  lineHeight: 1.4, border: '1.5px solid #fff',
+                  minWidth: '18px', textAlign: 'center',
+                }}
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+            <span className={bellShake ? 'bell-shake' : ''} style={{ display: 'inline-block' }}>
+              <i className="bi bi-bell-fill me-1 text-primary" />
+            </span>
             <span>Notification Center ({MOCK_AI_ALERTS.length})</span>
           </button>
         </div>

@@ -1,3 +1,4 @@
+import { MOCK_PPE_COMPLIANCE } from '../../services/mockData';
 
 interface KpiPopoverProps {
   cardId: string;
@@ -245,15 +246,16 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
         return {
           title: 'PPE Compliance Analysis',
           icon: 'bi-person-check-fill',
-          desc: 'AI compliance checks on helmet, safety vests, protective boots, and gloves.',
+          desc: 'AI compliance checks on helmet, safety vests, masks, protective boots, and gloves.',
           stats: [
-            { label: 'Helmet Compliance', value: '89.0%', trend: '-3.0% vs yesterday', isPositive: false },
-            { label: 'Safety Vest Compliance', value: '81.0%', trend: 'Critical watchlist', isPositive: false },
-            { label: 'Safety Boots Compliance', value: '79.0%', trend: 'Needs corrective action', isPositive: false },
-            { label: 'Safety Gloves Compliance', value: '74.0%', trend: 'Training required', isPositive: false },
+            { label: 'Helmet Compliance', value: `${MOCK_PPE_COMPLIANCE.helmet}%`, trend: MOCK_PPE_COMPLIANCE.helmet >= 90 ? 'Target met' : `${90 - MOCK_PPE_COMPLIANCE.helmet}% below target`, isPositive: MOCK_PPE_COMPLIANCE.helmet >= 90 },
+            { label: 'Safety Vest Compliance', value: `${MOCK_PPE_COMPLIANCE.vest}%`, trend: MOCK_PPE_COMPLIANCE.vest >= 85 ? 'Acceptable' : 'Critical watchlist', isPositive: MOCK_PPE_COMPLIANCE.vest >= 85 },
+            { label: 'Mask Compliance', value: `${MOCK_PPE_COMPLIANCE.mask}%`, trend: MOCK_PPE_COMPLIANCE.mask >= 85 ? 'Acceptable' : 'Needs attention', isPositive: MOCK_PPE_COMPLIANCE.mask >= 85 },
+            { label: 'Safety Boots Compliance', value: `${MOCK_PPE_COMPLIANCE.boots}%`, trend: 'Needs corrective action', isPositive: false },
+            { label: 'Safety Gloves Compliance', value: `${MOCK_PPE_COMPLIANCE.gloves}%`, trend: 'Training required', isPositive: false },
           ],
           chartColor: '#16a34a',
-          miniChartData: [90, 88, 87, 85, 84, 82, 81],
+          miniChartData: [90, 88, 87, 85, 84, 82, Math.round((MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask + MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5)],
           breakdownTitle: 'Site-Wise PPE Compliance Rate',
           contractors: [
             { name: 'Site A - KM 0-15', value: '92% Rate', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
@@ -261,9 +263,6 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
             { name: 'Site C - KM 30-45', value: '95% Rate', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
             { name: 'Site D - KM 0-12', value: '85% Rate', status: 'Good', project: 'Mumbai Ring Road' },
             { name: 'Site E - KM 12-25', value: '90% Rate', status: 'Excellent', project: 'Mumbai Ring Road' },
-            { name: 'Site-C | Camera 5', value: 'No Vest | Engineer: Ganesh | 2:00 PM', status: 'Critical' },
-            { name: 'Site-B | Camera 2', value: 'No Vest, No Helmet, No Boots | Engineer: Kalisha | 2:10 PM', status: 'Critical' },
-            { name: 'Site-D | Camera 2', value: 'No Glove | Engineer: Velan | 2:30 PM', status: 'Critical' },
           ],
         };
       case 'active-incidents':

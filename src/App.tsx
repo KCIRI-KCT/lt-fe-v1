@@ -36,6 +36,10 @@ const ProjectEditPage = lazy(() => import('./pages/ProjectEditPage').then((m) =>
 const ProjectDeletePage = lazy(() => import('./pages/ProjectDeletePage').then((m) => ({ default: m.ProjectDeletePage })));
 const CameraEditPage = lazy(() => import('./pages/CameraEditPage').then((m) => ({ default: m.CameraEditPage })));
 const CameraDeletePage = lazy(() => import('./pages/CameraDeletePage').then((m) => ({ default: m.CameraDeletePage })));
+// New role-based pages
+const ProgressPage = lazy(() => import('./pages/ProgressPage').then((m) => ({ default: m.ProgressPage })));
+const PPEDetectionPage = lazy(() => import('./pages/PPEDetectionPage').then((m) => ({ default: m.PPEDetectionPage })));
+const IntrusionDetectionPage = lazy(() => import('./pages/IntrusionDetectionPage').then((m) => ({ default: m.IntrusionDetectionPage })));
 
 const PageLoader = () => <LoadingState message="Loading page..." />;
 
@@ -55,12 +59,17 @@ const CatchAllRedirect = () => {
 // ============================================================================
 // Role-based route guards
 // ============================================================================
-const AdminRoutes: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+const AllRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 const SuperAdminOnly: UserRole[] = ['admin'];
 const ProjectRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 const SafetyRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 const SiteRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 const WorkforceRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer'];
+const ProgressRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
+// PPE Detection & Intrusion: Safety Manager and Safety Officer only
+const SafetyDetectionRoles: UserRole[] = ['admin', 'safety_manager', 'safety_officer'];
+// PM Dashboard: Project Manager and Site Supervisor
+const PMDashboardRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor'];
 
 function App() {
   return (
@@ -74,7 +83,7 @@ function App() {
               <Route path="/logout" element={<LoginPage />} />
 
               {/* Protected routes with layout */}
-              <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
+              <Route element={<ProtectedRoute requiredRoles={AllRoles} />}>
                 <Route element={<Layout />}>
                   <Route path="/" element={<HomeRedirect />} />
 
@@ -115,7 +124,7 @@ function App() {
                     <Route path="/cameras/:id" element={<CameraFormPage />} />
                   </Route>
 
-                  {/* AI Monitoring */}
+                  {/* AI Monitoring / Activity Recognition */}
                   <Route element={<ProtectedRoute requiredRoles={SafetyRoles} />}>
                     <Route path="/ai-monitoring" element={<AIMonitoringPage />} />
                   </Route>
@@ -123,6 +132,21 @@ function App() {
                   {/* Incidents */}
                   <Route element={<ProtectedRoute requiredRoles={SafetyRoles} />}>
                     <Route path="/incidents" element={<IncidentsPage />} />
+                  </Route>
+
+                  {/* Progress Measurement — all roles except admin-only */}
+                  <Route element={<ProtectedRoute requiredRoles={ProgressRoles} />}>
+                    <Route path="/progress" element={<ProgressPage />} />
+                  </Route>
+
+                  {/* PPE Detection — Safety Manager & Safety Officer */}
+                  <Route element={<ProtectedRoute requiredRoles={SafetyDetectionRoles} />}>
+                    <Route path="/ppe-detection" element={<PPEDetectionPage />} />
+                  </Route>
+
+                  {/* Intrusion Detection — Safety Manager & Safety Officer */}
+                  <Route element={<ProtectedRoute requiredRoles={SafetyDetectionRoles} />}>
+                    <Route path="/intrusion-detection" element={<IntrusionDetectionPage />} />
                   </Route>
 
                   {/* Messages - accessible to all authenticated users */}
@@ -133,17 +157,20 @@ function App() {
                     <Route path="/reports" element={<ReportsPage />} />
                   </Route>
 
-                  {/* System Health / Dashboard - Accessible to all roles */}
-                  <Route element={<ProtectedRoute requiredRoles={AdminRoutes} />}>
+                  {/* Dashboards */}
+                  <Route element={<ProtectedRoute requiredRoles={AllRoles} />}>
                     <Route path="/health" element={<SystemHealthPage />} />
+                  </Route>
+                  <Route element={<ProtectedRoute requiredRoles={PMDashboardRoles} />}>
                     <Route path="/project-manager" element={<ProjectManagerDashboard />} />
+                  </Route>
+                  <Route element={<ProtectedRoute requiredRoles={['admin', 'site_engineer'] as UserRole[]} />}>
                     <Route path="/site-engineer" element={<SiteEngineerDashboard />} />
                   </Route>
 
                   {/* User pages */}
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
-                  {/* Removed: /users/add - now handled by /users/:id */}
 
                 </Route>
               </Route>
