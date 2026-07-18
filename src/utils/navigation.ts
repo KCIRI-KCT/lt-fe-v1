@@ -83,9 +83,9 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
 
     case 'safety_officer':
       return [
-        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-shield-fill-check' },
+        { label: 'PPE Dashboard', path: '/safety-officer', icon: 'bi bi-shield-fill-check' },
+        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-person-check-fill' },
         { label: 'Intrusion Detection', path: '/intrusion-detection', icon: 'bi bi-shield-exclamation' },
-        { label: 'HITL Operations', path: '/ai-monitoring', icon: 'bi bi-person-video3' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }
       ];

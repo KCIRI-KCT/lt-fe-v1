@@ -5,6 +5,7 @@ import { AI_ALERT_CONFIG } from '../constants';
 import { useApp } from '../hooks/useApp';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
 import SupervisorHITLPPEPage from '../HITL - PPE/pages/SupervisorHITLPPEPage';
+import { createPPENotification } from '../services/ppeNotificationService';
 import type { AIAlert } from '../types';
 
 const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color: string }> = {
@@ -24,10 +25,18 @@ export const AIMonitoringPage = () => {
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [solvingAlertId, setSolvingAlertId] = useState<string | null>(null);
 
-  const handleAcknowledge = (id: string) => {
-    updateAIAlertStatus(id, 'acknowledged');
+  const handleAcknowledge = (id: string, alert?: AIAlert) => {
+    updateAIAlertStatus(id, 'acknowledged', { acknowledgedBy: user?.name });
+
+    // When Project Manager, Site Engineer, Site Supervisor, or Safety Manager
+    // acknowledges a PPE violation, send notification to Safety Officer
+    if (alert && alert.type === 'no_ppe' && user) {
+      const siteName = alert.siteName || alert.siteCode || 'Unknown Site';
+      const chainageName = alert.chainageLabel || alert.chainageId || 'N/A';
+      createPPENotification(alert, user, siteName, chainageName);
+    }
+
     setAlerts([...MOCK_AI_ALERTS]);
-    console.log('Acknowledge', id);
   };
 
   const handleResolve = (id: string) => {
