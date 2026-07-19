@@ -110,7 +110,7 @@ export const ROLE_LABELS: Record<string, string> = {
   site_supervisor: 'Site Supervisor',
   site_engineer: 'Site Engineer',
   safety_manager: 'Safety Manager',
-  safety_officer: 'Safety Officer',
+  safety_officer: 'Safety Engineer',
 };
 
 export const ROLE_COLORS: Record<string, string> = {
@@ -136,7 +136,7 @@ export const ROLE_OPTIONS = [
   { value: 'site_supervisor', label: 'Site Supervisor' },
   { value: 'site_engineer', label: 'Site Engineer' },
   { value: 'safety_manager', label: 'Safety Manager' },
-  { value: 'safety_officer', label: 'Safety Officer' },
+  { value: 'safety_officer', label: 'Safety Engineer' },
 ];
 
 // ============================================================================

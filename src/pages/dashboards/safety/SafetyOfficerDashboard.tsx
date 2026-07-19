@@ -126,7 +126,7 @@ export const SafetyOfficerDashboard = () => {
             <i className="bi bi-shield-fill-check text-success" aria-hidden="true" />
           </span>
           <div>
-            <p className="eyebrow mb-1">Safety Officer</p>
+            <p className="eyebrow mb-1">Safety Engineer</p>
             <h1 className="h3 mb-1">PPE Violation Notifications</h1>
             <p className="text-muted mb-0">
               Review and resolve PPE violations acknowledged by Project Managers, Site Engineers, Site Supervisors, and Safety Managers.
