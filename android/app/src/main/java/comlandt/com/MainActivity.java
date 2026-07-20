@@ -1,4 +1,4 @@
-package com.landt.com;
+package comlandt.com;
 
 import com.getcapacitor.BridgeActivity;
 

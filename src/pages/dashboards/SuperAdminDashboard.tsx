@@ -5,12 +5,13 @@ import { StateWiseAnalyticsChart } from '../../components/charts/StateWiseAnalyt
 import { IncidentTrendChart } from '../../components/charts/IncidentTrendChart';
 import { PPEComplianceChart } from '../../components/charts/PPEComplianceChart';
 import { Link } from 'react-router-dom';
+import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
 
 export const SuperAdminDashboard = () => {
   const metrics = MOCK_DASHBOARD_METRICS.admin;
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <MobilePageWrapper>
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-speedometer2" aria-hidden="true" /></span>
@@ -115,6 +116,6 @@ export const SuperAdminDashboard = () => {
           </table>
         </div>
       </section>
-    </div>
+    </MobilePageWrapper>
   );
 };

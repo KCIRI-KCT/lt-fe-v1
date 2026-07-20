@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { MOCK_NOTIFICATIONS } from '../../services/mockData';
-import { Menu, Clock, Bell, VideoOff, TriangleAlert, Cpu, Volume2, VolumeX, Accessibility } from 'lucide-react';
+import { Menu, Clock, Bell, VideoOff, TriangleAlert, Cpu, Volume2, VolumeX, PersonStanding } from 'lucide-react';
 
 function playNavbarChime() {
   if (localStorage.getItem('kciri_notif_muted') === 'true') {
@@ -169,11 +169,11 @@ export const Navbar = () => {
               title="Accessibility Center"
               aria-label="Accessibility Center"
             >
-              <Accessibility size={18} />
+              <PersonStanding size={18} />
             </button>
             <div className="dropdown-menu dropdown-menu-end p-3 shadow-lg border-0" style={{ width: '280px', borderRadius: '12px', background: 'var(--admin-surface, #ffffff)', color: 'var(--admin-text, #1f2933)' }}>
               <div className="dropdown-header fw-bold border-bottom pb-2 mb-2 px-0 d-flex align-items-center gap-2" style={{ color: 'var(--admin-text, #1f2933)' }}>
-                <Accessibility size={16} className="text-primary" />
+                <PersonStanding size={16} className="text-primary" />
                 <span>Accessibility Center</span>
               </div>
               

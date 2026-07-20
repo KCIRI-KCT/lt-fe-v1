@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../hooks/useApp';
+import { MobilePageWrapper } from '../../../components/common/MobilePageWrapper';
 import {
   getAllPPENotifications,
   updatePPENotificationStatus,
@@ -118,7 +119,7 @@ export const SafetyOfficerDashboard = () => {
   };
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <MobilePageWrapper>
       {/* Page Header */}
       <div className="page-heading mb-4">
         <div className="page-heading-copy">
@@ -307,7 +308,7 @@ export const SafetyOfficerDashboard = () => {
           ))}
         </div>
       )}
-    </div>
+    </MobilePageWrapper>
   );
 };
 

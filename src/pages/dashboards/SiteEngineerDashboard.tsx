@@ -6,6 +6,7 @@ import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
 import { useNotifications, ToastStack, InlineAlertBanner } from '../../components/common/NotificationToast';
+import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
 import {
   MOCK_AI_ALERTS,
   MOCK_CHAINAGES,
@@ -368,14 +369,7 @@ export const SiteEngineerDashboard = () => {
   };
 
   return (
-    <div
-      className="container-fluid px-3 px-md-4 py-3 d-flex flex-column gap-3"
-      style={{
-        minHeight: 'calc(100vh - 72px)',
-        background: 'var(--admin-bg, #f5f7fb)',
-        fontFamily: '"Inter", "Segoe UI", sans-serif',
-      }}
-    >
+    <MobilePageWrapper>
       {/* ── 1. Greeting & Top Horizontal Action Bar ── */}
       <section className="d-flex flex-column flex-lg-row justify-content-between align-items-stretch align-items-lg-center gap-3">
         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
@@ -916,6 +910,6 @@ export const SiteEngineerDashboard = () => {
       )}
 
       <RightDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
-    </div>
+    </MobilePageWrapper>
   );
 };
