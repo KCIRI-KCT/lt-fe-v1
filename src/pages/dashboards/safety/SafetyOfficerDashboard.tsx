@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../hooks/useApp';
+import { MobilePageWrapper } from '../../../components/common/MobilePageWrapper';
 import {
   getAllPPENotifications,
   updatePPENotificationStatus,
@@ -118,7 +119,7 @@ export const SafetyOfficerDashboard = () => {
   };
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <MobilePageWrapper>
       {/* Page Header */}
       <div className="page-heading mb-4">
         <div className="page-heading-copy">
@@ -126,7 +127,7 @@ export const SafetyOfficerDashboard = () => {
             <i className="bi bi-shield-fill-check text-success" aria-hidden="true" />
           </span>
           <div>
-            <p className="eyebrow mb-1">Safety Officer</p>
+            <p className="eyebrow mb-1">Safety Engineer</p>
             <h1 className="h3 mb-1">PPE Violation Notifications</h1>
             <p className="text-muted mb-0">
               Review and resolve PPE violations acknowledged by Project Managers, Site Engineers, Site Supervisors, and Safety Managers.
@@ -307,7 +308,7 @@ export const SafetyOfficerDashboard = () => {
           ))}
         </div>
       )}
-    </div>
+    </MobilePageWrapper>
   );
 };
 

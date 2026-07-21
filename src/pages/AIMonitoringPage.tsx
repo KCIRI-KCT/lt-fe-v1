@@ -85,11 +85,8 @@ export const AIMonitoringPage = () => {
   const solvingAlert = solvingAlertId ? alerts.find((a) => a.id === solvingAlertId) || null : null;
 
   const handleViewAlert = (id: string) => {
-    if (user?.role === 'project_manager' || user?.role === 'site_engineer' || user?.role === 'safety_officer') {
-      setSelectedAlertId(id);
-      return;
-    }
-    console.log('View', id);
+    // All roles can view alert details in the popup modal
+    setSelectedAlertId(id);
   };
 
   return (

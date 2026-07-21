@@ -135,7 +135,7 @@ const getRoleLabel = (role: string): string => {
     site_engineer: 'Site Engineer',
     site_supervisor: 'Site Supervisor',
     safety_manager: 'Safety Manager',
-    safety_officer: 'Safety Officer',
+    safety_officer: 'Safety Engineer',
   };
   return roleMap[role] || role;
 };
