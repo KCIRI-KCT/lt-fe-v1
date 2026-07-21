@@ -30,7 +30,7 @@ export default defineConfig({
       },
     }),
   ],
-    build: {
+  build: {
     outDir: 'dist',
     assetsDir: 'assets',
     assetsInlineLimit: 4096,
