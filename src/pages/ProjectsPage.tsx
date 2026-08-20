@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_PROJECTS } from '../services/mockData';
+import { projectService } from '../services/projectService';
 import { STATUS_BADGES } from '../constants';
+import type { Project } from '../types';
 
 interface ProjectSiteRow {
   id: string;
@@ -23,6 +24,8 @@ interface ProjectSiteRow {
 }
 
 export const ProjectsPage = () => {
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('projectName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -38,6 +41,23 @@ export const ProjectsPage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+
+  useEffect(() => {
+    let isMounted = true;
+    projectService.getProjects()
+      .then((data) => {
+        if (isMounted) {
+          setProjectsList(data);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setProjectsList([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const columns: Column<ProjectSiteRow>[] = [
     {
@@ -81,7 +101,7 @@ export const ProjectsPage = () => {
   ];
 
   // Flat-map projects to get a list of all project-site items
-  const rows: ProjectSiteRow[] = MOCK_PROJECTS.flatMap((p) => {
+  const rows: ProjectSiteRow[] = projectsList.flatMap((p) => {
     const sites = p.sites || [];
     if (sites.length === 0) {
       return [{
@@ -187,7 +207,18 @@ export const ProjectsPage = () => {
 
   const sliced = sorted.slice((page - 1) * pageSize, page * pageSize);
 
-  const selectedProject = MOCK_PROJECTS.find(p => p.id === selectedProjectId);
+  const selectedProject = projectsList.find(p => p.id === selectedProjectId);
+
+  if (loading) {
+    return (
+      <div className="container-fluid px-3 px-lg-4 py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading projects...</span>
+        </div>
+        <p className="mt-2 text-muted">Fetching projects from server...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -222,7 +253,7 @@ export const ProjectsPage = () => {
         onPageSizeChange={setPageSize}
         showPagination={true}
         rowClassName={(r) => {
-          const parentProj = MOCK_PROJECTS.find(p => p.id === r.projectId);
+          const parentProj = projectsList.find(p => p.id === r.projectId);
           return parentProj?.status === 'completed' ? 'project-row-finished' : '';
         }}
       />

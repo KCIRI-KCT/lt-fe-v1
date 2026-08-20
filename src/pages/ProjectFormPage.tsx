@@ -4,7 +4,8 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS, upsertProject } from '../services/mockData';
+import { projectService } from '../services/projectService';
+import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS } from '../services/mockData';
 import type { Project, NestedSite, ProjectRoleAssignment } from '../types';
 
 interface RoleAssignment {
@@ -201,8 +202,8 @@ export const ProjectFormPage = () => {
     const firstSupervisor = roleAssignments.find(ra => ra.role === 'site_supervisor');
     const firstEngineer = roleAssignments.find(ra => ra.role === 'site_engineer');
 
-    const projData: Project = {
-      id: isEdit && project ? project.id : Date.now().toString(),
+    const projData: Partial<Project> = {
+      id: isEdit && project ? project.id : undefined,
       name: name.trim(),
       code: project?.code || `PRJ-${Date.now().toString().slice(-4)}`,
       description: description.trim(),
@@ -226,8 +227,11 @@ export const ProjectFormPage = () => {
       roleAssignments
     };
 
-    upsertProject(projData);
-    navigate('/projects');
+    if (isEdit && project) {
+      projectService.updateProject(project.id, projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
+    } else {
+      projectService.createProject(projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
+    }
   };
 
   const renderRoleSection = (

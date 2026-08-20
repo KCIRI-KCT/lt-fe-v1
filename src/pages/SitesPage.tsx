@@ -1,12 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SiteCard } from '../components/cards/SiteCard';
-import { MOCK_SITES } from '../services/mockData';
+import { siteService } from '../services/siteService';
+import type { Site } from '../types';
 
 export const SitesPage = () => {
+  const [sites, setSites] = useState<Site[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
-  const filtered = MOCK_SITES.filter((s) => {
+  useEffect(() => {
+    let isMounted = true;
+    siteService.getSites()
+      .then((data) => {
+        if (isMounted) setSites(data);
+      })
+      .catch(() => {
+        if (isMounted) setSites([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const filtered = sites.filter((s) => {
     if (filter !== 'all' && s.status !== filter) return false;
     if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.code.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -48,13 +66,20 @@ export const SitesPage = () => {
         </div>
       </div>
 
-      <div className="row g-3">
-        {filtered.map((site) => (
-          <div key={site.id} className="col-12 col-sm-6 col-xl-4">
-            <SiteCard site={site} onView={(id) => console.log('View site', id)} />
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 text-muted">Loading sites...</p>
+        </div>
+      ) : (
+        <div className="row g-3">
+          {filtered.map((site) => (
+            <div key={site.id} className="col-12 col-sm-6 col-xl-4">
+              <SiteCard site={site} onView={(id) => console.log('View site', id)} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

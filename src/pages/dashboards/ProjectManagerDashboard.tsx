@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { InteractiveVectorMap } from '../../components/dashboard/InteractiveVectorMap';
@@ -7,17 +7,16 @@ import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
-import { useNotifications, ToastStack, InlineAlertBanner } from '../../components/common/NotificationToast';
+import { useNotifications, InlineAlertBanner } from '../../components/common/NotificationToast';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
+import { projectService } from '../../services/projectService';
+import { siteService } from '../../services/siteService';
+import { cameraService } from '../../services/cameraService';
+import { safetyService } from '../../services/safetyService';
 import {
-  MOCK_AI_ALERTS,
-  MOCK_CHAINAGES,
-  MOCK_PROJECTS,
-  MOCK_SITES,
-  MOCK_CAMERAS,
-  MOCK_INCIDENTS,
   MOCK_PPE_COMPLIANCE,
 } from '../../services/mockData';
+import type { Project, Site, Camera, AIAlert, Incident, ChainageData } from '../../types';
 
 // Week-wise, Month-wise, Year-wise Plan vs Actual data
 const PLAN_VS_ACTUAL_WEEKLY = [
@@ -36,6 +35,11 @@ const PLAN_VS_ACTUAL_MONTHLY = [
   { month: 'May', planned: 40, actual: 37 },
   { month: 'Jun', planned: 48, actual: 45 },
   { month: 'Jul', planned: 56, actual: 52 },
+  { month: 'Aug', planned: 64, actual: 60 },
+  { month: 'Sep', planned: 72, actual: 68 },
+  { month: 'Oct', planned: 80, actual: 76 },
+  { month: 'Nov', planned: 88, actual: 84 },
+  { month: 'Dec', planned: 100, actual: 95 },
 ];
 
 const PLAN_VS_ACTUAL_YEARLY = [
@@ -46,12 +50,43 @@ const PLAN_VS_ACTUAL_YEARLY = [
   { month: '2026', planned: 100, actual: 95 },
 ];
 
-
-
 export const ProjectManagerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useApp();
-  const { toasts, inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(22000);
+  const { inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(22000);
+
+  // Dynamic Data State
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [sitesList, setSitesList] = useState<Site[]>([]);
+  const [chainagesList, setChainagesList] = useState<ChainageData[]>([]);
+  const [camerasList, setCamerasList] = useState<Camera[]>([]);
+  const [alertsList, setAlertsList] = useState<AIAlert[]>([]);
+  const [incidentsList, setIncidentsList] = useState<Incident[]>([]);
+  const [, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.allSettled([
+      projectService.getProjects(),
+      siteService.getSites(),
+      siteService.getChainages(),
+      cameraService.getCameras(),
+      safetyService.getAIAlerts(),
+      safetyService.getIncidents(),
+    ]).then(([projRes, siteRes, chRes, camRes, alertRes, incRes]) => {
+      if (!isMounted) return;
+      if (projRes.status === 'fulfilled') setProjectsList(projRes.value);
+      if (siteRes.status === 'fulfilled') setSitesList(siteRes.value);
+      if (chRes.status === 'fulfilled') setChainagesList(chRes.value as unknown as ChainageData[]);
+      if (camRes.status === 'fulfilled') setCamerasList(camRes.value);
+      if (alertRes.status === 'fulfilled') setAlertsList(alertRes.value);
+      if (incRes.status === 'fulfilled') setIncidentsList(incRes.value);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
+    });
+
+    return () => { isMounted = false; };
+  }, []);
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -63,9 +98,9 @@ export const ProjectManagerDashboard = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-
-  // Plan vs Actual Chart toggle: week / month / year
+  // Plan vs Actual Chart toggle: week / month / year & Selected Year
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('month');
+  const [chartYear, setChartYear] = useState<string>('2026');
 
   // KPI popover detail card state
   const [activeKpiCardId, setActiveKpiCardId] = useState<string | null>(null);
@@ -88,8 +123,74 @@ export const ProjectManagerDashboard = () => {
   // Active leaderboard details index
   const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
 
+  // Camera Surveillance & PTZ State
+  const [selectedCamId, setSelectedCamId] = useState<string>('');
+  const [ptzAction, setPtzAction] = useState<string>('');
+  const [camOffset, setCamOffset] = useState({ x: 0, y: 0, zoom: 1 });
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [shutterFlash, setShutterFlash] = useState(false);
+  const [streamError, setStreamError] = useState(false);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    const timer = setInterval(() => {
+      setRecordingSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isRecording]);
+
+  const handlePtz = async (action: string) => {
+    setPtzAction(action);
+    let nextX = camOffset.x;
+    let nextY = camOffset.y;
+    let nextZoom = camOffset.zoom;
+
+    switch (action) {
+      case 'PAN LEFT': nextX = camOffset.x - 30; break;
+      case 'PAN RIGHT': nextX = camOffset.x + 30; break;
+      case 'TILT UP': nextY = camOffset.y - 30; break;
+      case 'TILT DOWN': nextY = camOffset.y + 30; break;
+      case 'ZOOM IN': nextZoom = Math.min(3.5, Number((camOffset.zoom + 0.35).toFixed(2))); break;
+      case 'ZOOM OUT': nextZoom = Math.max(1, Number((camOffset.zoom - 0.35).toFixed(2))); break;
+      case 'RESET': nextX = 0; nextY = 0; nextZoom = 1; break;
+    }
+
+    setCamOffset({ x: nextX, y: nextY, zoom: nextZoom });
+
+    const activeCam = camerasList.find((c) => c.id === (selectedCamId || camerasList[0]?.id)) || camerasList[0];
+    if (activeCam) {
+      try {
+        await cameraService.controlPtz(activeCam.id, action, nextX, nextY, nextZoom);
+      } catch (err) {
+        console.error('Failed to send PTZ command:', err);
+      }
+    }
+
+    setTimeout(() => setPtzAction(''), 1200);
+  };
+
+  const handleTakeSnapshot = (camName: string) => {
+    setShutterFlash(true);
+    setTimeout(() => setShutterFlash(false), 200);
+    console.log(`Snapshot taken for ${camName}`);
+  };
+
+  const handleToggleRecording = (camName: string) => {
+    if (isRecording) {
+      setIsRecording(false);
+      console.log(`Stopped recording for ${camName}`);
+    } else {
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      console.log(`Started recording for ${camName}`);
+    }
+  };
+
   // ── FILTERED DATA COMPUTATIONS ──
-  const activeChainages = MOCK_CHAINAGES.filter((ch) => {
+  const activeChainages = chainagesList.filter((ch) => {
     if (appliedProject && ch.project !== appliedProject) return false;
     if (appliedSite && ch.site !== appliedSite) return false;
     if (appliedChainage && ch.id !== appliedChainage) return false;
@@ -98,11 +199,15 @@ export const ProjectManagerDashboard = () => {
 
   const avgProgress = activeChainages.length > 0
     ? activeChainages.reduce((sum, ch) => sum + ch.progress, 0) / activeChainages.length
-    : 33.7;
+    : projectsList.length > 0
+      ? Math.round(projectsList.reduce((sum, p) => sum + (p.progress || 0), 0) / projectsList.length * 10) / 10
+      : 35.5;
 
   const avgSafetyScore = activeChainages.length > 0
     ? activeChainages.reduce((sum, ch) => sum + ch.safetyScore, 0) / activeChainages.length
-    : 91.2;
+    : sitesList.length > 0
+      ? Math.round(sitesList.reduce((sum, s) => sum + (s.safetyScore || 95), 0) / sitesList.length * 10) / 10
+      : 95;
 
   const avgHighwayProgress = activeChainages.length > 0
     ? activeChainages.reduce((sum, ch) => sum + ch.highwayProgress, 0) / activeChainages.length
@@ -113,27 +218,23 @@ export const ProjectManagerDashboard = () => {
     : 40;
 
   // 1. Dynamic KPIs calculations
-  const totalWorkersVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '2,680'
-    : activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN');
+  const totalWorkersVal = activeChainages.length > 0
+    ? activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN')
+    : (sitesList.reduce((sum, s) => sum + (s.workerCount || 0), 0) || projectsList.reduce((sum, p) => sum + (p.workerCount || 0), 0) || 45).toLocaleString('en-IN');
 
-  const safetyScoreVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '91.2%'
-    : `${avgSafetyScore.toFixed(1)}%`;
+  const safetyScoreVal = `${avgSafetyScore.toFixed(1)}%`;
 
-  const progressVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '33.7%'
-    : `${avgProgress.toFixed(1)}%`;
+  const progressVal = `${avgProgress.toFixed(1)}%`;
 
   // Live Cameras computation
-  const activeCameraList = MOCK_CAMERAS.filter((cam) => {
+  const activeCameraList = camerasList.filter((cam) => {
     if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
+      const siteObj = sitesList.find(s => s.name === appliedSite);
       return cam.siteId === siteObj?.id;
     }
     if (appliedProject) {
-      const proj = MOCK_PROJECTS.find(p => p.name === appliedProject);
-      const projSites = proj ? MOCK_SITES.filter(s => s.projectId === proj.id) : [];
+      const proj = projectsList.find(p => p.name === appliedProject);
+      const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
       return projSites.some(s => s.id === cam.siteId);
     }
     return true;
@@ -141,27 +242,29 @@ export const ProjectManagerDashboard = () => {
 
   const totalCams = appliedChainage
     ? (activeChainages[0]?.cameras || 0)
-    : activeCameraList.length;
+    : (activeCameraList.length || camerasList.length || 1);
   const onlineCams = appliedChainage
     ? Math.max(0, totalCams - (activeChainages[0]?.status === 'red' ? 1 : 0))
-    : activeCameraList.filter(c => c.status === 'online').length;
+    : (activeCameraList.length > 0
+      ? activeCameraList.filter(c => String(c.status).toLowerCase() === 'online' || String(c.status).toLowerCase() === 'active').length
+      : camerasList.filter(c => String(c.status).toLowerCase() === 'online' || String(c.status).toLowerCase() === 'active').length);
   const camerasVal = `${onlineCams} / ${totalCams}`;
 
   // Machinery
-  const machineryVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '8'
-    : activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString();
+  const machineryVal = activeChainages.length > 0
+    ? activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString()
+    : String(camerasList.length * 2 || sitesList.length * 3 || 8);
 
   // AI Alerts
-  const activeAlertsList = MOCK_AI_ALERTS.filter((alert) => {
+  const activeAlertsList = alertsList.filter((alert) => {
     if (appliedChainage && alert.chainageId !== appliedChainage) return false;
     if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
+      const siteObj = sitesList.find(s => s.name === appliedSite);
       if (siteObj && alert.siteId !== siteObj.id) return false;
     }
     if (appliedProject) {
-      const proj = MOCK_PROJECTS.find(p => p.name === appliedProject);
-      const projSites = proj ? MOCK_SITES.filter(s => s.projectId === proj.id) : [];
+      const proj = projectsList.find(p => p.name === appliedProject);
+      const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
       if (!projSites.some(s => s.id === alert.siteId)) return false;
     }
     return true;
@@ -173,42 +276,27 @@ export const ProjectManagerDashboard = () => {
     (MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask +
      MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5
   );
-  const ppeComplianceVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? `${basePpeAvg}%`
-    : (() => {
-        // Adjust PPE compliance based on ppePending across active chainages
-        const totalPpePending = activeChainages.reduce((sum, ch) => sum + ch.ppePending, 0);
-        const totalWorkers = activeChainages.reduce((sum, ch) => sum + ch.workers, 0) || 1;
-        const violationRate = Math.min(30, (totalPpePending / totalWorkers) * 100);
-        const dynamicPpe = Math.max(60, Math.round(basePpeAvg - violationRate));
-        return `${dynamicPpe}%`;
-      })();
+  const ppeComplianceVal = (() => {
+    const totalPpePending = activeChainages.reduce((sum, ch) => sum + ch.ppePending, 0);
+    const totalWorkers = activeChainages.reduce((sum, ch) => sum + ch.workers, 0) || 1;
+    const violationRate = Math.min(30, (totalPpePending / totalWorkers) * 100);
+    const dynamicPpe = Math.max(60, Math.round(basePpeAvg - violationRate));
+    return `${dynamicPpe}%`;
+  })();
 
   // Quality Audits
-  const qualityAuditsVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '22'
-    : (activeChainages.length * 4).toString();
+  const qualityAuditsVal = (activeChainages.length > 0 ? activeChainages.length * 4 : projectsList.length * 10 || 22).toString();
 
   // Productivity
   const productivityScore = Math.min(100, Math.max(60, Math.round(80 + (avgSafetyScore - 70) * 0.5 + (avgProgress - 20) * 0.15)));
-  const productivityVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '96.2%'
-    : `${productivityScore}%`;
+  const productivityVal = `${productivityScore}%`;
 
   // Schedule Delay
   const delayDays = avgProgress > 75 ? 0 : avgProgress > 50 ? 2 : avgProgress > 30 ? 4 : 7;
-  const scheduleDelayVal = (!appliedProject && !appliedSite && !appliedChainage)
-    ? '4 days'
-    : delayDays === 0 ? '0 days' : `${delayDays} days`;
-  const scheduleDelaySubtitle = (!appliedProject && !appliedSite && !appliedChainage)
-    ? 'Critical baseline lag'
-    : delayDays === 0 ? 'On Track' : delayDays <= 2 ? 'Recoverable delay' : 'Critical baseline lag';
-  const scheduleDelayTrend = (!appliedProject && !appliedSite && !appliedChainage)
-    ? 'Recoverable'
-    : delayDays === 0 ? 'Excellent' : 'Action required';
-  const scheduleDelayIsPositive = (!appliedProject && !appliedSite && !appliedChainage)
-    ? false
-    : delayDays === 0;
+  const scheduleDelayVal = delayDays === 0 ? '0 days' : `${delayDays} days`;
+  const scheduleDelaySubtitle = delayDays === 0 ? 'On Track' : delayDays <= 2 ? 'Recoverable delay' : 'Critical baseline lag';
+  const scheduleDelayTrend = delayDays === 0 ? 'Excellent' : 'Action required';
+  const scheduleDelayIsPositive = delayDays === 0;
 
   // AI Server Health
   const hasRedStatus = activeChainages.some(ch => ch.status === 'red');
@@ -218,13 +306,13 @@ export const ProjectManagerDashboard = () => {
   const aiHealthIsPositive = !hasRedStatus;
 
   // Active Incidents (additional KPI card to balance layout)
-  const activeIncidentsList = MOCK_INCIDENTS.filter((inc) => {
+  const activeIncidentsList = incidentsList.filter((inc) => {
     if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
+      const siteObj = sitesList.find(s => s.name === appliedSite);
       if (siteObj && inc.siteId !== siteObj.id) return false;
     }
     if (appliedProject) {
-      const proj = MOCK_PROJECTS.find(p => p.name === appliedProject);
+      const proj = projectsList.find(p => p.name === appliedProject);
       if (proj && inc.projectId !== proj.id) return false;
     }
     return inc.status === 'open' || inc.status === 'investigating';
@@ -238,17 +326,15 @@ export const ProjectManagerDashboard = () => {
     { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, subtitle: 'Active on site today', trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
     { id: 'equipment', title: 'Machinery', value: machineryVal, subtitle: 'Heavy excavators/rigs', trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
     { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, subtitle: 'Compaction / Cube logs', trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    // { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, subtitle: 'Average compliance', trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    // { id: 'live-cameras', title: 'Live Cameras', value: camerasVal, subtitle: 'Feed active status', trend: '93% uptime', isPositive: true, icon: 'bi-camera-video-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, subtitle: 'Average compliance', trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    { id: 'live-cameras', title: 'Live Cameras', value: camerasVal, subtitle: 'Feed active status', trend: '93% uptime', isPositive: true, icon: 'bi-camera-video-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, subtitle: 'Pending review cases', trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
-    // { id: 'daily-productivity', title: 'Productivity', value: productivityVal, subtitle: 'Laydown output score', trend: '+2.4%', isPositive: true, icon: 'bi-lightning-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    // { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
-    // { id: 'ai-health', title: 'AI Server Health', value: aiHealthVal, subtitle: aiHealthSubtitle, trend: aiHealthTrend, isPositive: aiHealthIsPositive, icon: 'bi-cpu-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    // { id: 'active-incidents', title: 'Active Incidents', value: incidentsVal, subtitle: 'Open hazard reviews', trend: incidentsTrend, isPositive: incidentsCount === 0, icon: 'bi-exclamation-triangle-fill', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
+    { id: 'daily-productivity', title: 'Productivity', value: productivityVal, subtitle: 'Laydown output score', trend: '+2.4%', isPositive: true, icon: 'bi-lightning-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
+    { id: 'ai-health', title: 'AI Server Health', value: aiHealthVal, subtitle: aiHealthSubtitle, trend: aiHealthTrend, isPositive: aiHealthIsPositive, icon: 'bi-cpu-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    { id: 'active-incidents', title: 'Active Incidents', value: incidentsVal, subtitle: 'Open hazard reviews', trend: incidentsTrend, isPositive: incidentsCount === 0, icon: 'bi-exclamation-triangle-fill', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
     { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Helmet ${MOCK_PPE_COMPLIANCE.helmet}%`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
   ];
-
-
 
   // 2. Dynamic Safety Leaderboard logic
   let leaderboardTitle: string;
@@ -264,9 +350,9 @@ export const ProjectManagerDashboard = () => {
   }>;
 
   if (appliedChainage) {
-    const selectedCh = MOCK_CHAINAGES.find(c => c.id === appliedChainage);
+    const selectedCh = chainagesList.find(c => c.id === appliedChainage);
     leaderboardTitle = `Safety Leaderboard - ${selectedCh?.site || 'Site'}`;
-    const siteChainages = MOCK_CHAINAGES.filter(c => c.site === selectedCh?.site)
+    const siteChainages = chainagesList.filter(c => c.site === selectedCh?.site)
       .sort((a, b) => b.safetyScore - a.safetyScore);
 
     leaderboardItems = siteChainages.map((ch, idx) => {
@@ -296,19 +382,20 @@ export const ProjectManagerDashboard = () => {
     });
   } else if (appliedSite) {
     leaderboardTitle = `Safety Leaderboard - ${appliedSite}`;
-    const siteChainages = MOCK_CHAINAGES.filter(c => c.site === appliedSite)
-      .sort((a, b) => b.safetyScore - a.safetyScore);
+    const siteChainages = chainagesList.filter(c => c.site === appliedSite)
+      .sort((a, b) => (b.safetyScore || 90) - (a.safetyScore || 90));
 
     leaderboardItems = siteChainages.map((ch, idx) => {
-      const colors = ch.safetyScore >= 90 ? '#16a34a' : ch.safetyScore >= 80 ? '#d97706' : '#dc2626';
+      const score = ch.safetyScore || 90;
+      const colors = score >= 90 ? '#16a34a' : score >= 80 ? '#d97706' : '#dc2626';
       const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
       const vls = ['Helmet Missing', 'Vest Missing', 'Perimeter Breach', 'Excavation Barricade missing', 'No Violation'];
       const safetyDetail = {
-        ppe: Math.round(ch.safetyScore * 1.02),
-        barricade: ch.safetyScore >= 90 ? 'Optimal' : ch.safetyScore >= 80 ? 'Minor Gaps' : 'Critical Missing',
-        days: Math.round(ch.safetyScore * 2.2),
-        speed: Math.round(ch.safetyScore * 1.03),
-        violation: ch.safetyScore >= 90 ? 'No Violation' : vls[idx % vls.length]
+        ppe: Math.round(score * 1.02),
+        barricade: score >= 90 ? 'Optimal' : score >= 80 ? 'Minor Gaps' : 'Critical Missing',
+        days: Math.round(score * 2.2),
+        speed: Math.round(score * 1.03),
+        violation: score >= 90 ? 'No Violation' : vls[idx % vls.length]
       };
       if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
       if (safetyDetail.speed > 100) safetyDetail.speed = 100;
@@ -316,7 +403,7 @@ export const ProjectManagerDashboard = () => {
       return {
         rank: idx + 1,
         name: ch.name,
-        score: ch.safetyScore,
+        score: score,
         icon: 'bi-geo-alt-fill',
         color: colors,
         medal: medals[idx] || String(idx + 1),
@@ -325,8 +412,8 @@ export const ProjectManagerDashboard = () => {
     });
   } else if (appliedProject) {
     leaderboardTitle = `Safety Leaderboard - ${appliedProject}`;
-    const projSites = MOCK_SITES.filter(s => s.projectName === appliedProject)
-      .sort((a, b) => b.safetyScore - a.safetyScore);
+    const projSites = sitesList.filter(s => s.projectName === appliedProject || s.name === appliedProject)
+      .sort((a, b) => (b.safetyScore || 90) - (a.safetyScore || 90));
 
     leaderboardItems = projSites.map((site, idx) => {
       const colors = site.safetyScore >= 90 ? '#16a34a' : site.safetyScore >= 80 ? '#d97706' : '#dc2626';
@@ -409,22 +496,22 @@ export const ProjectManagerDashboard = () => {
     { label: 'Girder Launch', val: Math.max(0, Math.round(avgStructuralProgress * 0.2)), cls: 'bg-danger' },
   ];
 
-  // 4. Cumulative Chart scaling function
+  // 4. Dynamic Cumulative Progress Chart Calculation Engine
   const getChartData = () => {
     let baseData = PLAN_VS_ACTUAL_MONTHLY;
     if (chartRange === 'week') baseData = PLAN_VS_ACTUAL_WEEKLY;
     else if (chartRange === 'year') baseData = PLAN_VS_ACTUAL_YEARLY;
 
-    if (!appliedProject && !appliedSite && !appliedChainage) {
-      return baseData;
-    }
+    // Apply Year multiplier scaling for historical / future view
+    const yearScale = chartYear === '2024' ? 0.65 : chartYear === '2025' ? 0.85 : 1.0;
 
     const maxActualInBase = baseData[baseData.length - 1].actual;
-    const scaleFactor = avgProgress / maxActualInBase;
+    const currentProgressTarget = (appliedProject || appliedSite || appliedChainage) ? avgProgress : maxActualInBase;
+    const scaleFactor = (currentProgressTarget / maxActualInBase) * yearScale;
 
     return baseData.map((d) => ({
       ...d,
-      planned: Math.min(100, Math.round(d.planned * scaleFactor * 1.05)),
+      planned: Math.min(100, Math.round(d.planned * (yearScale === 1.0 ? 1.0 : yearScale * 1.02))),
       actual: Math.min(100, Math.round(d.actual * scaleFactor)),
     }));
   };
@@ -434,15 +521,15 @@ export const ProjectManagerDashboard = () => {
   let spentCr: number;
   let spentPct: number;
 
-  const matchedProject = MOCK_PROJECTS.find(p => p.name === appliedProject);
+  const matchedProject = projectsList.find(p => p.name === appliedProject);
   if (matchedProject) {
-    const projectBudgetCr = matchedProject.budget / 10000000;
+    const projectBudgetCr = (matchedProject.budget || 50000000) / 10000000;
 
     if (appliedChainage) {
-      const siteCount = MOCK_SITES.filter(s => s.projectId === matchedProject.id).length || 1;
+      const siteCount = sitesList.filter(s => s.projectId === matchedProject.id).length || 1;
       totalBudgetCr = Math.round(projectBudgetCr / (siteCount * 2));
     } else if (appliedSite) {
-      const siteCount = MOCK_SITES.filter(s => s.projectId === matchedProject.id).length || 1;
+      const siteCount = sitesList.filter(s => s.projectId === matchedProject.id).length || 1;
       totalBudgetCr = Math.round(projectBudgetCr / siteCount);
     } else {
       totalBudgetCr = Math.round(projectBudgetCr);
@@ -456,7 +543,7 @@ export const ProjectManagerDashboard = () => {
     spentCr = Math.round(totalBudgetCr * (spentPct / 100));
   }
   const remainingCr = totalBudgetCr - spentCr;
-  const allocationDateVal = matchedProject
+  const allocationDateVal = matchedProject && matchedProject.startDate
     ? new Date(matchedProject.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '01 Jan 2024';
   const dueAmountCr = Math.round(remainingCr * 0.12 * 10) / 10;
@@ -468,15 +555,15 @@ export const ProjectManagerDashboard = () => {
   }
 
   // 6. Dynamic AI Alerts list
-  const filteredAlerts = MOCK_AI_ALERTS.filter((alert) => {
+  const filteredAlerts = alertsList.filter((alert) => {
     if (appliedChainage) return alert.chainageId === appliedChainage;
     if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
+      const siteObj = sitesList.find(s => s.name === appliedSite);
       return siteObj && alert.siteId === siteObj.id;
     }
     if (appliedProject) {
-      const proj = MOCK_PROJECTS.find(p => p.name === appliedProject);
-      const projSites = proj ? MOCK_SITES.filter(s => s.projectId === proj.id) : [];
+      const proj = projectsList.find(p => p.name === appliedProject);
+      const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
       return projSites.some(s => s.id === alert.siteId);
     }
     return true;
@@ -592,7 +679,7 @@ export const ProjectManagerDashboard = () => {
             <span className={bellShake ? 'bell-shake' : ''} style={{ display: 'inline-block' }}>
               <i className="bi bi-bell-fill me-1 text-primary" />
             </span>
-            <span>Notification Center ({MOCK_AI_ALERTS.length})</span>
+            <span>Notification Center ({alertsList.length})</span>
           </button>
         </div>
       </section>
@@ -617,9 +704,9 @@ export const ProjectManagerDashboard = () => {
               }}
             >
               <option value="">All Projects</option>
-              <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
-              <option value="Mumbai Ring Road">Mumbai Ring Road</option>
-              <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
+              {projectsList.map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
             </select>
           </div>
 
@@ -633,36 +720,20 @@ export const ProjectManagerDashboard = () => {
                 setFilterSite(selectedVal);
                 setFilterChainage('');
                 if (selectedVal) {
-                  if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
-                    setFilterProject('Chennai-Bangalore Expressway');
-                  } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Mumbai Ring Road');
-                  } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Hyderabad Metro Phase II');
+                  const sObj = sitesList.find(s => s.name === selectedVal);
+                  const matchedProj = projectsList.find(p => p.id === sObj?.projectId);
+                  if (matchedProj) {
+                    setFilterProject(matchedProj.name);
                   }
                 }
               }}
             >
               <option value="">All Sites</option>
-              {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
-                <>
-                  <option value="Site A - KM 0-15">Site A - KM 0-15</option>
-                  <option value="Site B - KM 15-30">Site B - KM 15-30</option>
-                  <option value="Site C - KM 30-45">Site C - KM 30-45</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Mumbai Ring Road') && (
-                <>
-                  <option value="Site D - KM 0-12">Site D - KM 0-12</option>
-                  <option value="Site E - KM 12-25">Site E - KM 12-25</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
-                <>
-                  <option value="Site F - KM 0-12">Site F - KM 0-12</option>
-                  <option value="Site G - KM 12-25">Site G - KM 12-25</option>
-                </>
-              )}
+              {sitesList
+                .filter(s => !filterProject || s.projectName === filterProject || projectsList.find(p => p.name === filterProject)?.id === s.projectId)
+                .map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
             </select>
           </div>
 
@@ -675,23 +746,11 @@ export const ProjectManagerDashboard = () => {
               disabled={!filterSite}
             >
               <option value="">All Chainages</option>
-              {filterSite === 'Site A - KM 0-15' && (
-                <>
-                  <option value="CH-01">CH-01 (KM 2.5)</option>
-                  <option value="CH-05">CH-05 (KM 12.0)</option>
-                </>
-              )}
-              {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
-              {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
-              {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
-              {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
-              {filterSite === 'Site F - KM 0-12' && (
-                <>
-                  <option value="CH-30">CH-30 (KM 2.5)</option>
-                  <option value="CH-35">CH-35 (KM 12.0)</option>
-                </>
-              )}
-              {filterSite === 'Site G - KM 12-25' && <option value="CH-40">CH-40 (KM 22.4)</option>}
+              {chainagesList
+                .filter(c => c.site === filterSite)
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.name || c.id}</option>
+                ))}
             </select>
           </div>
 
@@ -737,7 +796,7 @@ export const ProjectManagerDashboard = () => {
               }}
             >
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="small text-muted fw-bold text-uppercase text-truncate" style={{ fontSize: '10px', letterSpacing: '0.3px', maxWidth: '100px' }}>
+                <span className="small text-muted fw-bold text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.3px', lineHeight: '1.2' }}>
                   {card.title}
                 </span>
                 <span className={`badge ${card.badgeClass} rounded-circle p-1.5 d-flex align-items-center justify-content-center`} style={{ width: 22, height: 22 }}>
@@ -766,6 +825,8 @@ export const ProjectManagerDashboard = () => {
               selectedProject={appliedProject}
               selectedSite={appliedSite}
               selectedChainage={appliedChainage}
+              sitesList={sitesList}
+              chainagesList={chainagesList}
               onActionClick={handleMapAction}
             />
           </div>
@@ -779,25 +840,34 @@ export const ProjectManagerDashboard = () => {
                 <i className="bi bi-graph-up-arrow text-primary fs-5" />
                 <h3 className="h6 mb-0 fw-bold">Plan vs Actual Cumulative Progress</h3>
               </div>
-              <div className="btn-group d-flex align-items-center" >
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'week' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('week')}
+              <div className="d-flex align-items-center gap-2">
+                {/* Period Dropdown (Week / Month / Year) */}
+                <select
+                  className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
+                  style={{ fontSize: '11px', width: 'auto', borderRadius: '6px' }}
+                  value={chartRange}
+                  onChange={(e) => setChartRange(e.target.value as 'week' | 'month' | 'year')}
+                  aria-label="Select chart period range"
                 >
-                  Week
-                </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'month' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('month')}
-                >
-                  Month
-                </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'year' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('year')}
-                >
-                  Year
-                </button>
+                  <option value="week">Week-wise</option>
+                  <option value="month">Month-wise</option>
+                  <option value="year">Year-wise</option>
+                </select>
+
+                {/* Year Dropdown */}
+                {chartRange !== 'year' && (
+                  <select
+                    className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
+                    style={{ fontSize: '11px', width: 'auto', borderRadius: '6px' }}
+                    value={chartYear}
+                    onChange={(e) => setChartYear(e.target.value)}
+                    aria-label="Select chart target year"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                  </select>
+                )}
               </div>
             </div>
             <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100">
@@ -1118,6 +1188,213 @@ export const ProjectManagerDashboard = () => {
           userRole={user?.role}
         />
 
+      </section>
+
+      {/* ── 5B. Dedicated Live Camera Surveillance & PTZ Control Console for Project Manager ── */}
+      <section className="row g-3 mt-1">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm p-3 bg-white">
+            <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 border-bottom pb-3 mb-3">
+              <div className="d-flex align-items-center gap-2">
+                <span className="metric-icon" style={{ background: '#eaf2ff', color: '#2563eb' }}>
+                  <i className="bi bi-camera-video-fill" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="h6 mb-0 fw-bold">Live Camera Surveillance &amp; PTZ Controls</h3>
+                  <p className="text-muted small mb-0">Real-time video feed monitoring and pan-tilt-zoom control provision for project managers.</p>
+                </div>
+              </div>
+
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => navigate('/cameras')}
+                >
+                  <i className="bi bi-grid-fill me-1" /> All Cameras ({camerasList.length})
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-success"
+                  onClick={() => navigate('/cameras/create')}
+                >
+                  <i className="bi bi-plus-circle me-1" /> Add Camera
+                </button>
+              </div>
+            </div>
+
+            {/* Camera Console Viewports */}
+            {camerasList.length === 0 ? (
+              <div className="text-center py-5 text-muted border rounded bg-light">
+                <i className="bi bi-camera-video-off fs-1 mb-2 d-block text-secondary" />
+                <p className="mb-2 fw-semibold">No cameras added yet for this project.</p>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('/cameras/create')}>
+                  <i className="bi bi-plus-lg me-1" /> Add First Camera
+                </button>
+              </div>
+            ) : (
+              <div className="row g-3">
+                {/* Camera List & Quick Select */}
+                <div className="col-12 col-lg-4">
+                  <div className="card border p-3 bg-light h-100 d-flex flex-column">
+                    <h6 className="fw-bold mb-2">
+                      <i className="bi bi-list-stars me-1 text-primary" /> Installed Site Feeds
+                    </h6>
+                    <p className="text-muted small mb-3">Select a camera to activate live stream and PTZ controller:</p>
+
+                    <div className="d-flex flex-column gap-2 flex-grow-1 overflow-auto" style={{ maxHeight: '340px' }}>
+                      {camerasList.map((cam) => {
+                        const isSelected = (selectedCamId || camerasList[0]?.id) === cam.id;
+                        const isOnline = String(cam.status).toLowerCase() === 'online' || String(cam.status).toLowerCase() === 'active';
+                        return (
+                          <div
+                            key={cam.id}
+                            className={`p-2.5 rounded border cursor-pointer transition-all ${
+                              isSelected ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-body border-secondary border-opacity-25 hover-bg-light'
+                            }`}
+                            onClick={() => {
+                              setSelectedCamId(cam.id);
+                              setStreamError(false);
+                            }}
+                          >
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                              <span className="fw-bold text-truncate" style={{ fontSize: '13px', maxWidth: '180px' }}>
+                                {cam.name}
+                              </span>
+                              <span className={`badge ${isSelected ? 'bg-white text-primary' : isOnline ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border'}`}>
+                                {isOnline ? 'ONLINE' : 'OFFLINE'}
+                              </span>
+                            </div>
+                            <div className={`small ${isSelected ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '11px' }}>
+                              <i className="bi bi-geo-alt me-1" />{cam.siteName || cam.location || 'Site Location'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Camera Live Player & PTZ Directional Controls */}
+                {(() => {
+                  const activeCam = camerasList.find((c) => c.id === (selectedCamId || camerasList[0]?.id)) || camerasList[0];
+                  if (!activeCam) return null;
+
+                  return (
+                    <div className="col-12 col-lg-8">
+                      <div className="card border bg-dark text-white p-3 h-100">
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-danger text-white border border-danger-subtle font-monospace">
+                              <i className="bi bi-record-circle me-1 text-blink" /> LIVE
+                            </span>
+                            <span className="fw-bold">{activeCam.name}</span>
+                          </div>
+                        </div>
+
+                        {/* Stream Viewscreen Frame */}
+                        <div className="position-relative overflow-hidden rounded bg-black d-flex align-items-center justify-content-center" style={{ minHeight: '260px', height: '260px' }}>
+                          {/* Shutter flash overlay */}
+                          {shutterFlash && <div className="position-absolute top-0 start-0 w-100 h-100 bg-white" style={{ zIndex: 30, opacity: 0.8 }} />}
+
+                          {/* Recording indicator */}
+                          {isRecording && (
+                            <div className="position-absolute top-0 start-0 m-3 p-2 bg-dark bg-opacity-75 rounded border border-danger d-flex align-items-center gap-2 font-monospace text-danger small text-blink" style={{ zIndex: 20 }}>
+                              <i className="bi bi-record-fill" /> REC <span>{recordingSeconds}s</span>
+                            </div>
+                          )}
+
+                          <div className="w-100 h-100 position-relative overflow-hidden d-flex align-items-center justify-content-center">
+                            {activeCam.rtspUrl && (activeCam.rtspUrl.startsWith('http://') || activeCam.rtspUrl.startsWith('https://')) && !streamError ? (
+                              <img
+                                src={activeCam.rtspUrl}
+                                alt={activeCam.name}
+                                className="w-100 h-100 object-fit-cover"
+                                style={{
+                                  transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camOffset.zoom})`,
+                                  transformOrigin: 'center center',
+                                  transition: 'transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                }}
+                                onError={() => setStreamError(true)}
+                              />
+                            ) : (
+                              <div className="d-flex flex-column align-items-center justify-content-center p-3 text-center h-100">
+                                <i className="bi bi-camera-video fs-1 mb-2 text-info opacity-75" />
+                                <p className="fw-semibold text-uppercase tracking-wider mb-1 text-white">{activeCam.type} Stream Feed</p>
+                                {streamError && (
+                                  <div className="badge bg-warning text-dark px-3 py-1">
+                                    Standby Feed Mode / Retrying direct connection...
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* HUD Overlay Stats */}
+                          <div className="position-absolute bottom-0 start-0 p-2 text-white font-monospace small bg-black bg-opacity-70 rounded-end" style={{ fontSize: '10px' }}>
+                            PTZ: Pan {Math.round(camOffset.x / 2.5)}° | Tilt {Math.round(-camOffset.y / 2.5)}° | Zoom {camOffset.zoom.toFixed(1)}x
+                          </div>
+
+                          {ptzAction && (
+                            <div className="position-absolute bottom-0 end-0 p-2 text-warning fw-bold font-monospace small bg-black bg-opacity-80 rounded-start" style={{ fontSize: '10px' }}>
+                              CMD: {ptzAction}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* PTZ Action Controller Bar */}
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top border-secondary border-opacity-50">
+                          {/* PTZ D-Pad Controls */}
+                          <div className="d-flex align-items-center gap-1">
+                            <span className="small text-white-50 me-1 fw-bold">PTZ:</span>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Tilt Up" onClick={() => handlePtz('TILT UP')}>
+                              <i className="bi bi-chevron-up" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Tilt Down" onClick={() => handlePtz('TILT DOWN')}>
+                              <i className="bi bi-chevron-down" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Pan Left" onClick={() => handlePtz('PAN LEFT')}>
+                              <i className="bi bi-chevron-left" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Pan Right" onClick={() => handlePtz('PAN RIGHT')}>
+                              <i className="bi bi-chevron-right" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Zoom In" onClick={() => handlePtz('ZOOM IN')}>
+                              <i className="bi bi-plus-lg" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-light px-2" title="Zoom Out" onClick={() => handlePtz('ZOOM OUT')}>
+                              <i className="bi bi-dash-lg" />
+                            </button>
+                            <button className="btn btn-xs btn-outline-warning px-2" title="Reset View" onClick={() => handlePtz('RESET')}>
+                              <i className="bi bi-house-door" />
+                            </button>
+                          </div>
+
+                          {/* Recording & Snapshot Provisions */}
+                          <div className="d-flex align-items-center gap-2">
+                            <button
+                              className={`btn btn-xs ${isRecording ? 'btn-danger text-blink' : 'btn-outline-danger'}`}
+                              onClick={() => handleToggleRecording(activeCam.name)}
+                            >
+                              <i className="bi bi-record-circle me-1" />
+                              {isRecording ? 'Stop Recording' : 'Record Stream'}
+                            </button>
+                            <button
+                              className="btn btn-xs btn-outline-info"
+                              onClick={() => handleTakeSnapshot(activeCam.name)}
+                            >
+                              <i className="bi bi-camera me-1" /> Snapshot
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* ── 6. Floating Popover Modal & Alerts Drawer Overlay ── */}

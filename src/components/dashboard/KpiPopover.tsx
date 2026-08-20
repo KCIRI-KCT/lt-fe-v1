@@ -309,7 +309,7 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
 
   const details = getCardDetails();
 
-  const filteredContractors = details.contractors.filter((c: any) => {
+  const filteredContractors = details.contractors.filter((c) => {
     if (selectedSite && c.name !== selectedSite) return false;
     if (selectedProject && c.project && c.project !== selectedProject) return false;
     return true;

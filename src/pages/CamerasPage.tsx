@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { CameraCard } from '../components/cards/CameraCard';
-import { MOCK_CAMERAS } from '../services/mockData';
-import { useApp } from '../hooks/useApp';
+import { cameraService } from '../services/cameraService';
+import type { Camera } from '../types';
 
 export const CamerasPage = () => {
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [selectedSite, setSelectedSite] = useState<string>('all');
   const [selectedChainage, setSelectedChainage] = useState<string>('all');
@@ -14,13 +16,27 @@ export const CamerasPage = () => {
   const [showReportToast, setShowReportToast] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
-  const { user } = useApp();
+  useEffect(() => {
+    let isMounted = true;
+    cameraService.getCameras()
+      .then((data) => {
+        if (isMounted) setCameras(data);
+      })
+      .catch(() => {
+        if (isMounted) setCameras([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   // Camera HUD overlay states
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [shutterFlash, setShutterFlash] = useState(false);
+  const [streamError, setStreamError] = useState(false);
   const [actionToastMsg, setActionToastMsg] = useState('');
   const [showActionToast, setShowActionToast] = useState(false);
 
@@ -69,7 +85,7 @@ export const CamerasPage = () => {
   // Extract unique Sites and Chainages dynamically
   const siteOptions = Array.from(
     new Set(
-      MOCK_CAMERAS.map((c) => {
+      cameras.map((c) => {
         const parts = c.siteName?.split(' - ') || [];
         return parts[0] || '';
       }).filter(Boolean)
@@ -78,23 +94,31 @@ export const CamerasPage = () => {
 
   const chainageOptions = Array.from(
     new Set(
-      MOCK_CAMERAS.map((c) => {
+      cameras.map((c) => {
         const parts = c.siteName?.split(' - ') || [];
         return parts[1] || '';
       }).filter(Boolean)
     )
   );
 
-  // Sorting camera malfunctions Mock Data (floating high frequencies to top)
-  const malfunctions = [
-    { id: 'm-1', name: 'Worker Shed - Site A', siteName: 'Site A - KM 0-15', code: 'CAM-03', frequency: 28, lastTime: '2026-07-15 19:45:12', issue: 'RTSP socket connection handshake reset' },
-    { id: 'm-2', name: 'Tunnel Vent - Site C', siteName: 'Site C - KM 30-45', code: 'CAM-06', frequency: 19, lastTime: '2026-07-15 18:22:05', issue: 'Fatal frame rate decay below 5 FPS' },
-    { id: 'm-3', name: 'Material Storage - Site B', siteName: 'Site B - KM 15-30', code: 'CAM-05', frequency: 8, lastTime: '2026-07-15 17:10:43', issue: 'PTZ telemetry address binding error' },
-    { id: 'm-4', name: 'Excavation Zone - Site A', siteName: 'Site A - KM 0-15', code: 'CAM-02', frequency: 3, lastTime: '2026-07-15 15:12:19', issue: 'Video stream format parsing disruption' }
-  ];
+  // Camera malfunctions derived dynamically from offline or error status cameras
+  const malfunctions = cameras
+    .filter((c) => c.status === 'offline' || c.status === 'error' || c.status === 'maintenance')
+    .map((c, i) => ({
+      id: `m-${c.id}`,
+      name: c.name,
+      siteName: c.siteName || 'Site Main',
+      code: `CAM-${String(i + 1).padStart(2, '0')}`,
+      frequency: c.status === 'error' ? 14 : 4,
+      lastTime: c.lastOnline || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      issue: c.status === 'error' ? 'RTSP socket connection handshake reset' : 'Camera feed offline / connectivity loss',
+    }));
 
-  const filtered = MOCK_CAMERAS.filter((c) => {
-    if (filter !== 'all' && c.status !== filter) return false;
+  const filtered = cameras.filter((c) => {
+    const statusStr = String(c.status).toLowerCase();
+    if (filter === 'online' && statusStr !== 'online' && statusStr !== 'active') return false;
+    if (filter === 'offline' && (statusStr === 'online' || statusStr === 'active')) return false;
+    if (filter !== 'all' && filter !== 'online' && filter !== 'offline' && statusStr !== filter) return false;
 
     const parts = c.siteName?.split(' - ') || [];
     const sitePart = parts[0] || '';
@@ -106,7 +130,7 @@ export const CamerasPage = () => {
     return true;
   });
 
-  const activeCamera = MOCK_CAMERAS.find((c) => c.id === activeCamId);
+  const activeCamera = cameras.find((c) => c.id === activeCamId);
 
   const handleGenerateReport = () => {
     setIsGeneratingReport(true);
@@ -123,29 +147,119 @@ export const CamerasPage = () => {
     const interval = setInterval(() => {
       setTimestamp(new Date().toLocaleString());
     }, 1000);
+
     return () => clearInterval(interval);
   }, [activeCamId]);
 
+  // Handle Camera Status Toggle
+  const handleToggleCameraStatus = async (id: string) => {
+    const targetCam = cameras.find((c) => c.id === id);
+    if (!targetCam) return;
+    const newStatus: Camera['status'] = targetCam.status === 'online' ? 'offline' : 'online';
+
+    setCameras((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
+    );
+    setActionToastMsg(`Camera "${targetCam.name}" status changed to ${newStatus.toUpperCase()}`);
+    setShowActionToast(true);
+    setTimeout(() => setShowActionToast(false), 3000);
+
+    try {
+      await cameraService.updateCamera(id, { status: newStatus });
+    } catch (err) {
+      console.error('Failed to update camera status:', err);
+    }
+  };
+
   // Handle PTZ action trigger
-  const handlePtz = (action: string) => {
+  const handlePtz = async (action: string) => {
     setPtzAction(action);
-    setCamOffset((prev) => {
-      switch (action) {
-        case 'PAN LEFT': return { ...prev, x: prev.x - 10 };
-        case 'PAN RIGHT': return { ...prev, x: prev.x + 10 };
-        case 'TILT UP': return { ...prev, y: prev.y - 10 };
-        case 'TILT DOWN': return { ...prev, y: prev.y + 10 };
-        case 'ZOOM IN': return { ...prev, zoom: Math.min(3, prev.zoom + 0.15) };
-        case 'ZOOM OUT': return { ...prev, zoom: Math.max(1, prev.zoom - 0.15) };
-        case 'RESET': return { x: 0, y: 0, zoom: 1 };
-        default: return prev;
+    let nextX = camOffset.x;
+    let nextY = camOffset.y;
+    let nextZoom = camOffset.zoom;
+
+    switch (action) {
+      case 'PAN LEFT': nextX = camOffset.x - 30; break;
+      case 'PAN RIGHT': nextX = camOffset.x + 30; break;
+      case 'TILT UP': nextY = camOffset.y - 30; break;
+      case 'TILT DOWN': nextY = camOffset.y + 30; break;
+      case 'ZOOM IN': nextZoom = Math.min(3.5, Number((camOffset.zoom + 0.35).toFixed(2))); break;
+      case 'ZOOM OUT': nextZoom = Math.max(1, Number((camOffset.zoom - 0.35).toFixed(2))); break;
+      case 'RESET': nextX = 0; nextY = 0; nextZoom = 1; break;
+    }
+
+    setCamOffset({ x: nextX, y: nextY, zoom: nextZoom });
+
+    if (activeCamId) {
+      try {
+        await cameraService.controlPtz(activeCamId, action, nextX, nextY, nextZoom);
+      } catch (err) {
+        console.error('Failed to send PTZ command to camera:', err);
       }
-    });
+    }
 
     setTimeout(() => {
       setPtzAction('');
     }, 1000);
   };
+
+  // Keyboard Shortcuts for PTZ Camera Controls
+  useEffect(() => {
+    if (!activeCamId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement as HTMLElement;
+      if (activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          e.preventDefault();
+          handlePtz('PAN LEFT');
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          e.preventDefault();
+          handlePtz('PAN RIGHT');
+          break;
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          e.preventDefault();
+          handlePtz('TILT UP');
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          e.preventDefault();
+          handlePtz('TILT DOWN');
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          handlePtz('ZOOM IN');
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          handlePtz('ZOOM OUT');
+          break;
+        case 'r':
+        case 'R':
+        case 'Home':
+          e.preventDefault();
+          handlePtz('RESET');
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCamId, camOffset]);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -245,16 +359,32 @@ export const CamerasPage = () => {
           <div className="col-12 col-lg-5">
             <label className="form-label text-muted small fw-semibold">Filter by Status</label>
             <div className="d-flex flex-wrap gap-1">
-              {['all', 'online', 'offline', 'error', 'maintenance'].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setFilter(s)}
-                >
-                  {s.charAt(0).toUpperCase() + s.slice(1)} ({s === 'all' ? MOCK_CAMERAS.length : MOCK_CAMERAS.filter((c) => c.status === s).length})
-                </button>
-              ))}
+              {['all', 'online', 'offline', 'error', 'maintenance'].map((s) => {
+                const count = s === 'all'
+                  ? cameras.length
+                  : s === 'online'
+                  ? cameras.filter((c) => {
+                      const str = String(c.status).toLowerCase();
+                      return str === 'online' || str === 'active';
+                    }).length
+                  : s === 'offline'
+                  ? cameras.filter((c) => {
+                      const str = String(c.status).toLowerCase();
+                      return str !== 'online' && str !== 'active';
+                    }).length
+                  : cameras.filter((c) => String(c.status).toLowerCase() === s).length;
+
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setFilter(s)}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)} ({count})
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -313,10 +443,15 @@ export const CamerasPage = () => {
         {/* Left Column: Camera Cards Grid */}
         <div className="col-12 col-lg-8">
           <div className="row g-3">
-            {filtered.length > 0 ? (
-              filtered.map((camera) => (
-                <div key={camera.id} className="col-12 col-md-6 col-xl-6">
-                  <CameraCard camera={camera} onView={(id) => setActiveCamId(id)} />
+            {loading ? (
+              <div className="col-12 text-center py-5">
+                <div className="spinner-border text-primary" role="status" />
+                <p className="mt-2 text-muted">Loading camera feeds...</p>
+              </div>
+            ) : filtered.length > 0 ? (
+              filtered.map((cam) => (
+                <div key={cam.id} className="col-12 col-md-6">
+                  <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} onToggle={handleToggleCameraStatus} />
                 </div>
               ))
             ) : (
@@ -419,8 +554,6 @@ export const CamerasPage = () => {
 
       {/* Stream Viewer Popup Modal */}
       {activeCamera && (() => {
-        const isAdmin = user?.role === 'admin';
-
         return (
           <div className="live-stream-overlay">
             <div
@@ -451,9 +584,10 @@ export const CamerasPage = () => {
                         setIsExpanded(false);
                         setIsRecording(false);
                         setRecordingSeconds(0);
+                        setStreamError(false);
                       }}
                     >
-                      {MOCK_CAMERAS.filter(c => c.status === 'online').map((c) => (
+                      {cameras.filter(c => c.status === 'online').map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name} ({c.type.toUpperCase()})
                         </option>
@@ -478,7 +612,7 @@ export const CamerasPage = () => {
               <div className="p-3">
                 <div className="row g-3">
                   {/* Viewscreen */}
-                  <div className={isAdmin ? "col-12" : "col-12 col-lg-8"}>
+                  <div className="col-12 col-lg-8">
                     <div className="stream-viewscreen">
                       {/* Photo Snapshot Shutter Flash */}
                       {shutterFlash && <div className="shutter-flash-overlay" />}
@@ -496,14 +630,36 @@ export const CamerasPage = () => {
                       )}
 
                       <div
-                        className="stream-cam-placeholder"
-                        style={{
-                          transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camOffset.zoom})`,
-                        }}
+                        className="stream-cam-placeholder position-relative overflow-hidden w-100 h-100"
                       >
-                        <i className="bi bi-camera-video fs-1 mb-2 opacity-50" />
-                        <p className="fw-semibold text-uppercase tracking-wider opacity-75">{activeCamera.type} Feed</p>
-                        <code className="small text-muted bg-dark bg-opacity-50 px-2 py-1 rounded">{activeCamera.rtspUrl}</code>
+                        {activeCamera.rtspUrl && (activeCamera.rtspUrl.startsWith('http://') || activeCamera.rtspUrl.startsWith('https://')) && !streamError ? (
+                          <div className="position-relative w-100 h-100 d-flex align-items-center justify-content-center bg-black overflow-hidden">
+                            <img
+                              src={activeCamera.rtspUrl}
+                              alt={activeCamera.name}
+                              className="w-100 h-100 object-fit-cover"
+                              style={{
+                                transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camOffset.zoom})`,
+                                transformOrigin: 'center center',
+                                transition: 'transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                              }}
+                              onError={() => setStreamError(true)}
+                            />
+                          </div>
+                        ) : (
+                          <div className="d-flex flex-column align-items-center justify-content-center p-4 h-100">
+                            <i className="bi bi-camera-video fs-1 mb-2 opacity-50 text-info" />
+                            <p className="fw-semibold text-uppercase tracking-wider opacity-75 mb-1">{activeCamera.type} Live Feed</p>
+                            <code className="small text-white bg-dark bg-opacity-75 px-3 py-1.5 rounded border border-secondary mb-2">
+                              {activeCamera.rtspUrl}
+                            </code>
+                            {streamError && (
+                              <div className="badge bg-warning bg-opacity-20 text-warning border border-warning px-3 py-1 mt-1 d-flex align-items-center gap-1">
+                                <i className="bi bi-exclamation-triangle-fill" /> Direct Feed Standby / Connection Retrying...
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="scanlines" />
@@ -527,7 +683,7 @@ export const CamerasPage = () => {
                       {/* HUD Control Overlay Buttons */}
                       <div
                         className="position-absolute bottom-0 end-0 m-3 d-flex align-items-center gap-2 bg-dark bg-opacity-75 backdrop-blur px-3 py-1.5 rounded-pill border border-secondary border-opacity-50"
-                        style={{ zIndex: 10 }}
+                        style={{ zIndex: 20 }}
                       >
                         {/* Video Record Option */}
                         <button
@@ -564,77 +720,75 @@ export const CamerasPage = () => {
                     </div>
                   </div>
 
-                  {/* Controls (Hidden for Admin Role) */}
-                  {!isAdmin && (
-                    <div className="col-12 col-lg-4 d-flex flex-column justify-content-between">
-                      <div className="p-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                        <h6 className="fw-bold mb-3 border-bottom border-secondary pb-2">
-                          <i className="bi bi-sliders me-2 text-primary" />PTZ Controller
-                        </h6>
+                  {/* PTZ Controls */}
+                  <div className="col-12 col-lg-4 d-flex flex-column justify-content-between">
+                    <div className="p-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <h6 className="fw-bold mb-3 border-bottom border-secondary pb-2">
+                        <i className="bi bi-sliders me-2 text-primary" />PTZ Controller
+                      </h6>
 
-                        {/* Coordinates display */}
-                        <div className="d-flex align-items-center justify-content-between mb-3 gap-2" style={{ fontSize: '11px' }}>
-                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
-                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Pan</div>
-                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(camOffset.x / 2.5)}°</div>
-                          </div>
-                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
-                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Tilt</div>
-                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(-camOffset.y / 2.5)}°</div>
-                          </div>
-                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
-                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Zoom</div>
-                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{camOffset.zoom.toFixed(2)}x</div>
-                          </div>
+                      {/* Coordinates display */}
+                      <div className="d-flex align-items-center justify-content-between mb-3 gap-2" style={{ fontSize: '11px' }}>
+                        <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                          <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Pan</div>
+                          <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(camOffset.x / 2.5)}°</div>
                         </div>
-
-                        {/* Directional Pad */}
-                        <div className="my-4">
-                          <div className="ptz-grid">
-                            {/* Row 1 */}
-                            <div />
-                            <button className="ptz-btn" title="Tilt Up" onClick={() => handlePtz('TILT UP')}>
-                              <i className="bi bi-chevron-up" />
-                            </button>
-                            <div />
-
-                            {/* Row 2 */}
-                            <button className="ptz-btn" title="Pan Left" onClick={() => handlePtz('PAN LEFT')}>
-                              <i className="bi bi-chevron-left" />
-                            </button>
-                            <button className="ptz-btn text-muted" title="Center" onClick={() => handlePtz('RESET')}>
-                              <i className="bi bi-house" />
-                            </button>
-                            <button className="ptz-btn" title="Pan Right" onClick={() => handlePtz('PAN RIGHT')}>
-                              <i className="bi bi-chevron-right" />
-                            </button>
-
-                            {/* Row 3 */}
-                            <div />
-                            <button className="ptz-btn" title="Tilt Down" onClick={() => handlePtz('TILT DOWN')}>
-                              <i className="bi bi-chevron-down" />
-                            </button>
-                            <div />
-                          </div>
+                        <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                          <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Tilt</div>
+                          <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(-camOffset.y / 2.5)}°</div>
                         </div>
-
-                        {/* Zoom / Scale */}
-                        <div className="d-flex justify-content-center gap-2 mt-3">
-                          <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM IN')}>
-                            <i className="bi bi-plus-circle me-1" />Zoom In
-                          </button>
-                          <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM OUT')}>
-                            <i className="bi bi-dash-circle me-1" />Zoom Out
-                          </button>
+                        <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                          <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Zoom</div>
+                          <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{camOffset.zoom.toFixed(2)}x</div>
                         </div>
                       </div>
 
-                      <div className="p-2 border border-secondary rounded text-muted small mt-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                        <i className="bi bi-info-circle me-2" />
-                        Interactive PTZ controller moves simulated workspace coordinates and adjusts zoom scaling factors.
+                      {/* Directional Pad */}
+                      <div className="my-4">
+                        <div className="ptz-grid">
+                          {/* Row 1 */}
+                          <div />
+                          <button className="ptz-btn" title="Tilt Up" onClick={() => handlePtz('TILT UP')}>
+                            <i className="bi bi-chevron-up" />
+                          </button>
+                          <div />
+
+                          {/* Row 2 */}
+                          <button className="ptz-btn" title="Pan Left" onClick={() => handlePtz('PAN LEFT')}>
+                            <i className="bi bi-chevron-left" />
+                          </button>
+                          <button className="ptz-btn text-muted" title="Center" onClick={() => handlePtz('RESET')}>
+                            <i className="bi bi-house" />
+                          </button>
+                          <button className="ptz-btn" title="Pan Right" onClick={() => handlePtz('PAN RIGHT')}>
+                            <i className="bi bi-chevron-right" />
+                          </button>
+
+                          {/* Row 3 */}
+                          <div />
+                          <button className="ptz-btn" title="Tilt Down" onClick={() => handlePtz('TILT DOWN')}>
+                            <i className="bi bi-chevron-down" />
+                          </button>
+                          <div />
+                        </div>
+                      </div>
+
+                      {/* Zoom / Scale */}
+                      <div className="d-flex justify-content-center gap-2 mt-3">
+                        <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM IN')}>
+                          <i className="bi bi-plus-circle me-1" />Zoom In
+                        </button>
+                        <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM OUT')}>
+                          <i className="bi bi-dash-circle me-1" />Zoom Out
+                        </button>
                       </div>
                     </div>
-                  )}
+
+                    <div className="p-2 border border-secondary rounded text-muted small mt-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                      <i className="bi bi-info-circle me-2" />
+                      Interactive PTZ controller moves camera stream coordinates and adjusts zoom scaling factors.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

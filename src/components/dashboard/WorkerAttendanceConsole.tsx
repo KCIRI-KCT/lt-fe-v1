@@ -120,7 +120,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
 
     // Seed generation based on current selections
     const selectionKey = `${selectedProject}-${selectedSite}-${selectedChainage}`;
-    let seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
 
     for (let i = 0; i < countToGenerate; i++) {
       const nameIdx = (seed + i * 3) % GENERIC_NAMES.length;

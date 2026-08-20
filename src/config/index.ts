@@ -3,13 +3,13 @@
 // ============================================================================
 
 export const config = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
   appName: 'AI Progress Monitor',
   version: '1.0.0',
-  enableMockData: true, // Toggle between mock and real API
+  enableMockData: false, // Set to false to use real Django API
   auth: {
-    tokenKey: 'ai-monitor.authToken',
-    refreshTokenKey: 'ai-monitor.refreshToken',
+    tokenKey: 'access_token',
+    refreshTokenKey: 'refresh_token',
     tokenExpiry: 3600, // 1 hour
   },
   features: {

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_WORKERS } from '../services/mockData';
+import { workerService } from '../services/workerService';
 import type { Worker } from '../types';
 import { STATUS_BADGES } from '../constants';
 
@@ -24,11 +24,28 @@ const columns: Column<Worker>[] = [
 ];
 
 export const WorkforcePage = () => {
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const filtered = MOCK_WORKERS.filter((w) =>
+  useEffect(() => {
+    let isMounted = true;
+    workerService.getWorkers()
+      .then((data) => {
+        if (isMounted) setWorkers(data);
+      })
+      .catch(() => {
+        if (isMounted) setWorkers([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const filtered = workers.filter((w) =>
     !search || w.name.toLowerCase().includes(search.toLowerCase()) || w.employeeId.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -49,20 +66,27 @@ export const WorkforcePage = () => {
           <button className="btn btn-primary btn-sm"><i className="bi bi-person-plus" /> Add Worker</button>
         </div>
       </div>
-      <ReusableDataTable
-        columns={columns}
-        data={sliced}
-        keyExtractor={(w) => w.id}
-        searchQuery={search}
-        onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search workers..."
-        total={filtered.length}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPagination={true}
-      />
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 text-muted">Loading workforce data...</p>
+        </div>
+      ) : (
+        <ReusableDataTable
+          columns={columns}
+          data={sliced}
+          keyExtractor={(w) => w.id}
+          searchQuery={search}
+          onSearch={(q) => { setSearch(q); setPage(1); }}
+          searchPlaceholder="Search workers..."
+          total={filtered.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          showPagination={true}
+        />
+      )}
     </div>
   );
 };

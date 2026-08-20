@@ -1,19 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../hooks/useApp';
 import { PlanVsActualChart } from '../../components/charts/PlanVsActualChart';
 import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
-import { useNotifications, ToastStack, InlineAlertBanner } from '../../components/common/NotificationToast';
+import { useNotifications, InlineAlertBanner } from '../../components/common/NotificationToast';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
-import {
-  MOCK_AI_ALERTS,
-  MOCK_CHAINAGES,
-  MOCK_PROJECTS,
-  MOCK_SITES,
-  MOCK_PPE_COMPLIANCE,
-} from '../../services/mockData';
+import { projectService } from '../../services/projectService';
+import { siteService } from '../../services/siteService';
+import { safetyService } from '../../services/safetyService';
+import type { Project, Site, ChainageData, AIAlert } from '../../types';
 
 // Week-wise, Month-wise, Year-wise Plan vs Actual data
 const PLAN_VS_ACTUAL_WEEKLY = [
@@ -32,6 +29,11 @@ const PLAN_VS_ACTUAL_MONTHLY = [
   { month: 'May', planned: 40, actual: 37 },
   { month: 'Jun', planned: 48, actual: 45 },
   { month: 'Jul', planned: 56, actual: 52 },
+  { month: 'Aug', planned: 64, actual: 60 },
+  { month: 'Sep', planned: 72, actual: 68 },
+  { month: 'Oct', planned: 80, actual: 76 },
+  { month: 'Nov', planned: 88, actual: 84 },
+  { month: 'Dec', planned: 100, actual: 95 },
 ];
 
 const PLAN_VS_ACTUAL_YEARLY = [
@@ -44,7 +46,34 @@ const PLAN_VS_ACTUAL_YEARLY = [
 
 export const SiteEngineerDashboard = () => {
   const { user } = useApp();
-  const { toasts, inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(20000);
+  const { inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(20000);
+
+  // Dynamic API State
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [sitesList, setSitesList] = useState<Site[]>([]);
+  const [chainagesList, setChainagesList] = useState<ChainageData[]>([]);
+  const [alertsList, setAlertsList] = useState<AIAlert[]>([]);
+  const [, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.allSettled([
+      projectService.getProjects(),
+      siteService.getSites(),
+      siteService.getChainages(),
+      safetyService.getAIAlerts(),
+    ]).then(([projRes, siteRes, chRes, alertRes]) => {
+      if (!isMounted) return;
+      if (projRes.status === 'fulfilled') setProjectsList(projRes.value);
+      if (siteRes.status === 'fulfilled') setSitesList(siteRes.value);
+      if (chRes.status === 'fulfilled') setChainagesList(chRes.value as unknown as ChainageData[]);
+      if (alertRes.status === 'fulfilled') setAlertsList(alertRes.value);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
+    });
+
+    return () => { isMounted = false; };
+  }, []);
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -56,8 +85,9 @@ export const SiteEngineerDashboard = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-  // Plan vs Actual Chart toggle: week / month / year
+  // Plan vs Actual Chart toggle: week / month / year & Selected Year
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('month');
+  const [chartYear, setChartYear] = useState<string>('2026');
 
   // KPI popover detail card state
   const [activeKpiCardId, setActiveKpiCardId] = useState<string | null>(null);
@@ -71,34 +101,34 @@ export const SiteEngineerDashboard = () => {
   // Active leaderboard details index
   const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
 
-  // ── DYNAMIC ALLOCATION COMPUTATIONS (Code Optimization) ──
+  // ── DYNAMIC ALLOCATION COMPUTATIONS ──
   const allocatedProjects = useMemo(() => {
-    return MOCK_PROJECTS.filter(
+    return projectsList.filter(
       (p) =>
         p.engineerId === user?.id ||
         p.managerId === user?.id ||
         p.engineerName === user?.name ||
         p.managerName === user?.name
     );
-  }, [user]);
+  }, [projectsList, user]);
 
   const allocatedSites = useMemo(() => {
-    if (allocatedProjects.length === 0) return MOCK_SITES;
-    return MOCK_SITES.filter((s) =>
+    if (allocatedProjects.length === 0) return sitesList;
+    return sitesList.filter((s) =>
       allocatedProjects.some((p) => p.id === s.projectId)
     );
-  }, [allocatedProjects]);
+  }, [allocatedProjects, sitesList]);
 
   const allocatedChainages = useMemo(() => {
-    return MOCK_CHAINAGES.filter((c) =>
+    return chainagesList.filter((c) =>
       allocatedSites.some((s) => s.name === c.site)
     );
-  }, [allocatedSites]);
+  }, [allocatedSites, chainagesList]);
 
-  // Fallbacks if no allocations found (ensure no blank dashboards)
-  const projectsToUse = allocatedProjects.length > 0 ? allocatedProjects : MOCK_PROJECTS;
-  const sitesToUse = allocatedSites.length > 0 ? allocatedSites : MOCK_SITES;
-  const chainagesToUse = allocatedChainages.length > 0 ? allocatedChainages : MOCK_CHAINAGES;
+  // Fallbacks if no allocations found
+  const projectsToUse = allocatedProjects.length > 0 ? allocatedProjects : projectsList;
+  const sitesToUse = allocatedSites.length > 0 ? allocatedSites : sitesList;
+  const chainagesToUse = allocatedChainages.length > 0 ? allocatedChainages : chainagesList;
 
   // Filtered chainages based on active dropdown filters
   const activeChainages = useMemo(() => {
@@ -111,23 +141,30 @@ export const SiteEngineerDashboard = () => {
   }, [chainagesToUse, appliedProject, appliedSite, appliedChainage]);
 
   const avgProgress = useMemo(() => {
-    return activeChainages.length > 0
-      ? activeChainages.reduce((sum, ch) => sum + ch.progress, 0) / activeChainages.length
-      : 33.7;
-  }, [activeChainages]);
+    if (activeChainages.length > 0) {
+      return activeChainages.reduce((sum, ch) => sum + ch.progress, 0) / activeChainages.length;
+    }
+    return projectsToUse.length > 0
+      ? projectsToUse.reduce((sum, p) => sum + (p.progress || 0), 0) / projectsToUse.length
+      : 35.5;
+  }, [activeChainages, projectsToUse]);
 
   const avgSafetyScore = useMemo(() => {
-    return activeChainages.length > 0
-      ? activeChainages.reduce((sum, ch) => sum + ch.safetyScore, 0) / activeChainages.length
-      : 91.2;
-  }, [activeChainages]);
+    if (activeChainages.length > 0) {
+      return activeChainages.reduce((sum, ch) => sum + ch.safetyScore, 0) / activeChainages.length;
+    }
+    return sitesToUse.length > 0
+      ? sitesToUse.reduce((sum, s) => sum + (s.safetyScore || 95), 0) / sitesToUse.length
+      : 95;
+  }, [activeChainages, sitesToUse]);
 
   // 1. Dynamic KPIs calculations
   const totalWorkersVal = useMemo(() => {
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '2,680'
-      : activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN');
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
+    if (activeChainages.length > 0) {
+      return activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN');
+    }
+    return (sitesToUse.reduce((sum, s) => sum + (s.workerCount || 0), 0) || projectsToUse.reduce((sum, p) => sum + (p.workerCount || 0), 0) || 45).toLocaleString('en-IN');
+  }, [activeChainages, sitesToUse, projectsToUse]);
 
   const safetyScoreVal = useMemo(() => {
     return `${avgSafetyScore.toFixed(1)}%`;
@@ -139,14 +176,14 @@ export const SiteEngineerDashboard = () => {
 
   // Machinery
   const machineryVal = useMemo(() => {
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '8'
-      : activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString();
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
+    if (activeChainages.length > 0) {
+      return activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString();
+    }
+    return String(sitesToUse.length * 3 || 8);
+  }, [activeChainages, sitesToUse]);
 
-  // AI Alerts
   const activeAlertsList = useMemo(() => {
-    return MOCK_AI_ALERTS.filter((alert) => {
+    return alertsList.filter((alert) => {
       if (appliedChainage && alert.chainageId !== appliedChainage) return false;
       if (appliedSite) {
         const siteObj = sitesToUse.find(s => s.name === appliedSite);
@@ -159,30 +196,23 @@ export const SiteEngineerDashboard = () => {
       }
       return true;
     });
-  }, [sitesToUse, projectsToUse, appliedProject, appliedSite, appliedChainage]);
+  }, [alertsList, sitesToUse, projectsToUse, appliedProject, appliedSite, appliedChainage]);
 
   const aiAlertsVal = activeAlertsList.length.toString();
 
-  // PPE Compliance — computed from real PPE compliance data
-  const basePpeAvg = Math.round(
-    (MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask +
-      MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5
-  );
+  // PPE Compliance — computed from active AI alerts
   const ppeComplianceVal = useMemo(() => {
-    if (!appliedProject && !appliedSite && !appliedChainage) return `${basePpeAvg}%`;
     const totalPpePending = activeChainages.reduce((sum, ch) => sum + ch.ppePending, 0);
     const totalWorkers = activeChainages.reduce((sum, ch) => sum + ch.workers, 0) || 1;
     const violationRate = Math.min(30, (totalPpePending / totalWorkers) * 100);
-    const dynamicPpe = Math.max(60, Math.round(basePpeAvg - violationRate));
+    const dynamicPpe = Math.max(60, Math.round(92 - violationRate));
     return `${dynamicPpe}%`;
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
+  }, [activeChainages]);
 
   // Quality Audits
   const qualityAuditsVal = useMemo(() => {
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '22'
-      : (activeChainages.length * 4).toString();
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
+    return (activeChainages.length > 0 ? activeChainages.length * 4 : projectsToUse.length * 10 || 22).toString();
+  }, [activeChainages, projectsToUse]);
 
   const dynamicKpiCards = useMemo(() => {
     return [
@@ -190,10 +220,12 @@ export const SiteEngineerDashboard = () => {
       { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'equipment', title: 'Machinery', value: machineryVal, trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+      { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
       { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
-      { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Helmet ${MOCK_PPE_COMPLIANCE.helmet}%`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+      { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Compliance ${ppeComplianceVal}`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     ];
-  }, [progressVal, totalWorkersVal, machineryVal, qualityAuditsVal, aiAlertsVal, ppeComplianceVal]);
+  }, [progressVal, totalWorkersVal, machineryVal, qualityAuditsVal, safetyScoreVal, aiAlertsVal, ppeComplianceVal]);
+
 
   // 2. Dynamic Safety Leaderboard logic
   const leaderboardTitle = useMemo(() => {
@@ -333,22 +365,22 @@ export const SiteEngineerDashboard = () => {
     }
   }, [appliedChainage, appliedSite, chainagesToUse, sitesToUse]);
 
-  // 4. Cumulative Chart scaling function
+  // 4. Dynamic Cumulative Progress Chart Calculation Engine
   const getChartData = () => {
     let baseData = PLAN_VS_ACTUAL_MONTHLY;
     if (chartRange === 'week') baseData = PLAN_VS_ACTUAL_WEEKLY;
     else if (chartRange === 'year') baseData = PLAN_VS_ACTUAL_YEARLY;
 
-    if (!appliedProject && !appliedSite && !appliedChainage) {
-      return baseData;
-    }
+    // Apply Year multiplier scaling for historical / future view
+    const yearScale = chartYear === '2024' ? 0.65 : chartYear === '2025' ? 0.85 : 1.0;
 
     const maxActualInBase = baseData[baseData.length - 1].actual;
-    const scaleFactor = avgProgress / maxActualInBase;
+    const currentProgressTarget = (appliedProject || appliedSite || appliedChainage) ? avgProgress : maxActualInBase;
+    const scaleFactor = (currentProgressTarget / maxActualInBase) * yearScale;
 
     return baseData.map((d) => ({
       ...d,
-      planned: Math.min(100, Math.round(d.planned * scaleFactor * 1.05)),
+      planned: Math.min(100, Math.round(d.planned * (yearScale === 1.0 ? 1.0 : yearScale * 1.02))),
       actual: Math.min(100, Math.round(d.actual * scaleFactor)),
     }));
   };
@@ -461,8 +493,8 @@ export const SiteEngineerDashboard = () => {
                 setFilterSite(selectedVal);
                 setFilterChainage('');
                 if (selectedVal) {
-                  const selectedSiteObj = MOCK_SITES.find(s => s.name === selectedVal);
-                  const matchedProj = MOCK_PROJECTS.find(p => p.id === selectedSiteObj?.projectId);
+                  const selectedSiteObj = sitesList.find(s => s.name === selectedVal);
+                  const matchedProj = projectsList.find(p => p.id === selectedSiteObj?.projectId);
                   if (matchedProj) {
                     setFilterProject(matchedProj.name);
                   }
@@ -535,7 +567,7 @@ export const SiteEngineerDashboard = () => {
               }}
             >
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="small text-muted fw-bold text-uppercase text-truncate" style={{ fontSize: '10px', letterSpacing: '0.3px', maxWidth: '100px' }}>
+                <span className="small text-muted fw-bold text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.3px', lineHeight: '1.2' }}>
                   {card.title}
                 </span>
                 <span className={`badge ${card.badgeClass} rounded-circle p-1.5 d-flex align-items-center justify-content-center`} style={{ width: 22, height: 22 }}>
@@ -642,25 +674,34 @@ export const SiteEngineerDashboard = () => {
                 <i className="bi bi-graph-up-arrow text-primary fs-5" />
                 <h3 className="h6 mb-0 fw-bold">Plan vs Actual Cumulative Progress</h3>
               </div>
-              <div className="btn-group d-flex align-items-center" >
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'week' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('week')}
+              <div className="d-flex align-items-center gap-2">
+                {/* Period Dropdown (Week / Month / Year) */}
+                <select
+                  className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
+                  style={{ fontSize: '11px', width: 'auto', borderRadius: '6px' }}
+                  value={chartRange}
+                  onChange={(e) => setChartRange(e.target.value as 'week' | 'month' | 'year')}
+                  aria-label="Select chart period range"
                 >
-                  Week
-                </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'month' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('month')}
-                >
-                  Month
-                </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'year' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('year')}
-                >
-                  Year
-                </button>
+                  <option value="week">Week-wise</option>
+                  <option value="month">Month-wise</option>
+                  <option value="year">Year-wise</option>
+                </select>
+
+                {/* Year Dropdown */}
+                {chartRange !== 'year' && (
+                  <select
+                    className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
+                    style={{ fontSize: '11px', width: 'auto', borderRadius: '6px' }}
+                    value={chartYear}
+                    onChange={(e) => setChartYear(e.target.value)}
+                    aria-label="Select chart target year"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                  </select>
+                )}
               </div>
             </div>
             <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100">

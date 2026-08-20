@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_USERS, deleteUser } from '../services/mockData';
+import { employeeService } from '../services/employeeService';
 import { ROLE_LABELS, ROLE_COLORS } from '../constants';
+import type { UserProfile } from '../types';
 
 export const UserDeletePage = () => {
   const navigate = useNavigate();
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string>('');
 
+  useEffect(() => {
+    employeeService.getEmployees().then(setUsersList).catch(() => setUsersList([]));
+  }, []);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(MOCK_USERS.map((u) => u.id));
+      setSelectedIds(usersList.map((u) => u.id));
     } else {
       setSelectedIds([]);
     }
@@ -24,19 +30,23 @@ export const UserDeletePage = () => {
     }
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
     const count = selectedIds.length;
-    selectedIds.forEach((id) => deleteUser(id));
-    setSelectedIds([]);
-    setSuccessMsg(`Successfully deleted ${count} selected user(s).`);
-    setTimeout(() => {
-      setSuccessMsg('');
-      navigate('/users');
-    }, 1500);
+    try {
+      await Promise.all(selectedIds.map((id) => employeeService.deleteEmployee(id)));
+      setSelectedIds([]);
+      setSuccessMsg(`Successfully deleted ${count} selected user(s).`);
+      setTimeout(() => {
+        setSuccessMsg('');
+        navigate('/users');
+      }, 1500);
+    } catch {
+      alert('Failed to delete selected users via API.');
+    }
   };
 
-  const isAllSelected = MOCK_USERS.length > 0 && selectedIds.length === MOCK_USERS.length;
+  const isAllSelected = usersList.length > 0 && selectedIds.length === usersList.length;
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -59,7 +69,7 @@ export const UserDeletePage = () => {
       )}
 
       <div className="panel mt-3">
-        {MOCK_USERS.length === 0 ? (
+        {usersList.length === 0 ? (
           <div className="text-center py-5 text-muted">
             <i className="bi bi-people fs-1 mb-3 d-block text-danger" />
             <p className="mb-0">No users available to delete.</p>
@@ -68,7 +78,7 @@ export const UserDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
-                {selectedIds.length} of {MOCK_USERS.length} user(s) selected
+                {selectedIds.length} of {usersList.length} user(s) selected
               </span>
               <button
                 className="btn btn-danger"
@@ -103,7 +113,7 @@ export const UserDeletePage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_USERS.map((user) => {
+                  {usersList.map((user) => {
                     const isChecked = selectedIds.includes(user.id);
                     return (
                       <tr key={user.id} className={isChecked ? 'table-danger-subtle' : ''}>

@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
-import { MOCK_USERS } from '../../services/mockData';
 import { getFirstSidebarRoute } from '../../utils/navigation';
 
+const DEMO_ACCOUNTS = [
+  { username: 'admin', label: 'Admin', role: 'admin' },
+  { username: 'pm_user', label: 'Project Manager', role: 'project_manager' },
+  { username: 'supervisor_user', label: 'Site Supervisor', role: 'site_supervisor' },
+  { username: 'site_eng_user', label: 'Site Engineer', role: 'site_engineer' },
+  { username: 'proj_eng_user', label: 'Project Engineer', role: 'project_engineer' },
+  { username: 'safety_mgr_user', label: 'Safety Manager', role: 'safety_manager' },
+  { username: 'safety_eng_user', label: 'Safety Engineer', role: 'safety_officer' },
+];
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -19,11 +27,20 @@ export const LoginPage = () => {
     setLoading(true);
     try {
       await login(email, password);
-      const matchedUser = MOCK_USERS.find((u) => u.email === email);
-      const targetPath = matchedUser ? getFirstSidebarRoute(matchedUser.role) : '/health';
+      const savedUserStr = sessionStorage.getItem('user');
+      let targetPath = '/dashboards';
+      if (savedUserStr) {
+        try {
+          const user = JSON.parse(savedUserStr);
+          targetPath = getFirstSidebarRoute(user.role) || '/dashboards';
+        } catch {
+          // ignore
+        }
+      }
       navigate(targetPath);
-    } catch {
-      setError('Invalid credentials. Try: karthee@lt.com');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Invalid username/email or password.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -45,12 +62,12 @@ export const LoginPage = () => {
             )}
 
             <div className="mb-3">
-              <label htmlFor="email" className="form-label fw-semibold">Email</label>
+              <label htmlFor="email" className="form-label fw-semibold">Username / Email</label>
               <input
-                type="email"
+                type="text"
                 className="form-control"
                 id="email"
-                placeholder="Enter Email ID"
+                placeholder="Enter Username (e.g. admin, pm_user)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -63,7 +80,7 @@ export const LoginPage = () => {
                 type="password"
                 className="form-control"
                 id="password"
-                placeholder="Enter Password"
+                placeholder="Enter Password (e.g. Admin@123)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -80,17 +97,17 @@ export const LoginPage = () => {
           </form>
 
           <div className="mt-4">
-            <p className="text-muted small mb-2 text-center">Demo Accounts:</p>
+            <p className="text-muted small mb-2 text-center">Quick Select Backend Account (Password: <code>Admin@123</code>):</p>
             <div className="d-grid gap-1">
-              {MOCK_USERS.map((u) => (
+              {DEMO_ACCOUNTS.map((u) => (
                 <button
-                  key={u.id}
+                  key={u.username}
                   type="button"
                   className="btn btn-secondary btn-sm text-start"
-                  onClick={() => { setEmail(u.email); setPassword('demo123'); }}
+                  onClick={() => { setEmail(u.username); setPassword('Admin@123'); }}
                 >
-                  <span className="badge me-2" style={{ fontSize: '0.65rem' }}>{u.role.replace('_', ' ')}</span>
-                  {u.email}
+                  <span className="badge me-2" style={{ fontSize: '0.65rem' }}>{u.label}</span>
+                  {u.username}
                 </button>
               ))}
             </div>

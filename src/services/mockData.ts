@@ -186,7 +186,7 @@ export const MOCK_ATTENDANCE: Attendance[] = (() => {
 
 // Cameras
 const INITIAL_CAMERAS: Camera[] = [
-  { id: '1', name: 'Main Gate - Site A', rtspUrl: 'rtsp://192.168.1.10/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 95 },
+  { id: '1', name: 'Demo AI Feed Camera 01', rtspUrl: 'http://10.1.82.235:8080/feed/0', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 100 },
   { id: '2', name: 'Excavation Zone - Site A', rtspUrl: 'rtsp://192.168.1.11/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Excavation Area', status: 'online', type: 'ptz', lastOnline: today, healthScore: 88 },
   { id: '3', name: 'Worker Shed - Site A', rtspUrl: 'rtsp://192.168.1.12/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Worker Rest Area', status: 'offline', type: 'fixed', lastOnline: '2026-07-12', healthScore: 45 },
   { id: '4', name: 'Bridge Construction - Site B', rtspUrl: 'rtsp://192.168.1.20/stream1', siteId: '2', siteName: 'Site B - KM 15-30', location: 'Bridge Pier 3', status: 'online', type: 'fixed', lastOnline: today, healthScore: 91 },
