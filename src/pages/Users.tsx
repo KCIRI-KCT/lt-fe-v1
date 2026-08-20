@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_USERS } from '../services/mockData';
+import { employeeService } from '../services/employeeService';
 import type { UserProfile } from '../types';
 import { ROLE_LABELS, ROLE_COLORS, ROLE_OPTIONS } from '../constants';
 
@@ -19,6 +19,8 @@ const columns: Column<UserProfile>[] = [
 ];
 
 export const Users = () => {
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -30,6 +32,21 @@ export const Users = () => {
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+
+  useEffect(() => {
+    let isMounted = true;
+    employeeService.getEmployees()
+      .then((data) => {
+        if (isMounted) setUsersList(data);
+      })
+      .catch(() => {
+        if (isMounted) setUsersList([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -75,7 +92,7 @@ export const Users = () => {
     },
   ];
 
-  const filtered = MOCK_USERS.filter((u) => {
+  const filtered = usersList.filter((u) => {
     const matchesSearch = !search ||
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -133,27 +150,35 @@ export const Users = () => {
         </div>
       </div>
 
-      <FilterableTable
-        columns={columns}
-        data={sliced}
-        keyExtractor={(u) => u.id}
-        searchQuery={search}
-        onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search by name, email, employee id..."
-        total={sorted.length}
-        filters={filters}
-        filterValues={filterValues}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPagination={true}
-      />
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading users...</span>
+          </div>
+        </div>
+      ) : (
+        <FilterableTable
+          columns={columns}
+          data={sliced}
+          keyExtractor={(u) => u.id}
+          searchQuery={search}
+          onSearch={(q) => { setSearch(q); setPage(1); }}
+          searchPlaceholder="Search by name, email, employee id..."
+          total={sorted.length}
+          filters={filters}
+          filterValues={filterValues}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          showPagination={true}
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AIAlertCard } from '../components/cards/AIAlertCard';
-import { MOCK_AI_ALERTS, MOCK_SITES, updateAIAlertStatus } from '../services/mockData';
+import { safetyService } from '../services/safetyService';
 import { AI_ALERT_CONFIG } from '../constants';
 import { useApp } from '../hooks/useApp';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
@@ -19,30 +19,50 @@ const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color:
 export const AIMonitoringPage = () => {
   const { user } = useApp();
   const hiddenTypes = new Set(['helmet_violation', 'vest_violation', 'mask_violation']);
-  const [alerts, setAlerts] = useState<AIAlert[]>(() => [...MOCK_AI_ALERTS]);
+  const [alerts, setAlerts] = useState<AIAlert[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [solvingAlertId, setSolvingAlertId] = useState<string | null>(null);
 
-  const handleAcknowledge = (id: string, alert?: AIAlert) => {
-    updateAIAlertStatus(id, 'acknowledged', { acknowledgedBy: user?.name });
+  useEffect(() => {
+    let isMounted = true;
+    safetyService.getAIAlerts()
+      .then((data) => {
+        if (isMounted) setAlerts(data);
+      })
+      .catch(() => {
+        if (isMounted) setAlerts([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
-    // When Project Manager, Site Engineer, Site Supervisor, or Safety Manager
-    // acknowledges a PPE violation, send notification to Safety Officer
+  const handleAcknowledge = async (id: string, alert?: AIAlert) => {
+    try {
+      await safetyService.updateAIAlertStatus(id, 'acknowledged');
+    } catch {
+      // ignore offline error
+    }
+    setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: 'acknowledged', acknowledgedBy: user?.name } : a));
+
     if (alert && alert.type === 'no_ppe' && user) {
       const siteName = alert.siteName || alert.siteCode || 'Unknown Site';
       const chainageName = alert.chainageLabel || alert.chainageId || 'N/A';
       createPPENotification(alert, user, siteName, chainageName);
     }
-
-    setAlerts([...MOCK_AI_ALERTS]);
   };
 
-  const handleResolve = (id: string) => {
-    updateAIAlertStatus(id, 'resolved');
-    setAlerts([...MOCK_AI_ALERTS]);
-    console.log('Resolve', id);
+  const handleResolve = async (id: string) => {
+    try {
+      await safetyService.updateAIAlertStatus(id, 'resolved');
+    } catch {
+      // ignore offline error
+    }
+    setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: 'resolved' } : a));
   };
 
   const handleSolve = (id: string) => {
@@ -72,8 +92,7 @@ export const AIMonitoringPage = () => {
     }
     // Site filter
     if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
-      if (a.siteId !== siteObj?.id) return false;
+      if (a.siteId !== appliedSite && a.siteName !== appliedSite) return false;
     }
     // Chainage filter
     if (appliedChainage && a.chainageId !== appliedChainage) return false;
@@ -269,7 +288,12 @@ export const AIMonitoringPage = () => {
       </div>
 
       {/* Alerts list */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 text-muted">Loading AI Alerts...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="panel blank-panel">
           <div className="blank-state">
             <i className="bi bi-check2-circle fs-1 text-success mb-3 d-block" />
@@ -314,8 +338,7 @@ export const AIMonitoringPage = () => {
                     initialChainage={solvingAlert.chainageLabel || solvingAlert.chainageId}
                     onClose={() => setSolvingAlertId(null)}
                     onSubmitSuccess={() => {
-                      updateAIAlertStatus(solvingAlert.id, 'resolved');
-                      setAlerts([...MOCK_AI_ALERTS]);
+                      handleResolve(solvingAlert.id);
                       setSolvingAlertId(null);
                     }}
                   />

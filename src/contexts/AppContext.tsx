@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react
 import type { Theme, UserProfile, AppContextState, UserRole } from '../types';
 import { AppContext } from './appContextBase';
 import { STORAGE_KEYS, BREAKPOINTS } from '../constants';
-import { MOCK_USERS } from '../services/mockData';
 
 const getSavedItem = (key: string): string | null => {
   try {
@@ -87,34 +86,18 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-function getInitialUser(): UserProfile {
-  const saved = getSavedItem(STORAGE_KEYS.AUTH_USER);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved) as UserProfile;
-      if (parsed.role as string === 'super_admin') {
-        parsed.role = 'admin';
-        setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(parsed));
-      } else if (parsed.role as string === 'project_director') {
-        parsed.role = 'site_engineer';
-        setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(parsed));
-      }
-      return parsed;
-    } catch {
-      // fall through
-    }
+function getSessionUser(): UserProfile | null {
+  try {
+    const saved = sessionStorage.getItem('user');
+    if (saved) return JSON.parse(saved) as UserProfile;
+  } catch {
+    // ignore
   }
-  const demoUser = MOCK_USERS[0];
-  setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(demoUser));
-  return demoUser;
+  return null;
 }
 
-function getInitialToken(): string {
-  const saved = getSavedItem(STORAGE_KEYS.AUTH_TOKEN);
-  if (saved) return saved;
-  const token = 'demo-token-12345';
-  setSavedItem(STORAGE_KEYS.AUTH_TOKEN, token);
-  return token;
+function getSessionToken(): string | null {
+  return sessionStorage.getItem('access_token');
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -125,10 +108,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
   const [sidebarMini, setSidebarMiniState] = useState<boolean>(() => isDesktop() && getSavedItem(STORAGE_KEYS.SIDEBAR_MINI) === 'true');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [authUser, setAuthUser] = useState<UserProfile>(getInitialUser);
-  const [authToken, setAuthToken] = useState<string>(getInitialToken);
+  
+  const initialUser = getSessionUser() || {
+    id: '1',
+    name: 'Kartheeswaran',
+    email: 'karthee@lt.com',
+    role: 'admin' as UserRole,
+    avatar: 'https://ui-avatars.com/api/?name=Kartheeswaran&background=dc2626&color=fff',
+    workspace: 'LT HQ',
+  };
 
-  const isAuthenticated = true; // Demo mode always authenticated
+  const [authUser, setAuthUser] = useState<UserProfile>(initialUser);
+  const [authToken, setAuthToken] = useState<string | null>(getSessionToken);
+
+  const isAuthenticated = Boolean(authToken || sessionStorage.getItem('access_token'));
   const permissions = useMemo(() => ROLE_PERMISSIONS[authUser.role] || [], [authUser.role]);
 
   // Apply theme to document
@@ -191,25 +184,44 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    // Mock login
-    void password; // Suppress unused warning for mock implementation
-    const user = MOCK_USERS.find((u) => u.email === email);
-    if (!user) {
-      throw new Error('Invalid credentials');
+    try {
+      const { authService } = await import('../services/authService');
+      const response = await authService.login(email, password);
+      if (response.user) {
+        setAuthUser(response.user);
+      }
+      if (response.tokens.access) {
+        setAuthToken(response.tokens.access);
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { code?: string; response?: { status?: number; data?: Record<string, unknown> } };
+
+      // If backend responded with an HTTP error status (400 Bad Request, 401 Unauthorized, 403, etc.)
+      if (axiosErr.response) {
+        const errorData = axiosErr.response.data;
+        const msg = (errorData?.detail as string) ||
+                    (errorData?.message as string) ||
+                    (errorData?.error as string) ||
+                    (Array.isArray(errorData?.non_field_errors) ? (errorData.non_field_errors[0] as string) : '') ||
+                    'Invalid username/email or password.';
+        throw new Error(msg, { cause: err });
+      }
+
+      // If network error / server offline: throw explicit error to prevent invalid token usage
+      if (axiosErr.code === 'ERR_NETWORK' || !axiosErr.response) {
+        throw new Error('Unable to connect to authentication server. Please verify backend service is running.', { cause: err });
+      }
+
+      throw err;
     }
-    const token = `token-${user.id}-${Date.now()}`;
-    setAuthUser(user);
-    setAuthToken(token);
-    setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-    setSavedItem(STORAGE_KEYS.AUTH_TOKEN, token);
   }, []);
 
   const logout = useCallback(() => {
-    const demoUser = MOCK_USERS[0];
-    setAuthUser(demoUser);
-    setAuthToken('demo-token-12345');
-    setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(demoUser));
-    setSavedItem(STORAGE_KEYS.AUTH_TOKEN, 'demo-token-12345');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('role_id');
+    setAuthToken(null);
   }, []);
 
   const hasPermission = useCallback((permission: string): boolean => {

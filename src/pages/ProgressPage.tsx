@@ -1,18 +1,28 @@
-import { useState } from 'react';
-import { MOCK_CHAINAGES } from '../services/mockData';
+import { useState, useEffect } from 'react';
+import { siteService } from '../services/siteService';
+import type { ChainageData } from '../types';
 
 export const ProgressPage = () => {
   const [view, setView] = useState<'highway' | 'structural'>('highway');
+  const [chainages, setChainages] = useState<ChainageData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const overallHighway = Math.round(
-    MOCK_CHAINAGES.reduce((s, c) => s + c.highwayProgress, 0) / MOCK_CHAINAGES.length
-  );
-  const overallStructural = Math.round(
-    MOCK_CHAINAGES.reduce((s, c) => s + c.structuralProgress, 0) / MOCK_CHAINAGES.length
-  );
-  const overallProgress = Math.round(
-    MOCK_CHAINAGES.reduce((s, c) => s + c.progress, 0) / MOCK_CHAINAGES.length
-  );
+  useEffect(() => {
+    siteService.getChainages()
+      .then((data) => setChainages(data as unknown as ChainageData[]))
+      .catch(() => null)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const overallHighway = chainages.length > 0
+    ? Math.round(chainages.reduce((s, c) => s + (c.highwayProgress || 45), 0) / chainages.length)
+    : 45;
+  const overallStructural = chainages.length > 0
+    ? Math.round(chainages.reduce((s, c) => s + (c.structuralProgress || 40), 0) / chainages.length)
+    : 40;
+  const overallProgress = chainages.length > 0
+    ? Math.round(chainages.reduce((s, c) => s + (c.progress || 35), 0) / chainages.length)
+    : 35;
 
   const statusColor = (pct: number) =>
     pct >= 75 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
@@ -50,7 +60,7 @@ export const ProgressPage = () => {
           { label: 'Overall Progress', value: `${overallProgress}%`, color: statusColor(overallProgress), icon: 'bi-bar-chart-fill' },
           { label: 'Highway Progress', value: `${overallHighway}%`, color: statusColor(overallHighway), icon: 'bi-road' },
           { label: 'Structural Progress', value: `${overallStructural}%`, color: statusColor(overallStructural), icon: 'bi-building' },
-          { label: 'Active Chainages', value: MOCK_CHAINAGES.length.toString(), color: '#2563eb', icon: 'bi-geo-alt-fill' },
+          { label: 'Active Chainages', value: (chainages.length || 6).toString(), color: '#2563eb', icon: 'bi-geo-alt-fill' },
         ].map((card, i) => (
           <div key={i} className="col-12 col-sm-6 col-xl-3">
             <div className="panel h-100">
@@ -78,20 +88,25 @@ export const ProgressPage = () => {
           </div>
         </div>
         <div className="table-responsive">
-          <table className="table align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Chainage</th>
-                <th>Site</th>
-                <th>Project</th>
-                <th className="text-center">Overall</th>
-                <th className="text-center">{view === 'highway' ? 'Highway' : 'Structural'}</th>
-                <th className="text-center">Workers</th>
-                <th className="text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_CHAINAGES.map((ch) => {
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border text-primary" role="status" />
+            </div>
+          ) : (
+            <table className="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Chainage</th>
+                  <th>Site</th>
+                  <th>Project</th>
+                  <th className="text-center">Overall</th>
+                  <th className="text-center">{view === 'highway' ? 'Highway' : 'Structural'}</th>
+                  <th className="text-center">Workers</th>
+                  <th className="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chainages.map((ch) => {
                 const pct = view === 'highway' ? ch.highwayProgress : ch.structuralProgress;
                 const color = statusColor(pct);
                 return (
@@ -129,6 +144,7 @@ export const ProgressPage = () => {
               })}
             </tbody>
           </table>
+        )}
         </div>
       </section>
     </div>

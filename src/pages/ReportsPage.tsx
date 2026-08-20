@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_REPORTS, MOCK_SITES } from '../services/mockData';
+import { reportService } from '../services/reportService';
 import type { Report } from '../types';
 
 const columns: Column<Report>[] = [
@@ -40,6 +40,8 @@ const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color:
 };
 
 export const ReportsPage = () => {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
@@ -55,23 +57,30 @@ export const ReportsPage = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-  const filtered = MOCK_REPORTS.filter((r) => {
+  useEffect(() => {
+    let isMounted = true;
+    reportService.getReports()
+      .then((data) => {
+        if (isMounted) setReports(data);
+      })
+      .catch(() => {
+        if (isMounted) setReports([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const filtered = reports.filter((r) => {
     if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.generatedBy.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === 'ready' && r.status !== 'ready') return false;
     if (filter === 'generating' && r.status !== 'generating') return false;
     if (filter === 'pdf' && r.format !== 'pdf') return false;
     if (filter === 'excel' && r.format !== 'excel') return false;
 
-    // Project filter
-    if (appliedProject) {
-      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
-      if (r.projectId !== projId) return false;
-    }
-    // Site filter
-    if (appliedSite) {
-      const siteObj = MOCK_SITES.find(s => s.name === appliedSite);
-      if (r.siteId !== siteObj?.id) return false;
-    }
+    if (appliedProject && r.projectId && r.projectId !== appliedProject) return false;
+    if (appliedSite && r.siteId && r.siteId !== appliedSite) return false;
     // Chainage filter
     if (appliedChainage && r.chainageId !== appliedChainage) return false;
 
@@ -220,10 +229,10 @@ export const ReportsPage = () => {
         {['all', 'ready', 'generating', 'pdf', 'excel'].map((s) => {
           const config = STATUS_CONFIGS[s];
           const count = s === 'all'
-            ? MOCK_REPORTS.length
+            ? reports.length
             : (s === 'ready' || s === 'generating')
-              ? MOCK_REPORTS.filter((r) => r.status === s).length
-              : MOCK_REPORTS.filter((r) => r.format === s).length;
+              ? reports.filter((r) => r.status === s).length
+              : reports.filter((r) => r.format === s).length;
 
           const isActive = filter === s;
 
@@ -244,20 +253,27 @@ export const ReportsPage = () => {
         })}
       </div>
 
-      <ReusableDataTable
-        columns={columns}
-        data={sliced}
-        keyExtractor={(r) => r.id}
-        searchQuery={search}
-        onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search reports..."
-        total={filtered.length}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPagination={true}
-      />
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 text-muted">Loading reports...</p>
+        </div>
+      ) : (
+        <ReusableDataTable
+          columns={columns}
+          data={sliced}
+          keyExtractor={(r) => r.id}
+          searchQuery={search}
+          onSearch={(q) => { setSearch(q); setPage(1); }}
+          searchPlaceholder="Search reports..."
+          total={filtered.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          showPagination={true}
+        />
+      )}
     </div>
   );
 };

@@ -1,12 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IncidentCard } from '../components/cards/IncidentCard';
-import { MOCK_INCIDENTS } from '../services/mockData';
+import { safetyService } from '../services/safetyService';
 import { SEVERITY_BADGES } from '../constants';
+import type { Incident } from '../types';
 
 export const IncidentsPage = () => {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
 
-  const filtered = MOCK_INCIDENTS.filter((i) => filter === 'all' || i.status === filter);
+  useEffect(() => {
+    let isMounted = true;
+    safetyService.getIncidents()
+      .then((data) => {
+        if (isMounted) setIncidents(data);
+      })
+      .catch(() => {
+        if (isMounted) setIncidents([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const filtered = incidents.filter((i) => filter === 'all' || i.status === filter);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -32,7 +50,7 @@ export const IncidentsPage = () => {
             onClick={() => setFilter(s)}
           >
             <span className="text-capitalize">{s}</span>
-            <span className="ms-1 badge">{s === 'all' ? MOCK_INCIDENTS.length : MOCK_INCIDENTS.filter((i) => i.status === s).length}</span>
+            <span className="ms-1 badge">{s === 'all' ? incidents.length : incidents.filter((i) => i.status === s).length}</span>
           </button>
         ))}
       </div>
@@ -41,14 +59,19 @@ export const IncidentsPage = () => {
         {['critical', 'major', 'minor', 'observation'].map((sev) => (
           <div key={sev} className="col-6 col-sm-3">
             <div className="mini-card text-center p-3">
-              <strong className="fs-4">{MOCK_INCIDENTS.filter((i) => i.severity === sev).length}</strong>
+              <strong className="fs-4">{incidents.filter((i) => i.severity === sev).length}</strong>
               <span className={`badge ${SEVERITY_BADGES[sev]} mt-1`}>{sev}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 text-muted">Loading safety incidents...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="panel blank-panel">
           <div className="blank-state">
             <i className="bi bi-check-circle fs-1 text-success mb-3 d-block" />

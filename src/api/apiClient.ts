@@ -26,7 +26,7 @@ class ApiClient {
 
   private getToken(): string | null {
     try {
-      return localStorage.getItem(this.tokenKey);
+      return sessionStorage.getItem('access_token') || localStorage.getItem(this.tokenKey);
     } catch {
       return null;
     }

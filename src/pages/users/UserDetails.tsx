@@ -1,10 +1,30 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MOCK_USERS } from '../../services/mockData';
+import { employeeService } from '../../services/employeeService';
 import { ROLE_LABELS, ROLE_COLORS } from '../../constants';
+import type { UserProfile } from '../../types';
 
 export const UserDetails = () => {
   const { id } = useParams();
-  const user = MOCK_USERS.find((u) => u.id === id);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      employeeService.getEmployees().then((users) => {
+        const found = users.find((u) => u.id === id);
+        if (found) setUser(found);
+      }).catch(() => null).finally(() => setLoading(false));
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container-fluid px-3 px-lg-4 py-4 text-center">
+        <div className="spinner-border text-primary" role="status" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (

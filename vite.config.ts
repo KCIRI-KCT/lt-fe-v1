@@ -6,11 +6,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      
       registerType: "autoUpdate",
       manifest: {
-        name: "My React App",
-        short_name: "MyApp",
-        description: "My React Progressive Web App",
+        name: "LT - KCIRI Application",
+        short_name: "LT - KCIRI",
+        description: "LT - KCIRI Application",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
@@ -30,6 +31,7 @@ export default defineConfig({
       },
     }),
   ],
+  
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

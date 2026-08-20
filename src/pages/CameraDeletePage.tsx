@@ -1,16 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_CAMERAS, deleteCamera } from '../services/mockData';
+import { cameraService } from '../services/cameraService';
+import type { Camera } from '../types';
 import { STATUS_BADGES } from '../constants';
 
 export const CameraDeletePage = () => {
   const navigate = useNavigate();
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string>('');
+  const [deleting, setDeleting] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    cameraService.getCameras()
+      .then((data) => {
+        if (isMounted) setCameras(data);
+      })
+      .catch(() => {
+        if (isMounted) setCameras([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(MOCK_CAMERAS.map((c) => c.id));
+      setSelectedIds(cameras.map((c) => c.id));
     } else {
       setSelectedIds([]);
     }
@@ -24,19 +43,28 @@ export const CameraDeletePage = () => {
     }
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
+    setDeleting(true);
     const count = selectedIds.length;
-    selectedIds.forEach((id) => deleteCamera(id));
-    setSelectedIds([]);
-    setSuccessMsg(`Successfully deleted ${count} selected camera(s).`);
-    setTimeout(() => {
-      setSuccessMsg('');
-      navigate('/cameras');
-    }, 1500);
+
+    try {
+      await Promise.all(selectedIds.map((id) => cameraService.deleteCamera(id)));
+      setCameras((prev) => prev.filter((c) => !selectedIds.includes(c.id)));
+      setSelectedIds([]);
+      setSuccessMsg(`Successfully deleted ${count} selected camera(s).`);
+      setTimeout(() => {
+        setSuccessMsg('');
+        navigate('/cameras');
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to delete cameras:', err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const isAllSelected = MOCK_CAMERAS.length > 0 && selectedIds.length === MOCK_CAMERAS.length;
+  const isAllSelected = cameras.length > 0 && selectedIds.length === cameras.length;
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -59,7 +87,12 @@ export const CameraDeletePage = () => {
       )}
 
       <div className="panel mt-3">
-        {MOCK_CAMERAS.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status" />
+            <p className="mt-2 text-muted">Loading camera list...</p>
+          </div>
+        ) : cameras.length === 0 ? (
           <div className="text-center py-5 text-muted">
             <i className="bi bi-camera-video fs-1 mb-3 d-block text-danger" />
             <p className="mb-0">No cameras available to delete.</p>
@@ -68,15 +101,15 @@ export const CameraDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
-                {selectedIds.length} of {MOCK_CAMERAS.length} camera(s) selected
+                {selectedIds.length} of {cameras.length} camera(s) selected
               </span>
               <button
                 className="btn btn-danger"
-                disabled={selectedIds.length === 0}
+                disabled={selectedIds.length === 0 || deleting}
                 onClick={handleDeleteSelected}
               >
                 <i className="bi bi-trash-fill me-2" />
-                Delete Selected ({selectedIds.length})
+                {deleting ? 'Deleting...' : `Delete Selected (${selectedIds.length})`}
               </button>
             </div>
 
@@ -101,7 +134,7 @@ export const CameraDeletePage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_CAMERAS.map((cam) => {
+                  {cameras.map((cam) => {
                     const isChecked = selectedIds.includes(cam.id);
                     return (
                       <tr key={cam.id} className={isChecked ? 'table-danger-subtle' : ''}>
@@ -144,3 +177,4 @@ export const CameraDeletePage = () => {
     </div>
   );
 };
+
