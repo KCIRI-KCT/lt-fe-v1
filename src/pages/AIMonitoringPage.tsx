@@ -5,8 +5,10 @@ import { AI_ALERT_CONFIG } from '../constants';
 import { useApp } from '../hooks/useApp';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
 import SupervisorHITLPPEPage from '../HITL - PPE/pages/SupervisorHITLPPEPage';
-import { createPPENotification } from '../services/ppeNotificationService';
-import type { AIAlert } from '../types';
+import { createPPENotification, fetchPPENotificationsFromAPI } from '../services/ppeNotificationService';
+import { projectService } from '../services/projectService';
+import { siteService } from '../services/siteService';
+import type { AIAlert, Project, Site, Chainage } from '../types';
 
 const STATUS_CONFIGS: Record<string, { icon: string; activeClass: string; color: string }> = {
   all: { icon: 'bi-grid-fill', activeClass: 'bg-primary-subtle border-primary text-primary', color: '#0d6efd' },
@@ -26,18 +28,59 @@ export const AIMonitoringPage = () => {
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [solvingAlertId, setSolvingAlertId] = useState<string | null>(null);
 
+  // Dynamic DB data state for filters
+  const [dbProjects, setDbProjects] = useState<Project[]>([]);
+  const [dbSites, setDbSites] = useState<Site[]>([]);
+  const [dbChainages, setDbChainages] = useState<Chainage[]>([]);
+
   useEffect(() => {
     let isMounted = true;
-    safetyService.getAIAlerts()
-      .then((data) => {
-        if (isMounted) setAlerts(data);
-      })
-      .catch(() => {
-        if (isMounted) setAlerts([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
+    Promise.all([
+      safetyService.getAIAlerts().catch(() => []),
+      fetchPPENotificationsFromAPI().catch(() => []),
+      projectService.getProjects().catch(() => []),
+      siteService.getSites().catch(() => []),
+      siteService.getChainages().catch(() => []),
+    ]).then(([aiAlerts, ppeNotifs, projectsData, sitesData, chainagesData]) => {
+      if (!isMounted) return;
+
+      if (Array.isArray(projectsData)) setDbProjects(projectsData);
+      if (Array.isArray(sitesData)) setDbSites(sitesData);
+      if (Array.isArray(chainagesData)) setDbChainages(chainagesData);
+
+      const ppeAsAlerts: AIAlert[] = ppeNotifs.map((n) => ({
+        id: n.id,
+        type: 'no_ppe' as AIAlert['type'],
+        description: `${n.alertDescription} (Acknowledged by ${n.acknowledgedByName} - ${n.acknowledgedByRole})`,
+        siteId: '',
+        siteName: n.siteName,
+        chainageId: '',
+        chainageLabel: n.chainageName,
+        cameraId: '',
+        cameraName: 'Site Camera',
+        severity: 'critical' as AIAlert['severity'],
+        timestamp: n.acknowledgedAt || new Date().toISOString(),
+        status: (n.status === 'resolved' ? 'resolved' : n.status === 'in_progress' ? 'acknowledged' : 'new') as AIAlert['status'],
+        acknowledgedBy: n.acknowledgedByName,
+      }));
+
+      // Combine AI Alerts with PPE Notifications avoiding duplicates and syncing resolved status
+      const combined = [...aiAlerts];
+      ppeAsAlerts.forEach((ppeAlert) => {
+        const existingIdx = combined.findIndex((a) => a.id === ppeAlert.id || a.id === ppeAlert.id.replace('ppe-notif-', ''));
+        if (existingIdx !== -1) {
+          if (ppeAlert.status === 'resolved') {
+            combined[existingIdx] = { ...combined[existingIdx], status: 'resolved' };
+          }
+        } else {
+          combined.push(ppeAlert);
+        }
       });
+
+      setAlerts(combined);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
+    });
     return () => { isMounted = false; };
   }, []);
 
@@ -80,6 +123,15 @@ export const AIMonitoringPage = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
+  // Derived DB options
+  const availableSites = filterProject
+    ? dbSites.filter((s) => String(s.projectId || '') === String(filterProject))
+    : dbSites;
+
+  const availableChainages = filterSite
+    ? dbChainages.filter((c) => String(c.siteId || '') === String(filterSite))
+    : dbChainages;
+
   const filtered = alerts.filter((a) => {
     if (hiddenTypes.has(a.type)) return false;
     if (filter !== 'all' && a.status !== filter) return false;
@@ -87,15 +139,16 @@ export const AIMonitoringPage = () => {
 
     // Project filter
     if (appliedProject) {
-      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
-      if (a.projectId !== projId) return false;
+      if (String(a.projectId || '') !== String(appliedProject)) return false;
     }
     // Site filter
     if (appliedSite) {
-      if (a.siteId !== appliedSite && a.siteName !== appliedSite) return false;
+      if (String(a.siteId || '') !== String(appliedSite) && a.siteName !== appliedSite && a.siteCode !== appliedSite) return false;
     }
     // Chainage filter
-    if (appliedChainage && a.chainageId !== appliedChainage) return false;
+    if (appliedChainage) {
+      if (String(a.chainageId || '') !== String(appliedChainage) && a.chainageLabel !== appliedChainage) return false;
+    }
 
     return true;
   });
@@ -140,9 +193,9 @@ export const AIMonitoringPage = () => {
               }}
             >
               <option value="">All Projects</option>
-              <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
-              <option value="Mumbai Ring Road">Mumbai Ring Road</option>
-              <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
+              {dbProjects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
           </div>
 
@@ -152,40 +205,14 @@ export const AIMonitoringPage = () => {
               className="form-select form-select-sm"
               value={filterSite}
               onChange={(e) => {
-                const selectedVal = e.target.value;
-                setFilterSite(selectedVal);
+                setFilterSite(e.target.value);
                 setFilterChainage('');
-                if (selectedVal) {
-                  if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
-                    setFilterProject('Chennai-Bangalore Expressway');
-                  } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Mumbai Ring Road');
-                  } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Hyderabad Metro Phase II');
-                  }
-                }
               }}
             >
               <option value="">All Sites</option>
-              {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
-                <>
-                  <option value="Site A - KM 0-15">Site A - KM 0-15</option>
-                  <option value="Site B - KM 15-30">Site B - KM 15-30</option>
-                  <option value="Site C - KM 30-45">Site C - KM 30-45</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Mumbai Ring Road') && (
-                <>
-                  <option value="Site D - KM 0-12">Site D - KM 0-12</option>
-                  <option value="Site E - KM 12-25">Site E - KM 12-25</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
-                <>
-                  <option value="Site F - KM 0-12">Site F - KM 0-12</option>
-                  <option value="Site G - KM 12-25">Site G - KM 12-25</option>
-                </>
-              )}
+              {availableSites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.code || s.location})</option>
+              ))}
             </select>
           </div>
 
@@ -195,19 +222,12 @@ export const AIMonitoringPage = () => {
               className="form-select form-select-sm"
               value={filterChainage}
               onChange={(e) => setFilterChainage(e.target.value)}
-              disabled={!filterSite}
+              disabled={!filterSite && availableChainages.length === 0}
             >
               <option value="">All Chainages</option>
-              {filterSite === 'Site A - KM 0-15' && (
-                <>
-                  <option value="CH-01">CH-01 (KM 2.5)</option>
-                  <option value="CH-05">CH-05 (KM 12.0)</option>
-                </>
-              )}
-              {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
-              {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
-              {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
-              {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
+              {availableChainages.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} {c.kmMarker ? `(${c.kmMarker})` : ''}</option>
+              ))}
             </select>
           </div>
 

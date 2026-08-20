@@ -3,6 +3,8 @@ import { dashboardService } from '../services/dashboardService';
 import { safetyService } from '../services/safetyService';
 import type { AIAlert } from '../types';
 
+import { fetchPPENotificationsFromAPI } from '../services/ppeNotificationService';
+
 export const PPEDetectionPage = () => {
   const [ppeCompliance, setPpeCompliance] = useState({
     helmet: 95,
@@ -19,17 +21,46 @@ export const PPEDetectionPage = () => {
     Promise.all([
       dashboardService.getDashboardMetrics().catch(() => null),
       safetyService.getAIAlerts().catch(() => []),
-    ]).then(([metrics, alerts]) => {
+      fetchPPENotificationsFromAPI().catch(() => []),
+    ]).then(([metrics, alerts, ppeNotifs]) => {
       if (!isMounted) return;
       if (metrics?.ppeCompliance) {
         setPpeCompliance(metrics.ppeCompliance);
       }
-      if (Array.isArray(alerts)) {
-        const filtered = alerts.filter(a =>
-          ['helmet_violation', 'vest_violation', 'mask_violation', 'no_ppe'].includes(a.type)
-        );
-        setPpeAlerts(filtered);
-      }
+
+      const ppeAsAlerts: AIAlert[] = (ppeNotifs || []).map((n) => ({
+        id: n.id,
+        type: 'no_ppe' as AIAlert['type'],
+        description: `${n.alertDescription} (Acknowledged by ${n.acknowledgedByName})`,
+        siteId: '',
+        siteName: n.siteName,
+        chainageId: '',
+        chainageLabel: n.chainageName,
+        cameraId: '',
+        cameraName: 'Site Camera',
+        severity: 'critical' as AIAlert['severity'],
+        timestamp: n.acknowledgedAt || new Date().toISOString(),
+        status: (n.status === 'resolved' ? 'resolved' : n.status === 'in_progress' ? 'acknowledged' : 'new') as AIAlert['status'],
+        acknowledgedBy: n.acknowledgedByName,
+      }));
+
+      const filteredAi = Array.isArray(alerts)
+        ? alerts.filter((a) => ['helmet_violation', 'vest_violation', 'mask_violation', 'no_ppe'].includes(a.type))
+        : [];
+
+      const combined = [...filteredAi];
+      ppeAsAlerts.forEach((ppeItem) => {
+        const existingIdx = combined.findIndex((a) => a.id === ppeItem.id || a.id === ppeItem.id.replace('ppe-notif-', ''));
+        if (existingIdx !== -1) {
+          if (ppeItem.status === 'resolved') {
+            combined[existingIdx] = { ...combined[existingIdx], status: 'resolved' };
+          }
+        } else {
+          combined.push(ppeItem);
+        }
+      });
+
+      setPpeAlerts(combined);
     }).finally(() => {
       if (isMounted) setLoading(false);
     });
@@ -166,27 +197,30 @@ export const PPEDetectionPage = () => {
                 <tbody>
                   {ppeAlerts.length === 0 ? (
                     <tr><td colSpan={6} className="text-center text-muted py-4">No PPE violations detected</td></tr>
-                  ) : ppeAlerts.map(alert => (
-                    <tr key={alert.id}>
-                      <td>
-                        <div className="fw-semibold">{alertTypeLabel(alert.type)}</div>
-                        <small className="text-muted">{alert.description}</small>
-                      </td>
-                      <td className="text-muted small">{alert.siteName}</td>
-                      <td className="text-muted small">{alert.cameraName}</td>
-                      <td className="text-center">
-                        <span className={`badge ${alert.severity === 'critical' ? 'text-bg-danger' : alert.severity === 'high' ? 'text-bg-warning' : 'text-bg-secondary'}`}>
-                          {alert.severity}
-                        </span>
-                      </td>
-                      <td className="text-muted small">{new Date(alert.timestamp).toLocaleTimeString()}</td>
-                      <td className="text-center">
-                        <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-warning' : 'text-bg-success'}`}>
-                          {alert.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  ) : ppeAlerts.map(alert => {
+                    const sevLower = String(alert.severity || 'critical').toLowerCase();
+                    return (
+                      <tr key={alert.id}>
+                        <td>
+                          <div className="fw-semibold">{alertTypeLabel(alert.type)}</div>
+                          <small className="text-muted">{alert.description}</small>
+                        </td>
+                        <td className="text-muted small">{alert.siteName}</td>
+                        <td className="text-muted small">{alert.cameraName}</td>
+                        <td className="text-center">
+                          <span className={`badge ${sevLower === 'critical' ? 'text-bg-danger' : sevLower === 'high' || sevLower === 'major' ? 'text-bg-warning' : 'text-bg-secondary'}`}>
+                            {sevLower}
+                          </span>
+                        </td>
+                        <td className="text-muted small">{new Date(alert.timestamp).toLocaleTimeString()}</td>
+                        <td className="text-center">
+                          <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-warning' : 'text-bg-success'}`}>
+                            {alert.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

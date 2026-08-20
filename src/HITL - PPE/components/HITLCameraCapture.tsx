@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const DIRECTION_LABELS = [

@@ -10,30 +10,13 @@ interface AIAlertCardProps {
   userRole?: string;
 }
 
-/**
- * Determine which roles can acknowledge a PPE violation.
- * When these roles acknowledge, it triggers a notification to Safety Officer.
- * Safety Officer is the ONLY one who can resolve (through PPE HITL).
- */
-const PPE_ACKNOWLEDGER_ROLES = ['project_manager', 'site_engineer', 'site_supervisor', 'safety_manager'];
-
-/**
- * Check if a role is allowed to acknowledge (but NOT resolve) PPE violations
- */
-const canAcknowledgePPE = (role: string): boolean => {
-  return PPE_ACKNOWLEDGER_ROLES.includes(role);
-};
-
-export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, userRole }: AIAlertCardProps) => {
+export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }: AIAlertCardProps) => {
   const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
   const timeAgo = getTimeAgo(alert.timestamp);
-  const severityBadge = SEVERITY_BADGES[alert.severity] || 'text-bg-secondary';
+  const severityKey = (alert.severity || 'critical').toLowerCase();
+  const severityBadge = SEVERITY_BADGES[severityKey] || SEVERITY_BADGES[alert.severity] || 'text-bg-danger';
   const locationLabel = alert.siteCode || alert.siteName || 'N/A';
   const chainageLabel = alert.chainageLabel || alert.chainageId;
-
-  const isPPEViolation = alert.type === 'no_ppe';
-  const isSafetyOfficer = userRole === 'safety_officer';
-  const isSafetyOfficerPPE = isSafetyOfficer && isPPEViolation;
 
   return (
     <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}`, padding: '16px' }}>
@@ -45,7 +28,7 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, 
           <div className="flex-grow-1 min-width-0">
             <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
               <h6 className="fw-bold mb-0">{config.label}</h6>
-              <span className={`badge ${severityBadge}`}>{alert.severity}</span>
+              <span className={`badge ${severityBadge}`}>{severityKey}</span>
               <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-info' : 'text-bg-success'}`}>
                 {alert.status}
               </span>
@@ -60,56 +43,31 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, 
           </div>
         </div>
         <div className="d-flex gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
-          {isSafetyOfficerPPE ? (
-            /* SAFETY OFFICER: Can Solve (Resolve through PPE HITL) */
-            (alert.status === 'new' || alert.status === 'acknowledged') && (
-              <button
-                className="btn btn-sm btn-success"
-                onClick={() => onSolve ? onSolve(alert.id) : onResolve?.(alert.id)}
-              >
-                <i className="bi bi-check2-circle me-1" />Solve
-              </button>
-            )
-          ) : isPPEViolation && canAcknowledgePPE(userRole || '') ? (
-            /* PPE ACKNOWLEDGERS: Project Manager, Site Engineer, Site Supervisor, Safety Manager
-               - They can only ACKNOWLEDGE (not resolve)
-               - Acknowledging sends notification to Safety Officer */
-            <>
-              {onView && (
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-                  <i className="bi bi-eye me-1" />View
-                </button>
-              )}
-              {alert.status === 'new' && onAcknowledge && (
-                <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
-                  <i className="bi bi-check-circle me-1" />Acknowledge
-                </button>
-              )}
-              {alert.status === 'acknowledged' && (
-                <span className="badge text-bg-info d-flex align-items-center gap-1 py-2 px-3">
-                  <i className="bi bi-check-circle" /> Acknowledged
-                </span>
-              )}
-            </>
-          ) : (
-            /* OTHER ROLES or NON-PPE alerts: Default behavior */
-            <>
-              {onView && (
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-                  <i className="bi bi-eye me-1" />View
-                </button>
-              )}
-              {alert.status === 'new' && onAcknowledge && (
-                <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
-                  <i className="bi bi-check-circle me-1" />Acknowledge
-                </button>
-              )}
-              {alert.status === 'acknowledged' && onResolve && (
-                <button className="btn btn-sm btn-outline-success" onClick={() => onResolve(alert.id)}>
-                  <i className="bi bi-check2-all me-1" />Resolve
-                </button>
-              )}
-            </>
+          {onView && (
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
+              <i className="bi bi-eye me-1" />View
+            </button>
+          )}
+
+          {alert.status === 'new' && onAcknowledge && (
+            <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
+              <i className="bi bi-check-circle me-1" />Acknowledge
+            </button>
+          )}
+
+          {(alert.status === 'acknowledged' || alert.status === 'new') && (
+            <button
+              className="btn btn-sm btn-success"
+              onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
+            >
+              <i className="bi bi-check2-circle me-1" />Solve
+            </button>
+          )}
+
+          {alert.status === 'resolved' && (
+            <span className="badge text-bg-success d-flex align-items-center gap-1 py-1.5 px-3">
+              <i className="bi bi-check-all" /> Resolved
+            </span>
           )}
         </div>
       </div>

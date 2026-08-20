@@ -4,13 +4,12 @@ import { useApp } from '../../hooks/useApp';
 import { getFirstSidebarRoute } from '../../utils/navigation';
 
 const DEMO_ACCOUNTS = [
-  { username: 'admin', label: 'Admin', role: 'admin' },
-  { username: 'pm_user', label: 'Project Manager', role: 'project_manager' },
-  { username: 'supervisor_user', label: 'Site Supervisor', role: 'site_supervisor' },
-  { username: 'site_eng_user', label: 'Site Engineer', role: 'site_engineer' },
-  { username: 'proj_eng_user', label: 'Project Engineer', role: 'project_engineer' },
-  { username: 'safety_mgr_user', label: 'Safety Manager', role: 'safety_manager' },
-  { username: 'safety_eng_user', label: 'Safety Engineer', role: 'safety_officer' },
+  { username: 'admin', label: 'System Administrator', role: 'admin' },
+  { username: 'projectmanager', label: 'Project Manager', role: 'project_manager' },
+  { username: 'sitesupervisor', label: 'Site Supervisor', role: 'site_supervisor' },
+  { username: 'siteengineer', label: 'Site Engineer', role: 'site_engineer' },
+  { username: 'safetymanager', label: 'Safety Manager', role: 'safety_manager' },
+  { username: 'safetyengineer', label: 'Safety Engineer', role: 'safety_officer' },
 ];
 
 export const LoginPage = () => {

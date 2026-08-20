@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import api from '../services/api';
 import {
   getPPENotifications,
   createPPENotification,
@@ -7,8 +8,19 @@ import {
   getPendingPPENotifications,
   getAllPPENotifications,
   createGenericNotification,
+  resolveHITLViolation,
 } from '../services/ppeNotificationService';
 import type { AIAlert, UserProfile } from '../types';
+
+vi.mock('../services/api', () => {
+  const mockAxios = {
+    get: vi.fn(),
+    post: vi.fn().mockResolvedValue({ data: { status: 'success', decision: 'SOLVED' } }),
+    put: vi.fn(),
+    delete: vi.fn(),
+  };
+  return { default: mockAxios };
+});
 
 describe('ppeNotificationService Unit Tests', () => {
   beforeEach(() => {
@@ -74,5 +86,19 @@ describe('ppeNotificationService Unit Tests', () => {
     const genNotif = createGenericNotification('intrusion', 'Perimeter breached', mockUser, 'Site B', 'KM 78');
     expect(genNotif.sourceType).toBe('intrusion');
     expect(genNotif.triggeredByName).toBe('Rajesh Kumar');
+  });
+
+  it('should resolve HITL violation via API call', async () => {
+    const res = await resolveHITLViolation('123', {
+      decision: 'SOLVED',
+      notes: 'Helmet provided',
+    });
+    expect(api.post).toHaveBeenCalledWith('ppe-notifications/123/hitl-resolve/', {
+      decision: 'SOLVED',
+      notes: 'Helmet provided',
+      hitl_data: { confidence: 0.98, verified: true },
+    });
+    expect(res).toBeDefined();
+    expect(res.decision).toBe('SOLVED');
   });
 });

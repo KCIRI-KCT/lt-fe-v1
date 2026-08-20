@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { updateAIAlertStatus } from '../../services/mockData';
+import { resolveHITLViolation } from '../../services/ppeNotificationService';
 
 // ── CUSTOM COMPONENT IMPORT ────────────────────────────────────────────────
 import HITLCameraCapture from '../components/HITLCameraCapture';
@@ -128,57 +129,54 @@ function SupervisorHITLPPEPage({
 
   // ── Submit Handler ────────────────────────────────────────────────────────
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setIsSubmitting(true);
 
-    // Simulate frontend form submission & storage
-    setTimeout(() => {
-      const submissionData = {
-        taskId: taskId || 'local-manual-task',
-        supervisorId: profile?.id,
-        supervisorName: profile?.name,
-        siteName: siteName.trim(),
-        notes: notes.trim(),
-        chainageInput: chainageInput,
-        imageLocalUrl: capturedImages[0],
-        submittedAt: new Date().toISOString()
-      };
+    const submissionData = {
+      taskId: taskId || 'local-manual-task',
+      supervisorId: profile?.id,
+      supervisorName: profile?.name,
+      siteName: siteName.trim(),
+      notes: notes.trim(),
+      chainageInput: chainageInput,
+      imageLocalUrl: capturedImages[0],
+      submittedAt: new Date().toISOString()
+    };
 
-      console.log('--- HITL PPE Submitted ---');
-      console.log(submissionData);
-
-      // Save locally to localStorage
-      try {
-        const history = JSON.parse(localStorage.getItem('hitl_ppe_submissions') || '[]');
-        history.push(submissionData);
-        localStorage.setItem('hitl_ppe_submissions', JSON.stringify(history));
-      } catch (err) {
-        console.warn('Unable to write to localStorage:', err);
-      }
-
-      // Mark the PPE violation as resolved
+    try {
       if (taskId) {
+        await resolveHITLViolation(taskId, {
+          decision: 'SOLVED',
+          notes: notes.trim() || 'Safety helmet / PPE provided.',
+          hitl_data: { confidence: 0.98, verified: true, image: capturedImages[0] || null },
+        });
         updateAIAlertStatus(taskId, 'resolved');
       }
 
-      showToast('PPE Report submitted successfully!', 'success');
+      const history = JSON.parse(localStorage.getItem('hitl_ppe_submissions') || '[]');
+      history.push(submissionData);
+      localStorage.setItem('hitl_ppe_submissions', JSON.stringify(history));
+    } catch (err) {
+      console.warn('Backend resolution notification error:', err);
+    }
 
-      // Reset state
-      setCapturedImages([]);
-      setIsCameraOpen(false);
-      setNotes('');
-      setIsSubmitting(false);
+    showToast('PPE Report submitted successfully!', 'success');
 
-      if (isModal) {
-        if (onSubmitSuccess) {
-          onSubmitSuccess(submissionData);
-        }
-      } else {
-        navigate(hitlBasePath);
+    // Reset state
+    setCapturedImages([]);
+    setIsCameraOpen(false);
+    setNotes('');
+    setIsSubmitting(false);
+
+    if (isModal) {
+      if (onSubmitSuccess) {
+        onSubmitSuccess(submissionData);
       }
-    }, 1000);
+    } else {
+      navigate(hitlBasePath);
+    }
   };
 
   const formContent = (

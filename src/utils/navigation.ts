@@ -54,7 +54,7 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
     case 'site_supervisor':
       return [
         { label: 'Executive Dashboard', path: '/project-manager', icon: 'bi bi-speedometer2' },
-        { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
+        // { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
         { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
@@ -64,8 +64,8 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
     case 'site_engineer':
       return [
         { label: 'Live Monitoring', path: '/site-engineer', icon: 'bi bi-speedometer2' },
-        { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
-        { label: 'Activity Recognition', path: '/ai-monitoring', icon: 'bi bi-activity' },
+        // { label: 'Progress', path: '/progress', icon: 'bi bi-bar-chart-steps' },
+        { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-activity' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
         { label: 'Reports', path: '/reports', icon: 'bi bi-file-earmark-bar-graph-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }

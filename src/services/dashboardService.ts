@@ -70,29 +70,41 @@ export interface WorkerAttendanceSummary {
 
 export const dashboardService = {
   async getDashboardMetrics(): Promise<BackendDashboardMetrics> {
-    const response = await api.get('dashboard/metrics/');
-    const raw = response.data?.data || response.data || {};
+    const getRaw = async (): Promise<Record<string, unknown>> => {
+      try {
+        const response = await api.get('dashboard/stats/');
+        return (response.data?.data || response.data || {}) as Record<string, unknown>;
+      } catch {
+        try {
+          const response = await api.get('dashboard/metrics/');
+          return (response.data?.data || response.data || {}) as Record<string, unknown>;
+        } catch {
+          return {};
+        }
+      }
+    };
+    const r = await getRaw();
     return {
-      total_active_sites: raw.total_active_sites ?? raw.activeSites ?? 12,
-      total_workers: raw.total_workers ?? raw.totalWorkers ?? 350,
-      active_workers_today: raw.active_workers_today ?? 298,
-      ppe_compliance_avg: raw.ppe_compliance_avg ?? 94.5,
-      open_alerts_count: raw.open_alerts_count ?? raw.criticalAlerts ?? 5,
-      total_cameras: raw.total_cameras ?? 48,
-      total_projects: raw.total_projects ?? raw.totalProjects ?? 5,
-      totalProjects: raw.totalProjects ?? raw.total_projects ?? 5,
-      activeSites: raw.activeSites ?? raw.total_active_sites ?? 12,
-      totalWorkers: raw.totalWorkers ?? raw.total_workers ?? 350,
-      criticalAlerts: raw.criticalAlerts ?? raw.open_alerts_count ?? 5,
-      safetyScore: raw.safetyScore ?? raw.safety_score ?? 94,
-      ppeCompliance: raw.ppeCompliance || {
-        helmet: 89,
-        vest: 81,
-        mask: 85,
-        boots: 79,
-        gloves: 74,
+      total_active_sites: Number(r.total_active_sites ?? r.activeSites ?? 0),
+      total_workers: Number(r.total_workers ?? r.totalWorkers ?? 0),
+      active_workers_today: Number(r.active_workers_today ?? r.active_workers ?? 0),
+      ppe_compliance_avg: Number(r.ppe_compliance_avg ?? r.safety_score ?? 0),
+      open_alerts_count: Number(r.open_alerts_count ?? r.criticalAlerts ?? 0),
+      total_cameras: Number(r.total_cameras ?? 0),
+      total_projects: Number(r.total_projects ?? r.totalProjects ?? 0),
+      totalProjects: Number(r.totalProjects ?? r.total_projects ?? 0),
+      activeSites: Number(r.activeSites ?? r.total_active_sites ?? 0),
+      totalWorkers: Number(r.totalWorkers ?? r.total_workers ?? 0),
+      criticalAlerts: Number(r.criticalAlerts ?? r.open_alerts_count ?? 0),
+      safetyScore: Number(r.safetyScore ?? r.safety_score ?? 0),
+      ppeCompliance: (r.ppeCompliance as BackendDashboardMetrics['ppeCompliance']) || {
+        helmet: 0,
+        vest: 0,
+        mask: 0,
+        boots: 0,
+        gloves: 0,
       },
-      incidentTrends: raw.incidentTrends || [],
+      incidentTrends: (r.incidentTrends as BackendDashboardMetrics['incidentTrends']) || [],
     };
   },
 

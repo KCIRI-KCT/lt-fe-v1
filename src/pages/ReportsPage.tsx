@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
 import { reportService } from '../services/reportService';
-import type { Report } from '../types';
+import { projectService } from '../services/projectService';
+import { siteService } from '../services/siteService';
+import type { Report, Project, Site, Chainage } from '../types';
 
 const columns: Column<Report>[] = [
   {
@@ -47,6 +49,11 @@ export const ReportsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
+  // Dynamic DB data state
+  const [dbProjects, setDbProjects] = useState<Project[]>([]);
+  const [dbSites, setDbSites] = useState<Site[]>([]);
+  const [dbChainages, setDbChainages] = useState<Chainage[]>([]);
+
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
   const [filterSite, setFilterSite] = useState('');
@@ -59,18 +66,30 @@ export const ReportsPage = () => {
 
   useEffect(() => {
     let isMounted = true;
-    reportService.getReports()
-      .then((data) => {
-        if (isMounted) setReports(data);
-      })
-      .catch(() => {
-        if (isMounted) setReports([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+    Promise.all([
+      reportService.getReports().catch(() => []),
+      projectService.getProjects().catch(() => []),
+      siteService.getSites().catch(() => []),
+      siteService.getChainages().catch(() => []),
+    ]).then(([reportsData, projectsData, sitesData, chainagesData]) => {
+      if (!isMounted) return;
+      if (Array.isArray(reportsData)) setReports(reportsData);
+      if (Array.isArray(projectsData)) setDbProjects(projectsData);
+      if (Array.isArray(sitesData)) setDbSites(sitesData);
+      if (Array.isArray(chainagesData)) setDbChainages(chainagesData);
+    }).finally(() => {
+      if (isMounted) setLoading(false);
+    });
     return () => { isMounted = false; };
   }, []);
+
+  const availableSites = filterProject
+    ? dbSites.filter((s) => String(s.projectId || '') === String(filterProject))
+    : dbSites;
+
+  const availableChainages = filterSite
+    ? dbChainages.filter((c) => String(c.siteId || '') === String(filterSite))
+    : dbChainages;
 
   const filtered = reports.filter((r) => {
     if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.generatedBy.toLowerCase().includes(search.toLowerCase())) return false;
@@ -79,10 +98,9 @@ export const ReportsPage = () => {
     if (filter === 'pdf' && r.format !== 'pdf') return false;
     if (filter === 'excel' && r.format !== 'excel') return false;
 
-    if (appliedProject && r.projectId && r.projectId !== appliedProject) return false;
-    if (appliedSite && r.siteId && r.siteId !== appliedSite) return false;
-    // Chainage filter
-    if (appliedChainage && r.chainageId !== appliedChainage) return false;
+    if (appliedProject && r.projectId && String(r.projectId) !== String(appliedProject)) return false;
+    if (appliedSite && r.siteId && String(r.siteId) !== String(appliedSite)) return false;
+    if (appliedChainage && r.chainageId && String(r.chainageId) !== String(appliedChainage)) return false;
 
     return true;
   });
@@ -124,9 +142,9 @@ export const ReportsPage = () => {
               }}
             >
               <option value="">All Projects</option>
-              <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
-              <option value="Mumbai Ring Road">Mumbai Ring Road</option>
-              <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
+              {dbProjects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
           </div>
 
@@ -136,40 +154,14 @@ export const ReportsPage = () => {
               className="form-select form-select-sm"
               value={filterSite}
               onChange={(e) => {
-                const selectedVal = e.target.value;
-                setFilterSite(selectedVal);
+                setFilterSite(e.target.value);
                 setFilterChainage('');
-                if (selectedVal) {
-                  if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
-                    setFilterProject('Chennai-Bangalore Expressway');
-                  } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Mumbai Ring Road');
-                  } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
-                    setFilterProject('Hyderabad Metro Phase II');
-                  }
-                }
               }}
             >
               <option value="">All Sites</option>
-              {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
-                <>
-                  <option value="Site A - KM 0-15">Site A - KM 0-15</option>
-                  <option value="Site B - KM 15-30">Site B - KM 15-30</option>
-                  <option value="Site C - KM 30-45">Site C - KM 30-45</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Mumbai Ring Road') && (
-                <>
-                  <option value="Site D - KM 0-12">Site D - KM 0-12</option>
-                  <option value="Site E - KM 12-25">Site E - KM 12-25</option>
-                </>
-              )}
-              {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
-                <>
-                  <option value="Site F - KM 0-12">Site F - KM 0-12</option>
-                  <option value="Site G - KM 12-25">Site G - KM 12-25</option>
-                </>
-              )}
+              {availableSites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.code || s.location})</option>
+              ))}
             </select>
           </div>
 
@@ -179,19 +171,12 @@ export const ReportsPage = () => {
               className="form-select form-select-sm"
               value={filterChainage}
               onChange={(e) => setFilterChainage(e.target.value)}
-              disabled={!filterSite}
+              disabled={!filterSite && availableChainages.length === 0}
             >
               <option value="">All Chainages</option>
-              {filterSite === 'Site A - KM 0-15' && (
-                <>
-                  <option value="CH-01">CH-01 (KM 2.5)</option>
-                  <option value="CH-05">CH-05 (KM 12.0)</option>
-                </>
-              )}
-              {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
-              {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
-              {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
-              {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
+              {availableChainages.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} {c.kmMarker ? `(${c.kmMarker})` : ''}</option>
+              ))}
             </select>
           </div>
 
