@@ -41,16 +41,30 @@ export const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100];
 
 export const SEVERITY_COLORS: Record<string, string> = {
   critical: '#dc2626',
+  CRITICAL: '#dc2626',
   high: '#d97706',
+  HIGH: '#d97706',
   medium: '#2563eb',
+  MEDIUM: '#2563eb',
   low: '#6b7280',
+  LOW: '#6b7280',
+  major: '#d97706',
+  MAJOR: '#d97706',
 };
 
 export const SEVERITY_BADGES: Record<string, string> = {
   critical: 'text-bg-danger',
+  CRITICAL: 'text-bg-danger',
   high: 'text-bg-warning',
+  HIGH: 'text-bg-warning',
   medium: 'text-bg-primary',
+  MEDIUM: 'text-bg-primary',
   low: 'text-bg-secondary',
+  LOW: 'text-bg-secondary',
+  major: 'text-bg-warning',
+  MAJOR: 'text-bg-warning',
+  minor: 'text-bg-info',
+  MINOR: 'text-bg-info',
 };
 
 // ============================================================================

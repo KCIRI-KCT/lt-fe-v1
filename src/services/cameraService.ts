@@ -66,32 +66,63 @@ export function normalizeCamera(item: Record<string, unknown> | null | undefined
   };
 }
 
+export async function pingCameraHealth(camera: Camera): Promise<Camera> {
+  if (!camera.rtspUrl || camera.status === 'offline') {
+    return { ...camera, status: 'offline', healthScore: 0 };
+  }
+
+  const startTime = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    await fetch(camera.rtspUrl, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const latency = Date.now() - startTime;
+    const healthScore = Math.max(50, Math.min(100, 100 - Math.round(latency / 30)));
+    return {
+      ...camera,
+      status: 'online',
+      healthScore,
+      lastOnline: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    };
+  } catch {
+    return {
+      ...camera,
+      status: 'offline',
+      healthScore: 0,
+    };
+  }
+}
+
+export async function checkAllCamerasHealth(cameras: Camera[]): Promise<Camera[]> {
+  return Promise.all(cameras.map((c) => pingCameraHealth(c)));
+}
+
 export const cameraService = {
   async getCameras(params?: Record<string, unknown>): Promise<Camera[]> {
-    // Clean up any legacy pre-seeded mock cameras (e.g. cam-01, cam-02...) from local storage
-    const rawLocal = storage.get<Camera[]>(KEYS.CAMERAS, []);
-    const localCameras = rawLocal.filter((c) => !c.id.toLowerCase().startsWith('cam-0'));
-
     try {
       const response = await api.get('cameras/', { params });
       const rawData = response.data?.data || response.data;
       const apiItems: Array<Record<string, unknown>> = Array.isArray(rawData) ? rawData : rawData?.results || [];
 
-      const normalizedApi = apiItems.map(normalizeCamera);
-
-      // Combine backend API cameras with user-created cameras
-      const combined = [...normalizedApi];
-      localCameras.forEach((locCam) => {
-        if (!combined.some((c) => c.id === locCam.id)) {
-          combined.push(locCam);
-        }
-      });
-
-      storage.set(KEYS.CAMERAS, combined);
-      return combined;
+      if (apiItems.length > 0) {
+        const normalizedApi = apiItems.map(normalizeCamera);
+        storage.set(KEYS.CAMERAS, normalizedApi);
+        return normalizedApi;
+      }
     } catch {
-      return localCameras;
+      // API fallback
     }
+
+    const rawLocal = storage.get<Camera[]>(KEYS.CAMERAS, []);
+    const userCreatedOnly = rawLocal.filter((c) => !c.id.startsWith('1') && !c.id.startsWith('2') && !c.id.startsWith('3') && !c.id.startsWith('4') && !c.id.startsWith('5'));
+    return userCreatedOnly.length > 0 ? userCreatedOnly : rawLocal;
   },
 
   async getCamera(id: string): Promise<Camera> {
@@ -110,18 +141,19 @@ export const cameraService = {
   async controlPtz(id: string, action: string, pan?: number, tilt?: number, zoom?: number): Promise<Record<string, unknown>> {
     const payload = {
       camera_id: id,
-      action,
-      pan: pan !== undefined ? Math.round(pan) : 0,
-      tilt: tilt !== undefined ? Math.round(tilt) : 0,
-      zoom: zoom !== undefined ? Number(zoom.toFixed(2)) : 1.0,
+      action: action.toUpperCase(),
+      pan: pan !== undefined ? Number(pan.toFixed(1)) : 0.0,
+      tilt: tilt !== undefined ? Number(tilt.toFixed(1)) : 0.0,
+      zoom: zoom !== undefined ? Number(zoom.toFixed(1)) : 1.0,
     };
     try {
-      const response = await api.post(`cameras/${id}/ptz/`, payload);
+      // Primary backend endpoint: POST /api/cameras/{id}/ptz-control/
+      const response = await api.post(`cameras/${id}/ptz-control/`, payload);
       return response.data;
     } catch {
       try {
-        const fallbackResponse = await api.post('cameras/ptz-control/', payload);
-        return fallbackResponse.data;
+        const fallbackResponse = await api.post(`cameras/${id}/ptz/`, payload);
+        return fallbackResponse.data?.data || fallbackResponse.data;
       } catch {
         return { success: true, camera_id: id, action, pan, tilt, zoom };
       }

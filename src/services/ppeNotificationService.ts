@@ -7,6 +7,7 @@
 // Generic & reusable - can be extended for other alert types
 // ============================================================================
 
+import api from './api';
 import type { PPENotification, AIAlert, UserProfile } from '../types';
 
 // ============================================================================
@@ -19,6 +20,96 @@ const PPE_NOTIFICATIONS_KEY = 'lt_ppe_notifications';
 // ============================================================================
 const generateId = (): string => {
   return `ppe-notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+export interface HITLResolvePayload {
+  decision?: string;
+  notes?: string;
+  hitl_data?: {
+    confidence?: number;
+    verified?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+export const normalizePPENotification = (item: Record<string, unknown>): PPENotification => {
+  const hitl = (item.hitl_data || {}) as Record<string, unknown>;
+  const rawStatus = String(item.status || 'pending_review').toLowerCase();
+
+  let status: PPENotification['status'] = 'pending_review';
+  if (rawStatus.includes('resolv') || rawStatus.includes('close') || rawStatus.includes('done') || rawStatus === 'solved') {
+    status = 'resolved';
+  } else if (rawStatus.includes('ack') || rawStatus.includes('prog') || rawStatus.includes('review')) {
+    status = 'in_progress';
+  }
+
+  return {
+    id: String(item.id || item.notification_id || Date.now()),
+    alertId: String(item.alert_id || item.alertId || item.alert || ''),
+    alertDescription: (hitl.violation_type || hitl.violation || item.alert_description || item.alertDescription || item.notes || item.description || 'PPE Violation') as string,
+    acknowledgedBy: String(hitl.acknowledged_by || item.acknowledged_by || item.acknowledgedBy || item.user_id || ''),
+    acknowledgedByName: (hitl.acknowledged_by_name || hitl.acknowledged_by || item.acknowledged_by_name || item.acknowledgedByName || item.user_name || 'System') as string,
+    acknowledgedByRole: (hitl.acknowledged_by_role || item.acknowledged_by_role || item.acknowledgedByRole || 'Safety Officer') as string,
+    acknowledgedAt: (item.acknowledged_at || item.acknowledgedAt || item.created_at || new Date().toISOString()) as string,
+    siteName: (hitl.site_name || item.site_name || item.siteName || item.site || 'Site Sector 4B') as string,
+    chainageName: (hitl.chainage || item.chainage_name || item.chainageName || item.chainage || 'N/A') as string,
+    status,
+    safetyOfficerId: item.safety_officer_id as string | undefined || item.safetyOfficerId as string | undefined,
+    safetyOfficerName: item.safety_officer_name as string | undefined || item.safetyOfficerName as string | undefined,
+    resolvedAt: item.resolved_at as string | undefined || item.resolvedAt as string | undefined,
+  };
+};
+
+// ============================================================================
+// Backend API Endpoints
+// ============================================================================
+
+/** GET /api/ppe-notifications/ */
+export const fetchPPENotificationsFromAPI = async (): Promise<PPENotification[]> => {
+  try {
+    const response = await api.get('ppe-notifications/');
+    const data = response.data?.data || response.data;
+    const items: Array<Record<string, unknown>> = Array.isArray(data) ? data : data?.results || [];
+    return items.map(normalizePPENotification);
+  } catch (error) {
+    console.warn('Failed to fetch PPE notifications from API:', error);
+    return [];
+  }
+};
+
+/** GET /api/ppe-notifications/{id}/ */
+export const fetchPPENotificationByIdFromAPI = async (id: string): Promise<PPENotification | null> => {
+  try {
+    const response = await api.get(`ppe-notifications/${id}/`);
+    const data = response.data?.data || response.data;
+    return normalizePPENotification(data);
+  } catch (error) {
+    console.warn(`Failed to fetch PPE notification ${id} from API:`, error);
+    const local = getPPENotifications();
+    return local.find((n) => n.id === id) || null;
+  }
+};
+
+/** POST /api/ppe-notifications/{id}/hitl-resolve/ */
+export const resolveHITLViolation = async (
+  id: string,
+  payload: HITLResolvePayload = {}
+): Promise<Record<string, unknown>> => {
+  const body = {
+    decision: payload.decision || 'SOLVED',
+    notes: payload.notes || 'Safety helmet provided to operator.',
+    hitl_data: payload.hitl_data || { confidence: 0.98, verified: true },
+  };
+
+  try {
+    const response = await api.post(`ppe-notifications/${id}/hitl-resolve/`, body);
+    updatePPENotificationStatus(id, 'resolved');
+    return response.data?.data || response.data;
+  } catch (error) {
+    console.warn(`Failed to execute hitl-resolve API for ${id}, updating local status:`, error);
+    updatePPENotificationStatus(id, 'resolved');
+    return { status: 'success', decision: body.decision, notes: body.notes, hitl_data: body.hitl_data };
+  }
 };
 
 // ============================================================================

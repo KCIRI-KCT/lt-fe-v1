@@ -19,12 +19,12 @@ export const AlertDetailModal = ({ alert, onClose }: AlertDetailModalProps) => {
   const cameraValue = detailMap.get('camera') || (alert.cameraId ? `Camera ${alert.cameraId}` : alert.cameraName || 'N/A');
 
   const rows = [
+    { label: 'Status', value: alert.status ? alert.status.toUpperCase() : 'NEW' },
     { label: 'Site', value: alert.siteCode || alert.siteName || 'N/A' },
     { label: 'Chainage', value: alert.chainageLabel || alert.chainageId || 'N/A' },
-    { label: 'Site Engineer', value: detailMap.get('site engineer') || 'N/A' },
+    { label: 'Site Engineer / User', value: alert.acknowledgedBy || detailMap.get('site engineer') || 'N/A' },
     { label: 'Camera', value: cameraValue },
-    { label: 'Date', value: detailMap.get('date') || 'N/A' },
-    { label: 'Time', value: detailMap.get('time') || 'N/A' },
+    { label: 'Date & Time', value: alert.timestamp ? new Date(alert.timestamp).toLocaleString('en-IN') : 'N/A' },
   ];
 
   return (

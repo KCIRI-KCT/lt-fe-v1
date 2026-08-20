@@ -15,6 +15,7 @@ import {
   getAllPPENotifications,
   updatePPENotificationStatus,
   getPendingPPENotifications,
+  fetchPPENotificationsFromAPI,
 } from '../../../services/ppeNotificationService';
 import type { PPENotification } from '../../../types';
 
@@ -85,10 +86,18 @@ export const SafetyOfficerDashboard = () => {
   const [notifications, setNotifications] = useState<PPENotification[]>(() => getAllPPENotifications());
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Refresh notifications from storage
-  const refreshNotifications = useCallback(() => {
-    const updated = getAllPPENotifications();
-    setNotifications(updated);
+  // Refresh notifications from API & storage
+  const refreshNotifications = useCallback(async () => {
+    const apiNotifs = await fetchPPENotificationsFromAPI();
+    const localNotifs = getAllPPENotifications();
+    // Combine API & local notifications uniquely
+    const combined = [...apiNotifs];
+    localNotifs.forEach((n) => {
+      if (!combined.some((item) => item.id === n.id)) {
+        combined.push(n);
+      }
+    });
+    setNotifications(combined);
   }, []);
 
   // Poll for new notifications every 5 seconds

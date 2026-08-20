@@ -34,7 +34,7 @@ describe('dashboardService API Integration', () => {
 
     const metrics = await dashboardService.getDashboardMetrics();
 
-    expect(api.get).toHaveBeenCalledWith('dashboard/metrics/');
+    expect(api.get).toHaveBeenCalledWith('dashboard/stats/');
     expect(metrics.total_active_sites).toBe(12);
     expect(metrics.active_workers_today).toBe(298);
     expect(metrics.ppe_compliance_avg).toBe(94.5);

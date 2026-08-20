@@ -57,9 +57,8 @@ describe('authService API Integration', () => {
 
     const result = await authService.login('admin_user', 'SecurePassword123!');
 
-    expect(api.post).toHaveBeenCalledWith('auth/login/', {
+    expect(api.post).toHaveBeenCalledWith('token/', {
       username: 'admin_user',
-      email: 'admin_user',
       password: 'SecurePassword123!',
     });
     expect(result.tokens.access).toBe('fake_access_token_123');

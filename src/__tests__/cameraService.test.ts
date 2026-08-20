@@ -76,13 +76,13 @@ describe('cameraService API Integration & Methods', () => {
     expect(cam.name).toBe('CAM-01');
   });
 
-  it('should send PTZ commands using POST /api/cameras/{id}/ptz/', async () => {
+  it('should send PTZ commands using POST /api/cameras/{id}/ptz-control/', async () => {
     (api.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { success: true, data: { camera_id: 1, action: 'PAN_LEFT' } },
     });
 
     const result = await cameraService.controlPtz('1', 'PAN_LEFT', -15, 0, 1.2);
-    expect(api.post).toHaveBeenCalledWith('cameras/1/ptz/', {
+    expect(api.post).toHaveBeenCalledWith('cameras/1/ptz-control/', {
       camera_id: '1',
       action: 'PAN_LEFT',
       pan: -15,

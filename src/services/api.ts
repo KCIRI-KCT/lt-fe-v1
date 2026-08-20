@@ -89,9 +89,9 @@ api.interceptors.response.use(
     }
 
     // Skip refresh token logic for authentication endpoints
-    const isAuthEndpoint = requestUrl.includes('auth/login') ||
-                           requestUrl.includes('auth/register') ||
-                           requestUrl.includes('auth/token/refresh');
+    const isAuthEndpoint = requestUrl.includes('token/') ||
+                           requestUrl.includes('auth/login') ||
+                           requestUrl.includes('auth/register');
 
     // If 401 Unauthorized and not an auth endpoint, attempt silent token refresh
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
@@ -114,9 +114,15 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          const { data } = await axios.post(`${baseURL}auth/token/refresh/`, {
-            refresh: refreshToken,
-          });
+          // Primary endpoint: POST /api/token/refresh/
+          let data: Record<string, any>;
+          try {
+            const res = await axios.post(`${baseURL}token/refresh/`, { refresh: refreshToken });
+            data = res.data;
+          } catch {
+            const res = await axios.post(`${baseURL}auth/token/refresh/`, { refresh: refreshToken });
+            data = res.data;
+          }
 
           const newAccessToken = data?.access || data?.data?.access;
           if (newAccessToken) {

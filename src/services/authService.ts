@@ -23,24 +23,36 @@ const mapRoleIdToUserRole = (roleId?: number | string, roleStr?: string): UserRo
   if (rId === 6) return 'safety_manager';
   if (rId === 7) return 'safety_officer';
 
-  const str = (roleStr || '').toLowerCase();
+  const str = (roleStr || '').toLowerCase().replace(/[\s_-]+/g, '');
   if (str.includes('admin')) return 'admin';
-  if (str.includes('project_manager') || str.includes('project manager')) return 'project_manager';
-  if (str.includes('supervisor')) return 'site_supervisor';
-  if (str.includes('site_engineer') || str.includes('engineer')) return 'site_engineer';
-  if (str.includes('safety_manager') || str.includes('safety manager')) return 'safety_manager';
-  if (str.includes('safety_officer') || str.includes('safety engineer')) return 'safety_officer';
+  if (str.includes('projectmanager')) return 'project_manager';
+  if (str.includes('sitesupervisor') || str.includes('supervisor')) return 'site_supervisor';
+  if (str.includes('siteengineer')) return 'site_engineer';
+  if (str.includes('safetymanager')) return 'safety_manager';
+  if (str.includes('safetyengineer') || str.includes('safetyofficer')) return 'safety_officer';
+  if (str.includes('engineer')) return 'site_engineer';
 
   return 'admin';
 };
 
 export const authService = {
   async login(usernameOrEmail: string, password: string): Promise<LoginResponse> {
-    const response = await api.post('auth/login/', {
-      username: usernameOrEmail,
-      email: usernameOrEmail,
-      password,
-    });
+    let response: any;
+    try {
+      // Primary backend login endpoint: POST /api/token/
+      response = await api.post('token/', {
+        username: usernameOrEmail,
+        password,
+      });
+    } catch (err) {
+      // Fallback endpoint: POST /api/auth/login/
+      response = await api.post('auth/login/', {
+        username: usernameOrEmail,
+        email: usernameOrEmail,
+        password,
+      });
+    }
+
     const data = response.data?.data || response.data;
     
     // Support nested token structure or flat structure
@@ -48,11 +60,12 @@ export const authService = {
     const refresh = data?.tokens?.refresh || data?.refresh || data?.refresh_token;
     const rawUser = data?.user || data;
 
-    const normalizedRole = mapRoleIdToUserRole(data?.role_id || rawUser?.role_id, rawUser?.role);
+    const roleInput = rawUser?.role_name || rawUser?.role || rawUser?.username || usernameOrEmail;
+    const normalizedRole = mapRoleIdToUserRole(data?.role_id || rawUser?.role_id, roleInput);
     const user: UserProfile = {
       id: String(rawUser?.user_id || rawUser?.id || '1'),
       name: rawUser?.employee_name || rawUser?.username || rawUser?.name || usernameOrEmail,
-      email: rawUser?.email || `${usernameOrEmail}@landt.local`,
+      email: rawUser?.email || `${usernameOrEmail}@lt.com`,
       role: normalizedRole,
       avatar: rawUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rawUser?.username || usernameOrEmail)}&background=2563eb&color=fff`,
       workspace: rawUser?.workspace || 'L&T Operations',

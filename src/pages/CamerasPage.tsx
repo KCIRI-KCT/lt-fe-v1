@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CameraCard } from '../components/cards/CameraCard';
-import { cameraService } from '../services/cameraService';
+import { cameraService, checkAllCamerasHealth } from '../services/cameraService';
 import type { Camera } from '../types';
 
 export const CamerasPage = () => {
@@ -19,8 +19,11 @@ export const CamerasPage = () => {
   useEffect(() => {
     let isMounted = true;
     cameraService.getCameras()
-      .then((data) => {
-        if (isMounted) setCameras(data);
+      .then(async (data) => {
+        if (!isMounted) return;
+        setCameras(data);
+        const pinged = await checkAllCamerasHealth(data);
+        if (isMounted) setCameras(pinged);
       })
       .catch(() => {
         if (isMounted) setCameras([]);
@@ -151,57 +154,63 @@ export const CamerasPage = () => {
     return () => clearInterval(interval);
   }, [activeCamId]);
 
-  // Handle Camera Status Toggle
-  const handleToggleCameraStatus = async (id: string) => {
-    const targetCam = cameras.find((c) => c.id === id);
-    if (!targetCam) return;
-    const newStatus: Camera['status'] = targetCam.status === 'online' ? 'offline' : 'online';
 
-    setCameras((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
-    );
-    setActionToastMsg(`Camera "${targetCam.name}" status changed to ${newStatus.toUpperCase()}`);
-    setShowActionToast(true);
-    setTimeout(() => setShowActionToast(false), 3000);
 
-    try {
-      await cameraService.updateCamera(id, { status: newStatus });
-    } catch (err) {
-      console.error('Failed to update camera status:', err);
-    }
-  };
-
-  // Handle PTZ action trigger
-  const handlePtz = async (action: string) => {
-    setPtzAction(action);
+  // Handle PTZ action trigger for Jetson Nano / backend camera controller
+  const handlePtz = useCallback(async (actionLabel: string) => {
+    setPtzAction(actionLabel);
+    let backendAction = 'PAN';
     let nextX = camOffset.x;
     let nextY = camOffset.y;
     let nextZoom = camOffset.zoom;
 
-    switch (action) {
-      case 'PAN LEFT': nextX = camOffset.x - 30; break;
-      case 'PAN RIGHT': nextX = camOffset.x + 30; break;
-      case 'TILT UP': nextY = camOffset.y - 30; break;
-      case 'TILT DOWN': nextY = camOffset.y + 30; break;
-      case 'ZOOM IN': nextZoom = Math.min(3.5, Number((camOffset.zoom + 0.35).toFixed(2))); break;
-      case 'ZOOM OUT': nextZoom = Math.max(1, Number((camOffset.zoom - 0.35).toFixed(2))); break;
-      case 'RESET': nextX = 0; nextY = 0; nextZoom = 1; break;
+    switch (actionLabel) {
+      case 'PAN LEFT':
+        backendAction = 'PAN';
+        nextX = camOffset.x - 15;
+        break;
+      case 'PAN RIGHT':
+        backendAction = 'PAN';
+        nextX = camOffset.x + 15;
+        break;
+      case 'TILT UP':
+        backendAction = 'TILT';
+        nextY = camOffset.y + 15;
+        break;
+      case 'TILT DOWN':
+        backendAction = 'TILT';
+        nextY = camOffset.y - 15;
+        break;
+      case 'ZOOM IN':
+        backendAction = 'ZOOM';
+        nextZoom = Math.min(4.0, Number((camOffset.zoom + 0.25).toFixed(2)));
+        break;
+      case 'ZOOM OUT':
+        backendAction = 'ZOOM';
+        nextZoom = Math.max(1.0, Number((camOffset.zoom - 0.25).toFixed(2)));
+        break;
+      case 'RESET':
+        backendAction = 'RESET';
+        nextX = 0;
+        nextY = 0;
+        nextZoom = 1.0;
+        break;
     }
 
     setCamOffset({ x: nextX, y: nextY, zoom: nextZoom });
 
     if (activeCamId) {
       try {
-        await cameraService.controlPtz(activeCamId, action, nextX, nextY, nextZoom);
+        await cameraService.controlPtz(activeCamId, backendAction, nextX, nextY, nextZoom);
       } catch (err) {
-        console.error('Failed to send PTZ command to camera:', err);
+        console.error('Failed to send PTZ command to Jetson Nano / camera backend:', err);
       }
     }
 
     setTimeout(() => {
       setPtzAction('');
     }, 1000);
-  };
+  }, [activeCamId, camOffset]);
 
   // Keyboard Shortcuts for PTZ Camera Controls
   useEffect(() => {
@@ -259,7 +268,7 @@ export const CamerasPage = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCamId, camOffset]);
+  }, [activeCamId, camOffset, handlePtz]);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -451,7 +460,7 @@ export const CamerasPage = () => {
             ) : filtered.length > 0 ? (
               filtered.map((cam) => (
                 <div key={cam.id} className="col-12 col-md-6">
-                  <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} onToggle={handleToggleCameraStatus} />
+                  <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} />
                 </div>
               ))
             ) : (
@@ -637,7 +646,7 @@ export const CamerasPage = () => {
                             <img
                               src={activeCamera.rtspUrl}
                               alt={activeCamera.name}
-                              className="w-100 h-100 object-fit-cover"
+                              className="w-100 h-100 object-fit-contain"
                               style={{
                                 transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camOffset.zoom})`,
                                 transformOrigin: 'center center',
@@ -649,20 +658,18 @@ export const CamerasPage = () => {
                         ) : (
                           <div className="d-flex flex-column align-items-center justify-content-center p-4 h-100">
                             <i className="bi bi-camera-video fs-1 mb-2 opacity-50 text-info" />
-                            <p className="fw-semibold text-uppercase tracking-wider opacity-75 mb-1">{activeCamera.type} Live Feed</p>
+                            <p className="fw-semibold text-uppercase tracking-wider opacity-75 mb-1">{activeCamera.type} Live Stream Feed</p>
                             <code className="small text-white bg-dark bg-opacity-75 px-3 py-1.5 rounded border border-secondary mb-2">
                               {activeCamera.rtspUrl}
                             </code>
                             {streamError && (
                               <div className="badge bg-warning bg-opacity-20 text-warning border border-warning px-3 py-1 mt-1 d-flex align-items-center gap-1">
-                                <i className="bi bi-exclamation-triangle-fill" /> Direct Feed Standby / Connection Retrying...
+                                <i className="bi bi-exclamation-triangle-fill" /> Direct Jetson Feed Standby / Connection Retrying...
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-
-                      <div className="scanlines" />
 
                       {/* HUD Overlays */}
                       <div className="position-absolute top-0 start-0 p-3 text-success fw-bold font-monospace small">
