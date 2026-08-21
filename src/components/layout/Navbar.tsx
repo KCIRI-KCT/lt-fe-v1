@@ -195,8 +195,27 @@ export const Navbar = () => {
   useEffect(() => {
     fetchLiveNotifications();
     const interval = setInterval(fetchLiveNotifications, 15000);
-    return () => clearInterval(interval);
+
+    const handleCustomNotification = (e: Event) => {
+      fetchLiveNotifications();
+      const customDetail = (e as CustomEvent).detail;
+      if (customDetail) {
+        setBellShake(true);
+        setTimeout(() => setBellShake(false), 800);
+        playNavbarChime();
+      }
+    };
+
+    window.addEventListener('new-app-notification', handleCustomNotification);
+    window.addEventListener('ppe-notification-updated', fetchLiveNotifications);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('new-app-notification', handleCustomNotification);
+      window.removeEventListener('ppe-notification-updated', fetchLiveNotifications);
+    };
   }, [fetchLiveNotifications]);
+
 
   const handleClearAll = () => {
     const now = Date.now();

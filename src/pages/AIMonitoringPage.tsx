@@ -5,7 +5,7 @@ import { AI_ALERT_CONFIG } from '../constants';
 import { useApp } from '../hooks/useApp';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
 import SupervisorHITLPPEPage from '../HITL - PPE/pages/SupervisorHITLPPEPage';
-import { createPPENotification, fetchPPENotificationsFromAPI } from '../services/ppeNotificationService';
+import { createPPENotification, fetchPPENotificationsFromAPI, updatePPENotificationStatus, createGenericNotification } from '../services/ppeNotificationService';
 import { projectService } from '../services/projectService';
 import { siteService } from '../services/siteService';
 import type { AIAlert, Project, Site, Chainage } from '../types';
@@ -26,12 +26,16 @@ export const AIMonitoringPage = () => {
   const [filter, setFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
-  const [solvingAlertId, setSolvingAlertId] = useState<string | null>(null);
+  const [solvingAlertId, setSolvingAlertId] = useState<string | null>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('resolveAlert') || searchParams.get('solveAlert');
+  });
 
   // Dynamic DB data state for filters
   const [dbProjects, setDbProjects] = useState<Project[]>([]);
   const [dbSites, setDbSites] = useState<Site[]>([]);
   const [dbChainages, setDbChainages] = useState<Chainage[]>([]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -99,13 +103,57 @@ export const AIMonitoringPage = () => {
     }
   };
 
-  const handleResolve = async (id: string) => {
+  const handleResolve = async (id: string, isHitlVerified = false) => {
+    // 1. If not verified via HITL yet, open the HITL console modal first
+    if (!isHitlVerified && solvingAlertId !== id) {
+      setSolvingAlertId(id);
+      return;
+    }
+
+    // 2. Perform actual resolution after HITL verification
     try {
       await safetyService.updateAIAlertStatus(id, 'resolved');
     } catch {
       // ignore offline error
     }
-    setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: 'resolved' } : a));
+
+    updatePPENotificationStatus(id, 'resolved', user || undefined);
+
+    const targetAlert = alerts.find((a) => a.id === id);
+    const siteName = targetAlert?.siteName || targetAlert?.siteCode || 'Site Sector 4B';
+    const chainageName = targetAlert?.chainageLabel || targetAlert?.chainageId || 'CH 0+000';
+    const alertDesc = targetAlert?.description || 'PPE Safety Violation';
+    const actorName = user?.name || 'Safety Officer';
+    const actorRole = user?.role ? user.role.replace(/_/g, ' ').toUpperCase() : 'SAFETY OFFICER';
+
+    // 3. Alert Project Manager via persistent notification system
+    if (user) {
+      createGenericNotification(
+        'alert_resolution',
+        `[RESOLVED] Violation #${id}: "${alertDesc}" at ${siteName} has been verified & RESOLVED by ${actorName} (${actorRole}). Project Manager notified.`,
+        user,
+        siteName,
+        chainageName
+      );
+    }
+
+    // 4. Dispatch real-time app notification event for Navbar chime & Project Manager Dashboard toast
+    window.dispatchEvent(
+      new CustomEvent('new-app-notification', {
+        detail: {
+          id: `notif-resolved-${Date.now()}`,
+          title: `Alert #${id} Resolved`,
+          description: `Project Manager Notified: Violation "${alertDesc}" at ${siteName} marked resolved by ${actorName}.`,
+          time: 'Just now',
+          variant: 'success',
+          path: '/ai-monitoring',
+          category: 'ai_alert',
+        },
+      })
+    );
+    window.dispatchEvent(new CustomEvent('ppe-notification-updated'));
+
+    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'resolved' } : a)));
   };
 
   const handleSolve = (id: string) => {

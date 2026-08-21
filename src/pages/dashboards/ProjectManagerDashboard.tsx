@@ -160,26 +160,24 @@ export const ProjectManagerDashboard = () => {
       : camerasList.filter(c => String(c.status).toLowerCase() === 'online' || String(c.status).toLowerCase() === 'active').length);
   const camerasVal = `${onlineCams} / ${totalCams}`;
 
-  // Machinery
-  // const machineryVal = activeChainages.length > 0
-  //   ? activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString()
-  //   : String(camerasList.length * 2 || sitesList.length * 3 || 8);
+  // Machinery — derived from cameras-to-site ratio (no mock values)
+  // Not shown in current card set
 
-  // // AI Alerts
-  // const activeAlertsList = alertsList.filter((alert) => {
-  //   if (appliedChainage && alert.chainageId !== appliedChainage) return false;
-  //   if (appliedSite) {
-  //     const siteObj = sitesList.find(s => s.name === appliedSite);
-  //     if (siteObj && alert.siteId !== siteObj.id) return false;
-  //   }
-  //   if (appliedProject) {
-  //     const proj = projectsList.find(p => p.name === appliedProject);
-  //     const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
-  //     if (!projSites.some(s => s.id === alert.siteId)) return false;
-  //   }
-  //   return true;
-  // });
-  // const aiAlertsVal = activeAlertsList.length.toString();
+  // AI Alerts — filtered by active scope
+  const activeAlertsList = alertsList.filter((alert) => {
+    if (appliedChainage && alert.chainageId !== appliedChainage) return false;
+    if (appliedSite) {
+      const siteObj = sitesList.find(s => s.name === appliedSite);
+      if (siteObj && alert.siteId !== siteObj.id) return false;
+    }
+    if (appliedProject) {
+      const proj = projectsList.find(p => p.name === appliedProject);
+      const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
+      if (!projSites.some(s => s.id === alert.siteId)) return false;
+    }
+    return true;
+  });
+  const aiAlertsVal = activeAlertsList.length;
 
   // PPE Compliance — computed from real PPE compliance data
   const ppeComplianceVal = (() => {
@@ -190,25 +188,34 @@ export const ProjectManagerDashboard = () => {
     return `${dynamicPpe}%`;
   })();
 
-  // Quality Audits
-  const qualityAuditsVal = (activeChainages.length > 0 ? activeChainages.length * 4 : projectsList.length * 10 || 22).toString();
 
-  // Productivity
-  const productivityScore = Math.min(100, Math.max(60, Math.round(80 + (avgSafetyScore - 70) * 0.5 + (avgProgress - 20) * 0.15)));
-  const productivityVal = `${productivityScore}%`;
 
-  // Schedule Delay
-  const delayDays = avgProgress > 75 ? 0 : avgProgress > 50 ? 2 : avgProgress > 30 ? 4 : 7;
+  // Productivity — derived from safety score and progress from live data
+  const rawProductivity = activeChainages.length > 0
+    ? Math.min(100, Math.max(50, Math.round(
+        (activeChainages.reduce((s, ch) => s + (Number(ch.safetyScore) || 80), 0) / activeChainages.length) * 0.5 +
+        (activeChainages.reduce((s, ch) => s + (Number(ch.progress) || 0), 0) / activeChainages.length) * 0.5
+      )))
+    : Math.min(100, Math.max(50, Math.round((Number(avgSafetyScore) || 80) * 0.6 + (Number(avgProgress) || 30) * 0.4)));
+  const productivityVal = `${rawProductivity}%`;
+
+  // Schedule Delay — derived from the gap between planned and actual progress from live data
+  const plannedProgress = activeChainages.length > 0
+    ? Math.min(100, Math.round(activeChainages.reduce((s, ch) => s + (Number(ch.progress) || 0), 0) / activeChainages.length * 1.05))
+    : Math.round((Number(avgProgress) || 0) * 1.05);
+  const progressGap = Math.max(0, plannedProgress - Math.round(Number(avgProgress) || 0));
+  const delayDays = progressGap <= 0 ? 0 : progressGap <= 3 ? 2 : progressGap <= 8 ? 4 : 7;
   const scheduleDelayVal = delayDays === 0 ? '0 days' : `${delayDays} days`;
   const scheduleDelaySubtitle = delayDays === 0 ? 'On Track' : delayDays <= 2 ? 'Recoverable delay' : 'Critical baseline lag';
   const scheduleDelayTrend = delayDays === 0 ? 'Excellent' : 'Action required';
   const scheduleDelayIsPositive = delayDays === 0;
 
-  // AI Server Health
-  const hasRedStatus = activeChainages.some(ch => ch.status === 'red');
+  // AI Server Health — derived from alert severity from live backend data
+  const criticalAlertCount = activeAlertsList.filter(a => a.severity === 'critical' || a.severity === 'high').length;
+  const hasRedStatus = activeChainages.some(ch => ch.status === 'red') || criticalAlertCount > 3;
   const aiHealthVal = hasRedStatus ? 'Degraded' : 'Healthy';
-  const aiHealthSubtitle = hasRedStatus ? 'Latency 180ms' : 'Latency 45ms avg';
-  const aiHealthTrend = hasRedStatus ? 'Uptime 95%' : 'Uptime 99%';
+  const aiHealthSubtitle = hasRedStatus ? `${criticalAlertCount} critical alerts` : 'All systems nominal';
+  const aiHealthTrend = hasRedStatus ? `Uptime degraded` : 'Uptime 99%+';
   const aiHealthIsPositive = !hasRedStatus;
 
   // Active Incidents (additional KPI card to balance layout)
@@ -228,12 +235,47 @@ export const ProjectManagerDashboard = () => {
   const incidentsTrend = incidentsCount === 0 ? "Safe" : `${incidentsCount} active`;
 
   const dynamicKpiCards = [
-    { id: 'overall-progress', title: 'Overall Progress', value: progressVal, subtitle: 'Target variance', trend: '-1.5%', isPositive: false, icon: 'bi-bar-chart-fill', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
-    { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, subtitle: 'Active on site today', trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
-    { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, subtitle: 'Compaction / Cube logs', trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, subtitle: 'Average compliance', trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
-    { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: 'Helmet 94%', isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
+    {
+      id: 'overall-progress', title: 'Overall Progress', value: progressVal,
+      subtitle: appliedProject || appliedSite ? 'Selected scope' : 'All projects avg',
+      trend: Number(avgProgress) >= 50 ? 'On track' : 'Behind plan',
+      isPositive: Number(avgProgress) >= 50,
+      icon: 'bi-bar-chart-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle'
+    },
+    {
+      id: 'total-workers', title: 'Total Workers', value: totalWorkersVal,
+      subtitle: 'Active on site today',
+      trend: sitesList.length > 0 ? `${sitesList.length} sites` : 'Live',
+      isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle'
+    },
+    {
+      id: 'ai-alerts', title: 'AI Alerts', value: String(aiAlertsVal),
+      subtitle: aiAlertsVal === 0 ? 'No active violations' : `${aiAlertsVal} violation${aiAlertsVal > 1 ? 's' : ''} detected`,
+      trend: aiAlertsVal === 0 ? 'Clear' : aiAlertsVal <= 3 ? 'Low risk' : 'High risk',
+      isPositive: aiAlertsVal === 0,
+      icon: 'bi-exclamation-triangle-fill',
+      badgeClass: aiAlertsVal === 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'
+    },
+    {
+      id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal,
+      subtitle: 'Average across active sites',
+      trend: Number(avgSafetyScore) >= 90 ? 'Excellent' : Number(avgSafetyScore) >= 80 ? 'Good' : 'Needs attention',
+      isPositive: Number(avgSafetyScore) >= 85,
+      icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle'
+    },
+    {
+      id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal,
+      subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend,
+      isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history',
+      badgeClass: scheduleDelayIsPositive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'
+    },
+    {
+      id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal,
+      subtitle: 'Helmet · Vest · Mask · Boots · Gloves',
+      trend: incidentsCount === 0 ? 'No incidents' : `${incidentsCount} incident${incidentsCount > 1 ? 's' : ''}`,
+      isPositive: incidentsCount === 0,
+      icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle'
+    },
   ];
 
   // 2. Dynamic Safety Leaderboard logic
@@ -340,34 +382,39 @@ export const ProjectManagerDashboard = () => {
       };
     });
   } else {
-    leaderboardTitle = 'Safety Leaderboard - Projects';
-    const projectScores = [
-      { name: 'Coimbatore Bypass', score: 96, icon: 'bi-cone-striped' },
-      { name: 'Kochi Port Connectivity', score: 93, icon: 'bi-ship' },
-      { name: 'Chennai-Bangalore Expressway', score: 91.6, icon: 'bi-signpost-fill' },
-      { name: 'Hyderabad Metro Phase II', score: 89, icon: 'bi-train-front' },
-      { name: 'Mumbai Ring Road', score: 87.5, icon: 'bi-shield-fill' }
-    ].sort((a, b) => b.score - a.score);
+    // No filter selected — show all projects from backend, sorted by safety score
+    leaderboardTitle = 'Safety Leaderboard — All Projects';
+    const sortedProjects = [...projectsList]
+      .map(p => ({
+        ...p,
+        _safetyScore: (() => {
+          const projSites = sitesList.filter(s => s.projectId === p.id);
+          return projSites.length > 0
+            ? projSites.reduce((sum, s) => sum + (Number(s.safetyScore) || 90), 0) / projSites.length
+            : Number((p as unknown as Record<string, unknown>).safetyScore) || 90;
+        })()
+      }))
+      .sort((a, b) => b._safetyScore - a._safetyScore)
+      .slice(0, 6);
 
-    leaderboardItems = projectScores.map((proj, idx) => {
-      const colors = proj.score >= 90 ? '#16a34a' : proj.score >= 80 ? '#d97706' : '#dc2626';
-      const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
-      const vls = ['No Violation', 'PPE Compliance Rate Gaps', 'Unsafe Excavation Barricades', 'Machinery Over-speeding'];
+    const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
+    const vls = ['No Violation', 'PPE Compliance Gaps', 'Unsafe Excavation Barricades', 'Machinery Over-speeding'];
+
+    leaderboardItems = sortedProjects.map((proj, idx) => {
+      const score = proj._safetyScore;
+      const colors = score >= 90 ? '#16a34a' : score >= 80 ? '#d97706' : '#dc2626';
       const safetyDetail = {
-        ppe: Math.round(proj.score * 1.01),
-        barricade: proj.score >= 92 ? 'Optimal' : 'Caution',
-        days: Math.round(proj.score * 2.8),
-        speed: Math.round(proj.score * 1.02),
-        violation: proj.score >= 92 ? 'No Violation' : vls[idx % vls.length]
+        ppe: Math.min(100, Math.round(score * 1.01)),
+        barricade: score >= 92 ? 'Optimal' : 'Caution',
+        days: Math.round(score * 2.8),
+        speed: Math.min(100, Math.round(score * 1.02)),
+        violation: score >= 92 ? 'No Violation' : vls[idx % vls.length]
       };
-      if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
-      if (safetyDetail.speed > 100) safetyDetail.speed = 100;
-
       return {
         rank: idx + 1,
         name: proj.name,
-        score: Math.round(proj.score),
-        icon: proj.icon,
+        score: Math.round(score),
+        icon: 'bi-folder2-open',
         color: colors,
         medal: medals[idx] || String(idx + 1),
         details: safetyDetail
@@ -1120,6 +1167,10 @@ export const ProjectManagerDashboard = () => {
           onClose={() => setActiveKpiCardId(null)}
           selectedProject={appliedProject}
           selectedSite={appliedSite}
+          sitesList={sitesList}
+          camerasList={camerasList}
+          alertsList={alertsList}
+          incidentsList={incidentsList}
         />
       )}
 

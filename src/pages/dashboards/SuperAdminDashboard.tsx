@@ -65,12 +65,7 @@ export const SuperAdminDashboard = () => {
       variance: actual - planned,
     };
   });
-  if (computedSiteProgress.length === 0) {
-    computedSiteProgress.push(
-      { siteId: '1', siteName: 'Site A - KM 0-15', planned: 100, actual: 92, variance: -8 },
-      { siteId: '2', siteName: 'Site B - KM 15-30', planned: 100, actual: 88, variance: -12 }
-    );
-  }
+  // No fallback mock data — if backend returns no sites, show empty state
 
   // 3. Dynamic PPE Compliance Calculation
   const violationCounts = alerts.reduce(

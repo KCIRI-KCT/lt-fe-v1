@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { safetyService } from '../../services/safetyService';
-import { resolveHITLViolation } from '../../services/ppeNotificationService';
+import { resolveHITLViolation, createGenericNotification } from '../../services/ppeNotificationService';
 
 const updateAIAlertStatus = (id: string, status: string, extra?: Record<string, unknown>) => {
   return safetyService.updateAIAlertStatus(id, status)
@@ -160,6 +160,32 @@ function SupervisorHITLPPEPage({
         });
         updateAIAlertStatus(taskId, 'resolved');
       }
+
+      // Notify Project Manager about HITL resolution
+      if (profile) {
+        createGenericNotification(
+          'alert_resolution',
+          `[RESOLVED] Violation #${taskId || 'HITL'}: Site "${siteName.trim()}" verified & resolved via HITL by ${profile.name || 'Safety Officer'}. Project Manager notified.`,
+          profile,
+          siteName.trim(),
+          chainageInput || 'N/A'
+        );
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('new-app-notification', {
+          detail: {
+            id: `notif-hitl-res-${Date.now()}`,
+            title: `Violation #${taskId || 'HITL'} Resolved`,
+            description: `Project Manager Notified: Verified & resolved at ${siteName.trim()}`,
+            time: 'Just now',
+            variant: 'success',
+            path: '/ai-monitoring',
+            category: 'ai_alert',
+          },
+        })
+      );
+      window.dispatchEvent(new CustomEvent('ppe-notification-updated'));
 
       const history = JSON.parse(localStorage.getItem('hitl_ppe_submissions') || '[]');
       history.push(submissionData);
