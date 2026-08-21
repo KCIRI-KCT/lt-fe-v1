@@ -161,25 +161,25 @@ export const ProjectManagerDashboard = () => {
   const camerasVal = `${onlineCams} / ${totalCams}`;
 
   // Machinery
-  const machineryVal = activeChainages.length > 0
-    ? activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString()
-    : String(camerasList.length * 2 || sitesList.length * 3 || 8);
+  // const machineryVal = activeChainages.length > 0
+  //   ? activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString()
+  //   : String(camerasList.length * 2 || sitesList.length * 3 || 8);
 
-  // AI Alerts
-  const activeAlertsList = alertsList.filter((alert) => {
-    if (appliedChainage && alert.chainageId !== appliedChainage) return false;
-    if (appliedSite) {
-      const siteObj = sitesList.find(s => s.name === appliedSite);
-      if (siteObj && alert.siteId !== siteObj.id) return false;
-    }
-    if (appliedProject) {
-      const proj = projectsList.find(p => p.name === appliedProject);
-      const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
-      if (!projSites.some(s => s.id === alert.siteId)) return false;
-    }
-    return true;
-  });
-  const aiAlertsVal = activeAlertsList.length.toString();
+  // // AI Alerts
+  // const activeAlertsList = alertsList.filter((alert) => {
+  //   if (appliedChainage && alert.chainageId !== appliedChainage) return false;
+  //   if (appliedSite) {
+  //     const siteObj = sitesList.find(s => s.name === appliedSite);
+  //     if (siteObj && alert.siteId !== siteObj.id) return false;
+  //   }
+  //   if (appliedProject) {
+  //     const proj = projectsList.find(p => p.name === appliedProject);
+  //     const projSites = proj ? sitesList.filter(s => s.projectId === proj.id) : [];
+  //     if (!projSites.some(s => s.id === alert.siteId)) return false;
+  //   }
+  //   return true;
+  // });
+  // const aiAlertsVal = activeAlertsList.length.toString();
 
   // PPE Compliance — computed from real PPE compliance data
   const ppeComplianceVal = (() => {
