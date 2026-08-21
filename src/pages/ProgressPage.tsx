@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { siteService } from '../services/siteService';
 import type { ChainageData } from '../types';
@@ -23,6 +24,23 @@ export const ProgressPage = () => {
   const overallProgress = chainages.length > 0
     ? Math.round(chainages.reduce((s, c) => s + (c.progress || 35), 0) / chainages.length)
     : 35;
+=======
+import { useState } from 'react';
+import { MOCK_CHAINAGES } from '../services/mockData';
+
+export const ProgressPage = () => {
+  const [view, setView] = useState<'highway' | 'structural'>('highway');
+
+  const overallHighway = Math.round(
+    MOCK_CHAINAGES.reduce((s, c) => s + c.highwayProgress, 0) / MOCK_CHAINAGES.length
+  );
+  const overallStructural = Math.round(
+    MOCK_CHAINAGES.reduce((s, c) => s + c.structuralProgress, 0) / MOCK_CHAINAGES.length
+  );
+  const overallProgress = Math.round(
+    MOCK_CHAINAGES.reduce((s, c) => s + c.progress, 0) / MOCK_CHAINAGES.length
+  );
+>>>>>>> MS-ltfe-report
 
   const statusColor = (pct: number) =>
     pct >= 75 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
@@ -60,7 +78,11 @@ export const ProgressPage = () => {
           { label: 'Overall Progress', value: `${overallProgress}%`, color: statusColor(overallProgress), icon: 'bi-bar-chart-fill' },
           { label: 'Highway Progress', value: `${overallHighway}%`, color: statusColor(overallHighway), icon: 'bi-road' },
           { label: 'Structural Progress', value: `${overallStructural}%`, color: statusColor(overallStructural), icon: 'bi-building' },
+<<<<<<< HEAD
           { label: 'Active Chainages', value: (chainages.length || 6).toString(), color: '#2563eb', icon: 'bi-geo-alt-fill' },
+=======
+          { label: 'Active Chainages', value: MOCK_CHAINAGES.length.toString(), color: '#2563eb', icon: 'bi-geo-alt-fill' },
+>>>>>>> MS-ltfe-report
         ].map((card, i) => (
           <div key={i} className="col-12 col-sm-6 col-xl-3">
             <div className="panel h-100">
@@ -88,6 +110,7 @@ export const ProgressPage = () => {
           </div>
         </div>
         <div className="table-responsive">
+<<<<<<< HEAD
           {loading ? (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status" />
@@ -107,6 +130,22 @@ export const ProgressPage = () => {
               </thead>
               <tbody>
                 {chainages.map((ch) => {
+=======
+          <table className="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Chainage</th>
+                <th>Site</th>
+                <th>Project</th>
+                <th className="text-center">Overall</th>
+                <th className="text-center">{view === 'highway' ? 'Highway' : 'Structural'}</th>
+                <th className="text-center">Workers</th>
+                <th className="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MOCK_CHAINAGES.map((ch) => {
+>>>>>>> MS-ltfe-report
                 const pct = view === 'highway' ? ch.highwayProgress : ch.structuralProgress;
                 const color = statusColor(pct);
                 return (
@@ -144,7 +183,10 @@ export const ProgressPage = () => {
               })}
             </tbody>
           </table>
+<<<<<<< HEAD
         )}
+=======
+>>>>>>> MS-ltfe-report
         </div>
       </section>
     </div>

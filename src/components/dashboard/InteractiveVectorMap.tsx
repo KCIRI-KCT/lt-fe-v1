@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
+<<<<<<< HEAD
 import { siteService } from '../../services/siteService';
 import type { Site, ChainageData } from '../../types';
+=======
+import { MOCK_CHAINAGES } from '../../services/mockData';
+>>>>>>> MS-ltfe-report
 
 interface InteractiveVectorMapProps {
   selectedProject: string;
   selectedSite: string;
   selectedChainage: string;
+<<<<<<< HEAD
   sitesList?: Site[];
   chainagesList?: ChainageData[];
   onActionClick: (type: 'dashboard' | 'camera' | 'report' | 'details', chainage: string) => void;
@@ -40,12 +45,20 @@ const CITY_COORDS: Record<string, [number, number]> = {
   delhi: [28.6139, 77.2090],
 };
 
+=======
+  onActionClick: (type: 'dashboard' | 'camera' | 'report' | 'details', chainage: string) => void;
+}
+
+>>>>>>> MS-ltfe-report
 export const InteractiveVectorMap = ({
   selectedProject,
   selectedSite,
   selectedChainage,
+<<<<<<< HEAD
   sitesList = [],
   chainagesList = [],
+=======
+>>>>>>> MS-ltfe-report
   onActionClick,
 }: InteractiveVectorMapProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +68,7 @@ export const InteractiveVectorMap = ({
   const markersRef = useRef<Record<string, any>>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [hoveredChainageId, setHoveredChainageId] = useState<string | null>(null);
+<<<<<<< HEAD
   const [fetchedChainages, setFetchedChainages] = useState<ChainageData[]>([]);
 
   // State for the Large Location Popover Box Modal
@@ -134,6 +148,18 @@ export const InteractiveVectorMap = ({
         };
       });
   }, [effectiveChainages, sitesList, selectedProject, selectedSite, selectedChainage]);
+=======
+
+  // Filter chainages memoized to prevent infinite renders or dependency warnings
+  const filteredChainages = useMemo(() => {
+    return MOCK_CHAINAGES.filter((ch) => {
+      if (selectedProject && ch.project !== selectedProject) return false;
+      if (selectedSite && ch.site !== selectedSite) return false;
+      if (selectedChainage && ch.id !== selectedChainage) return false;
+      return true;
+    });
+  }, [selectedProject, selectedSite, selectedChainage]);
+>>>>>>> MS-ltfe-report
 
   // Load Leaflet dynamically
   useEffect(() => {
@@ -177,7 +203,11 @@ export const InteractiveVectorMap = ({
 
     const map = mapInstanceRef.current;
 
+<<<<<<< HEAD
     // CartoDB Positron style tile layer
+=======
+    // Use CartoDB Positron style tile layer - clean, light monochrome vector look matching Velzon
+>>>>>>> MS-ltfe-report
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
     }).addTo(map);
@@ -187,21 +217,34 @@ export const InteractiveVectorMap = ({
     markersRef.current = {};
 
     // Add new markers
+<<<<<<< HEAD
     markersData.forEach((ch) => {
+=======
+    filteredChainages.forEach((ch) => {
+>>>>>>> MS-ltfe-report
       const colorHex = ch.status === 'green' ? '#16a34a' : ch.status === 'yellow' ? '#d97706' : '#dc2626';
 
       const customIcon = L.divIcon({
         className: 'custom-map-marker',
         html: `
+<<<<<<< HEAD
           <div class="marker-pulse" style="background-color: ${colorHex}44; width: 26px; height: 26px; border-radius: 50%; position: absolute; top: -5px; left: -5px; animation: pulse 2s infinite ease-in-out;"></div>
           <div class="marker-pin" style="background-color: ${colorHex}; border: 2px solid white; width: 18px; height: 18px; border-radius: 50%; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;"></div>
         `,
         iconSize: [26, 26],
         iconAnchor: [13, 13],
+=======
+          <div class="marker-pulse" style="background-color: ${colorHex}44; width: 22px; height: 22px; border-radius: 50%; position: absolute; top: -4px; left: -4px; animation: pulse 2s infinite ease-in-out;"></div>
+          <div class="marker-pin" style="background-color: ${colorHex}; border: 1.5px solid white; width: 14px; height: 14px; border-radius: 50%; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.15);"></div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+>>>>>>> MS-ltfe-report
       });
 
       const marker = L.marker([ch.lat, ch.lng], { icon: customIcon }).addTo(map);
 
+<<<<<<< HEAD
       // Tooltip on hover
       marker.bindTooltip(`<b>${ch.site.split(' - ')[0]} (${ch.name})</b><br/>Progress: ${ch.progress}% · Click for details`, {
         direction: 'top',
@@ -226,6 +269,15 @@ export const InteractiveVectorMap = ({
 
       marker.bindPopup(popupHtml, { maxWidth: 300 });
 
+=======
+      // Tooltip/popup on hover
+      marker.bindTooltip(`<b>${ch.site.split(' - ')[0]} (${ch.id})</b><br/>Progress: ${ch.progress}%`, {
+        direction: 'top',
+        offset: [0, -10],
+        opacity: 0.95
+      });
+
+>>>>>>> MS-ltfe-report
       marker.on('mouseover', () => {
         setHoveredChainageId(ch.id);
       });
@@ -235,6 +287,7 @@ export const InteractiveVectorMap = ({
       });
 
       marker.on('click', () => {
+<<<<<<< HEAD
         map.setView([ch.lat, ch.lng], 14, { animate: true });
         setSelectedLocation(ch);
       });
@@ -246,11 +299,16 @@ export const InteractiveVectorMap = ({
             setSelectedLocation(ch);
           };
         }
+=======
+        map.setView([ch.lat, ch.lng], 14);
+        onActionClick('details', ch.id);
+>>>>>>> MS-ltfe-report
       });
 
       markersRef.current[ch.id] = marker;
     });
 
+<<<<<<< HEAD
     map.invalidateSize();
 
     if (markersData.length > 1) {
@@ -304,10 +362,48 @@ export const InteractiveVectorMap = ({
           <div className="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex flex-column align-items-center justify-content-center z-3">
             <div className="spinner-border text-primary spinner-border-sm mb-2" role="status" />
             <span className="small text-muted font-monospace">Loading map telemetry...</span>
+=======
+    // Invalidate size to ensure container dimensions are fresh before bounds calculation
+    map.invalidateSize();
+
+    if (filteredChainages.length > 1) {
+      const group = L.featureGroup(Object.values(markersRef.current));
+      map.fitBounds(group.getBounds().pad(0.15));
+    } else if (filteredChainages.length === 1) {
+      map.setView([filteredChainages[0].lat, filteredChainages[0].lng], 12);
+    } else {
+      map.setView([20.5937, 78.9629], 5);
+    }
+  }, [mapLoaded, selectedProject, selectedSite, selectedChainage, filteredChainages, onActionClick]);
+
+  return (
+    <div className="d-flex flex-column h-100 bg-white">
+      {/* Header matching "Project Locations Map" in Velzon */}
+      <div className="d-flex align-items-center justify-content-between p-3 border-bottom">
+        <h3 className="h6 mb-0 fw-bold text-body">Project Locations Map</h3>
+        <button
+          className="btn btn-link text-primary fw-semibold p-0 text-decoration-none"
+          style={{ fontSize: '11px' }}
+          onClick={() => alert('Exporting active stations report')}
+        >
+          Export Report
+        </button>
+      </div>
+
+      {/* Map Content Box */}
+      <div className="position-relative flex-grow-1" style={{ minHeight: '150px' }}>
+        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+
+        {!mapLoaded && (
+          <div className="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex flex-column align-items-center justify-content-center">
+            <div className="spinner-border text-primary spinner-border-sm mb-2" role="status" />
+            <span className="small text-muted font-monospace">Loading map...</span>
+>>>>>>> MS-ltfe-report
           </div>
         )}
       </div>
 
+<<<<<<< HEAD
       {/* ── LARGE POPOVER BOX MODAL DIALOG (OVERLAY OVER SCREEN) ── */}
       {selectedLocation && (
         <div
@@ -549,6 +645,40 @@ export const InteractiveVectorMap = ({
             );
           })}
         </div>
+=======
+      {/* Structured Locations progress list bottom panel */}
+      <div className="p-3 border-top bg-light-subtle d-flex flex-column justify-content-center" style={{ minHeight: '60px' }}>
+        {hoveredChainageId ? (() => {
+          const ch = MOCK_CHAINAGES.find((c) => c.id === hoveredChainageId);
+          if (!ch) return null;
+          const colorHex = ch.status === 'green' ? 'bg-success' : ch.status === 'yellow' ? 'bg-warning' : 'bg-danger';
+          return (
+            <div
+              className="d-flex align-items-center justify-content-between gap-3 text-muted"
+              style={{ fontSize: '11px' }}
+            >
+              <span className="fw-semibold text-body text-truncate" style={{ maxWidth: '150px' }}>
+                {ch.site.split(' - ')[0]} ({ch.id})
+              </span>
+              <div className="progress flex-grow-1" style={{ height: '5px' }}>
+                <div
+                  className={`progress-bar ${colorHex}`}
+                  style={{ width: `${ch.progress}%` }}
+                  role="progressbar"
+                />
+              </div>
+              <span className="fw-bold text-dark" style={{ width: '32px', textAlign: 'right' }}>
+                {ch.progress}%
+              </span>
+            </div>
+          );
+        })() : (
+          <div className="text-muted text-center small py-1" style={{ fontSize: '11px' }}>
+            <i className="bi bi-info-circle me-1.5 text-primary" />
+            Hover over a marker on the map to view progress details
+          </div>
+        )}
+>>>>>>> MS-ltfe-report
       </div>
     </div>
   );

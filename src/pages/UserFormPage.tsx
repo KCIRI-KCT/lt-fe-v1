@@ -2,15 +2,40 @@
 // User Form Page — Custom Form for User creation and editing
 // ============================================================================
 
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { employeeService } from '../services/employeeService';
 import { ROLE_OPTIONS } from '../constants';
 
+=======
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { MOCK_USERS, upsertUser } from '../services/mockData';
+import type { UserProfile } from '../types';
+import { ROLE_OPTIONS } from '../constants';
+
+// Auto-generate employee ID function
+const generateEmployeeId = (dateString: string) => {
+  if (!dateString) return '';
+  const year = dateString.split('-')[0] || new Date().getFullYear().toString();
+  
+  // Find matching users in that year
+  const matchingUsers = MOCK_USERS.filter((u) => {
+    const uDate = u.joiningDate || u.joinedAt || '';
+    return uDate.startsWith(year);
+  });
+  
+  const seq = String(matchingUsers.length + 1).padStart(3, '0');
+  return `LT-${year}-${seq}`;
+};
+
+>>>>>>> MS-ltfe-report
 export const UserFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id && id !== 'add';
+<<<<<<< HEAD
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -39,6 +64,25 @@ export const UserFormPage = () => {
       }).catch(() => null);
     }
   }, [id, isEdit]);
+=======
+  const user = isEdit ? MOCK_USERS.find((u) => u.id === id) : undefined;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Form Field States
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone] = useState(user?.phone || '');
+  const [department] = useState(user?.department || '');
+  const [location] = useState(user?.location || '');
+  const [workspace] = useState(user?.workspace || '');
+  const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [joiningDate, setJoiningDate] = useState(user?.joiningDate || user?.joinedAt || today);
+  const [createdAt, setCreatedAt] = useState(user?.createdAt || today);
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || generateEmployeeId(today));
+  const [role, setRole] = useState(user?.role || '');
+  const [address, setAddress] = useState(user?.address || '');
+>>>>>>> MS-ltfe-report
 
   // Dynamic Custom Roles List (persisted in localStorage)
   const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>(() => {
@@ -48,8 +92,17 @@ export const UserFormPage = () => {
   const [showAddRoleInput, setShowAddRoleInput] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
 
+<<<<<<< HEAD
   const handleJoiningDateChange = (dateVal: string) => {
     setJoiningDate(dateVal);
+=======
+  // Regenerate Employee ID when joiningDate changes in create mode
+  const handleJoiningDateChange = (dateVal: string) => {
+    setJoiningDate(dateVal);
+    if (!isEdit) {
+      setEmployeeId(generateEmployeeId(dateVal));
+    }
+>>>>>>> MS-ltfe-report
   };
 
   const handleAddRole = (e: React.MouseEvent) => {
@@ -68,11 +121,19 @@ export const UserFormPage = () => {
     const updated = [...customRoles, { value, label }];
     setCustomRoles(updated);
     localStorage.setItem('lt-custom-role', JSON.stringify(updated));
+<<<<<<< HEAD
     setRole(value);
+=======
+    setRole(value); // Auto-select new role
+>>>>>>> MS-ltfe-report
     setNewRoleLabel('');
     setShowAddRoleInput(false);
   };
 
+<<<<<<< HEAD
+=======
+  // File Upload Handler for Photo
+>>>>>>> MS-ltfe-report
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -86,14 +147,23 @@ export const UserFormPage = () => {
     }
   };
 
+<<<<<<< HEAD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !email.trim() || !employeeId || !role) {
+=======
+  // Form Submit Handler
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim() || !email.trim() || !joiningDate || !employeeId || !role) {
+>>>>>>> MS-ltfe-report
       alert('Please fill in all required fields marked with *');
       return;
     }
 
+<<<<<<< HEAD
     const employeePayload = {
       employee_code: employeeId.trim(),
       employee_name: name.trim(),
@@ -114,6 +184,27 @@ export const UserFormPage = () => {
     } catch {
       alert('Failed to save user data to backend API.');
     }
+=======
+    const userData: UserProfile = {
+      id: isEdit && user ? user.id : Date.now().toString(),
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone || user?.phone || '',
+      role: role as UserProfile['role'],
+      department: department || user?.department || '',
+      location: location || user?.location || '',
+      workspace: workspace || user?.workspace || '',
+      avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=2563eb&color=fff`,
+      joinedAt: joiningDate,
+      employeeId: employeeId.trim(),
+      createdAt: createdAt || new Date().toISOString().split('T')[0],
+      joiningDate: joiningDate,
+      address: address.trim(),
+    };
+
+    upsertUser(userData);
+    navigate('/users');
+>>>>>>> MS-ltfe-report
   };
 
   const allRolesList = [...ROLE_OPTIONS, ...customRoles];

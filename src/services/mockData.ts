@@ -2,7 +2,12 @@ import type {
   UserProfile, Project, Site, Worker, Attendance, Camera,
   AIAlert, Incident, Message, Report, Country, State, City,
   SystemHealth, PPECompliance,
+<<<<<<< HEAD
   SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData
+=======
+  SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData,
+  ReportHistoryItem, UserRoleLabel
+>>>>>>> MS-ltfe-report
 } from '../types';
 import { storage, KEYS } from './storage';
 
@@ -186,7 +191,11 @@ export const MOCK_ATTENDANCE: Attendance[] = (() => {
 
 // Cameras
 const INITIAL_CAMERAS: Camera[] = [
+<<<<<<< HEAD
   { id: '1', name: 'Demo AI Feed Camera 01', rtspUrl: 'http://10.1.82.235:8080/feed/0', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 100 },
+=======
+  { id: '1', name: 'Main Gate - Site A', rtspUrl: 'rtsp://192.168.1.10/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 95 },
+>>>>>>> MS-ltfe-report
   { id: '2', name: 'Excavation Zone - Site A', rtspUrl: 'rtsp://192.168.1.11/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Excavation Area', status: 'online', type: 'ptz', lastOnline: today, healthScore: 88 },
   { id: '3', name: 'Worker Shed - Site A', rtspUrl: 'rtsp://192.168.1.12/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Worker Rest Area', status: 'offline', type: 'fixed', lastOnline: '2026-07-12', healthScore: 45 },
   { id: '4', name: 'Bridge Construction - Site B', rtspUrl: 'rtsp://192.168.1.20/stream1', siteId: '2', siteName: 'Site B - KM 15-30', location: 'Bridge Pier 3', status: 'online', type: 'fixed', lastOnline: today, healthScore: 91 },
@@ -387,6 +396,155 @@ export const MOCK_REPORTS: Report[] = (() => {
   return storage.get<Report[]>(KEYS.REPORTS, INITIAL_REPORTS);
 })();
 
+<<<<<<< HEAD
+=======
+// ============================================================================
+// Report History (Enhanced mock data for Reports Page)
+// ============================================================================
+
+export const MOCK_USER_ROLE: UserRoleLabel = 'Project Manager';
+
+export const MOCK_PROJECTS_LIST: string[] = [
+  'Chennai-Bangalore Expressway',
+  'Mumbai Ring Road',
+  'Hyderabad Metro Phase II',
+  'Kochi Port Connectivity',
+  'Coimbatore Bypass',
+];
+
+export const MOCK_SITES_LIST: string[] = [
+  'Site A - KM 0-15',
+  'Site B - KM 15-30',
+  'Site C - KM 30-45',
+  'Site D - KM 0-12',
+  'Site E - KM 12-25',
+];
+
+export const MOCK_CHAINAGES_LIST: string[] = [
+  'CH 0+500',
+  'CH 1+100',
+  'CH 2+500',
+  'CH 3+200',
+  'CH 4+800',
+  'CH 5+000',
+  'CH 10+000',
+  'CH 12+500',
+  'CH 15+000',
+];
+
+export const MOCK_REPORT_TYPES: string[] = [
+  'All Report',
+  'PPE Report',
+  'Safety Report',
+  'Chainage Report',
+  'Site Report',
+];
+
+export const MOCK_SAFETY_REPORT_TYPES: string[] = [
+  'PPE Report',
+  'Safety Report',
+];
+
+export const INITIAL_REPORT_HISTORY: ReportHistoryItem[] = [
+  {
+    id: 1,
+    reportName: 'Daily PPE Report',
+    reportType: 'PPE Report',
+    project: 'Chennai Expressway',
+    site: 'Site A',
+    chainage: 'CH 0+500',
+    generatedBy: 'Project Manager',
+    generatedDate: '23 Jul 2026',
+    status: 'Ready',
+    format: 'PDF',
+  },
+  {
+    id: 2,
+    reportName: 'Safety Audit',
+    reportType: 'Safety Report',
+    project: 'Chennai Expressway',
+    site: 'Site B',
+    chainage: 'CH 1+100',
+    generatedBy: 'Safety Officer',
+    generatedDate: '22 Jul 2026',
+    status: 'Ready',
+    format: 'CSV',
+  },
+  {
+    id: 3,
+    reportName: 'Chainage Progress Report',
+    reportType: 'Chainage Report',
+    project: 'Mumbai Ring Road',
+    site: 'Site D',
+    chainage: 'CH 2+500',
+    generatedBy: 'Site Engineer',
+    generatedDate: '21 Jul 2026',
+    status: 'Ready',
+    format: 'PDF',
+  },
+  {
+    id: 4,
+    reportName: 'Site Inspection Report',
+    reportType: 'Site Report',
+    project: 'Hyderabad Metro II',
+    site: 'Site E',
+    chainage: 'CH 10+000',
+    generatedBy: 'Project Manager',
+    generatedDate: '20 Jul 2026',
+    status: 'Ready',
+    format: 'CSV',
+  },
+  {
+    id: 5,
+    reportName: 'Monthly Safety Summary',
+    reportType: 'Safety Report',
+    project: 'Chennai Expressway',
+    site: 'Site A',
+    chainage: 'CH 0+500',
+    generatedBy: 'Safety Manager',
+    generatedDate: '19 Jul 2026',
+    status: 'Generating',
+    format: 'PDF',
+  },
+  {
+    id: 6,
+    reportName: 'PPE Compliance Weekly',
+    reportType: 'PPE Report',
+    project: 'Mumbai Ring Road',
+    site: 'Site D',
+    chainage: 'CH 3+200',
+    generatedBy: 'Safety Officer',
+    generatedDate: '18 Jul 2026',
+    status: 'Ready',
+    format: 'PDF',
+  },
+  {
+    id: 7,
+    reportName: 'Site B Chainage Survey',
+    reportType: 'Chainage Report',
+    project: 'Chennai Expressway',
+    site: 'Site B',
+    chainage: 'CH 5+000',
+    generatedBy: 'Site Engineer',
+    generatedDate: '17 Jul 2026',
+    status: 'Ready',
+    format: 'CSV',
+  },
+  {
+    id: 8,
+    reportName: 'Safety Drill Report',
+    reportType: 'Safety Report',
+    project: 'Kochi Port',
+    site: 'Site C',
+    chainage: 'CH 15+000',
+    generatedBy: 'Safety Manager',
+    generatedDate: '16 Jul 2026',
+    status: 'Failed',
+    format: 'PDF',
+  },
+];
+
+>>>>>>> MS-ltfe-report
 // Dashboard
 export const MOCK_PPE_COMPLIANCE: PPECompliance = { helmet: 89, vest: 81, mask: 85, boots: 79, gloves: 74 };
 export const MOCK_SITE_PROGRESS: SiteProgress[] = [

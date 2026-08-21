@@ -4,8 +4,12 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+<<<<<<< HEAD
 import { projectService } from '../services/projectService';
 import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS } from '../services/mockData';
+=======
+import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS, upsertProject } from '../services/mockData';
+>>>>>>> MS-ltfe-report
 import type { Project, NestedSite, ProjectRoleAssignment } from '../types';
 
 interface RoleAssignment {
@@ -202,8 +206,13 @@ export const ProjectFormPage = () => {
     const firstSupervisor = roleAssignments.find(ra => ra.role === 'site_supervisor');
     const firstEngineer = roleAssignments.find(ra => ra.role === 'site_engineer');
 
+<<<<<<< HEAD
     const projData: Partial<Project> = {
       id: isEdit && project ? project.id : undefined,
+=======
+    const projData: Project = {
+      id: isEdit && project ? project.id : Date.now().toString(),
+>>>>>>> MS-ltfe-report
       name: name.trim(),
       code: project?.code || `PRJ-${Date.now().toString().slice(-4)}`,
       description: description.trim(),
@@ -227,11 +236,16 @@ export const ProjectFormPage = () => {
       roleAssignments
     };
 
+<<<<<<< HEAD
     if (isEdit && project) {
       projectService.updateProject(project.id, projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
     } else {
       projectService.createProject(projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
     }
+=======
+    upsertProject(projData);
+    navigate('/projects');
+>>>>>>> MS-ltfe-report
   };
 
   const renderRoleSection = (

@@ -26,7 +26,11 @@ class ApiClient {
 
   private getToken(): string | null {
     try {
+<<<<<<< HEAD
       return sessionStorage.getItem('access_token') || localStorage.getItem(this.tokenKey);
+=======
+      return localStorage.getItem(this.tokenKey);
+>>>>>>> MS-ltfe-report
     } catch {
       return null;
     }

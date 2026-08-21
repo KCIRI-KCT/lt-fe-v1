@@ -106,7 +106,11 @@ export const StationDetailModal = ({ stationId, onClose }: StationDetailModalPro
               <div>
                 <div className="text-muted" style={{ fontSize: '12px', fontWeight: 500 }}>GPS Coordinates</div>
                 <div className="fw-semibold text-dark font-monospace" style={{ fontSize: '13.5px' }}>
+<<<<<<< HEAD
                   {(Number(station.lat) || 19.076).toFixed(5)}, {(Number(station.lng) || 72.8777).toFixed(5)}
+=======
+                  {station.lat.toFixed(5)}, {station.lng.toFixed(5)}
+>>>>>>> MS-ltfe-report
                 </div>
               </div>
             </div>

@@ -435,6 +435,45 @@ export type ReportType =
   | 'custom';
 
 // ============================================================================
+<<<<<<< HEAD
+=======
+// Report History (Enhanced for Reports Page)
+// ============================================================================
+
+export type ReportHistoryStatus = 'Ready' | 'Generating' | 'Failed';
+export type ReportFileFormat = 'PDF' | 'CSV';
+
+export interface ReportHistoryItem {
+  id: number;
+  reportName: string;
+  reportType: string;
+  project: string;
+  site: string;
+  chainage: string;
+  generatedBy: string;
+  generatedDate: string;
+  status: ReportHistoryStatus;
+  format: ReportFileFormat;
+  description?: string;
+}
+
+export type UserRoleLabel =
+  | 'Project Manager'
+  | 'Site Engineer'
+  | 'Site Supervisor'
+  | 'Safety Officer'
+  | 'Safety Manager';
+
+export interface ReportGenerationRequest {
+  project?: string;
+  site: string;
+  chainage: string;
+  reportTypes: string[];
+  fileFormat: ReportFileFormat;
+}
+
+// ============================================================================
+>>>>>>> MS-ltfe-report
 // Dashboard Metrics
 // ============================================================================
 

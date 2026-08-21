@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { employeeService } from '../services/employeeService';
@@ -17,6 +18,21 @@ export const UserDeletePage = () => {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(usersList.map((u) => u.id));
+=======
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MOCK_USERS, deleteUser } from '../services/mockData';
+import { ROLE_LABELS, ROLE_COLORS } from '../constants';
+
+export const UserDeletePage = () => {
+  const navigate = useNavigate();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [successMsg, setSuccessMsg] = useState<string>('');
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(MOCK_USERS.map((u) => u.id));
+>>>>>>> MS-ltfe-report
     } else {
       setSelectedIds([]);
     }
@@ -30,6 +46,7 @@ export const UserDeletePage = () => {
     }
   };
 
+<<<<<<< HEAD
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
     const count = selectedIds.length;
@@ -47,6 +64,21 @@ export const UserDeletePage = () => {
   };
 
   const isAllSelected = usersList.length > 0 && selectedIds.length === usersList.length;
+=======
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    const count = selectedIds.length;
+    selectedIds.forEach((id) => deleteUser(id));
+    setSelectedIds([]);
+    setSuccessMsg(`Successfully deleted ${count} selected user(s).`);
+    setTimeout(() => {
+      setSuccessMsg('');
+      navigate('/users');
+    }, 1500);
+  };
+
+  const isAllSelected = MOCK_USERS.length > 0 && selectedIds.length === MOCK_USERS.length;
+>>>>>>> MS-ltfe-report
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -69,7 +101,11 @@ export const UserDeletePage = () => {
       )}
 
       <div className="panel mt-3">
+<<<<<<< HEAD
         {usersList.length === 0 ? (
+=======
+        {MOCK_USERS.length === 0 ? (
+>>>>>>> MS-ltfe-report
           <div className="text-center py-5 text-muted">
             <i className="bi bi-people fs-1 mb-3 d-block text-danger" />
             <p className="mb-0">No users available to delete.</p>
@@ -78,7 +114,11 @@ export const UserDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
+<<<<<<< HEAD
                 {selectedIds.length} of {usersList.length} user(s) selected
+=======
+                {selectedIds.length} of {MOCK_USERS.length} user(s) selected
+>>>>>>> MS-ltfe-report
               </span>
               <button
                 className="btn btn-danger"
@@ -113,7 +153,11 @@ export const UserDeletePage = () => {
                   </tr>
                 </thead>
                 <tbody>
+<<<<<<< HEAD
                   {usersList.map((user) => {
+=======
+                  {MOCK_USERS.map((user) => {
+>>>>>>> MS-ltfe-report
                     const isChecked = selectedIds.includes(user.id);
                     return (
                       <tr key={user.id} className={isChecked ? 'table-danger-subtle' : ''}>

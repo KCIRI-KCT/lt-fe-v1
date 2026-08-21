@@ -7,7 +7,10 @@
 // Generic & reusable - can be extended for other alert types
 // ============================================================================
 
+<<<<<<< HEAD
 import api from './api';
+=======
+>>>>>>> MS-ltfe-report
 import type { PPENotification, AIAlert, UserProfile } from '../types';
 
 // ============================================================================
@@ -22,6 +25,7 @@ const generateId = (): string => {
   return `ppe-notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 
+<<<<<<< HEAD
 export interface HITLResolvePayload {
   decision?: string;
   notes?: string;
@@ -112,6 +116,8 @@ export const resolveHITLViolation = async (
   }
 };
 
+=======
+>>>>>>> MS-ltfe-report
 // ============================================================================
 // Get all PPE notifications from storage
 // ============================================================================

@@ -6,12 +6,20 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+<<<<<<< HEAD
       
       registerType: "autoUpdate",
       manifest: {
         name: "LT - KCIRI Application",
         short_name: "LT - KCIRI",
         description: "LT - KCIRI Application",
+=======
+      registerType: "autoUpdate",
+      manifest: {
+        name: "My React App",
+        short_name: "MyApp",
+        description: "My React Progressive Web App",
+>>>>>>> MS-ltfe-report
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
@@ -31,7 +39,10 @@ export default defineConfig({
       },
     }),
   ],
+<<<<<<< HEAD
   
+=======
+>>>>>>> MS-ltfe-report
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

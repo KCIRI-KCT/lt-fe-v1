@@ -309,7 +309,11 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
 
   const details = getCardDetails();
 
+<<<<<<< HEAD
   const filteredContractors = details.contractors.filter((c) => {
+=======
+  const filteredContractors = details.contractors.filter((c: any) => {
+>>>>>>> MS-ltfe-report
     if (selectedSite && c.name !== selectedSite) return false;
     if (selectedProject && c.project && c.project !== selectedProject) return false;
     return true;

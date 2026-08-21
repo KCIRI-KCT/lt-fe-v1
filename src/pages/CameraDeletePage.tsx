@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cameraService } from '../services/cameraService';
 import type { Camera } from '../types';
+=======
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MOCK_CAMERAS, deleteCamera } from '../services/mockData';
+>>>>>>> MS-ltfe-report
 import { STATUS_BADGES } from '../constants';
 
 export const CameraDeletePage = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -30,6 +37,14 @@ export const CameraDeletePage = () => {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(cameras.map((c) => c.id));
+=======
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [successMsg, setSuccessMsg] = useState<string>('');
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(MOCK_CAMERAS.map((c) => c.id));
+>>>>>>> MS-ltfe-report
     } else {
       setSelectedIds([]);
     }
@@ -43,6 +58,7 @@ export const CameraDeletePage = () => {
     }
   };
 
+<<<<<<< HEAD
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
     setDeleting(true);
@@ -65,6 +81,21 @@ export const CameraDeletePage = () => {
   };
 
   const isAllSelected = cameras.length > 0 && selectedIds.length === cameras.length;
+=======
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    const count = selectedIds.length;
+    selectedIds.forEach((id) => deleteCamera(id));
+    setSelectedIds([]);
+    setSuccessMsg(`Successfully deleted ${count} selected camera(s).`);
+    setTimeout(() => {
+      setSuccessMsg('');
+      navigate('/cameras');
+    }, 1500);
+  };
+
+  const isAllSelected = MOCK_CAMERAS.length > 0 && selectedIds.length === MOCK_CAMERAS.length;
+>>>>>>> MS-ltfe-report
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -87,12 +118,16 @@ export const CameraDeletePage = () => {
       )}
 
       <div className="panel mt-3">
+<<<<<<< HEAD
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-primary" role="status" />
             <p className="mt-2 text-muted">Loading camera list...</p>
           </div>
         ) : cameras.length === 0 ? (
+=======
+        {MOCK_CAMERAS.length === 0 ? (
+>>>>>>> MS-ltfe-report
           <div className="text-center py-5 text-muted">
             <i className="bi bi-camera-video fs-1 mb-3 d-block text-danger" />
             <p className="mb-0">No cameras available to delete.</p>
@@ -101,6 +136,7 @@ export const CameraDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
+<<<<<<< HEAD
                 {selectedIds.length} of {cameras.length} camera(s) selected
               </span>
               <button
@@ -110,6 +146,17 @@ export const CameraDeletePage = () => {
               >
                 <i className="bi bi-trash-fill me-2" />
                 {deleting ? 'Deleting...' : `Delete Selected (${selectedIds.length})`}
+=======
+                {selectedIds.length} of {MOCK_CAMERAS.length} camera(s) selected
+              </span>
+              <button
+                className="btn btn-danger"
+                disabled={selectedIds.length === 0}
+                onClick={handleDeleteSelected}
+              >
+                <i className="bi bi-trash-fill me-2" />
+                Delete Selected ({selectedIds.length})
+>>>>>>> MS-ltfe-report
               </button>
             </div>
 
@@ -134,7 +181,11 @@ export const CameraDeletePage = () => {
                   </tr>
                 </thead>
                 <tbody>
+<<<<<<< HEAD
                   {cameras.map((cam) => {
+=======
+                  {MOCK_CAMERAS.map((cam) => {
+>>>>>>> MS-ltfe-report
                     const isChecked = selectedIds.includes(cam.id);
                     return (
                       <tr key={cam.id} className={isChecked ? 'table-danger-subtle' : ''}>
@@ -177,4 +228,7 @@ export const CameraDeletePage = () => {
     </div>
   );
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> MS-ltfe-report

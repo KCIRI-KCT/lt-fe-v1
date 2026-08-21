@@ -1,12 +1,20 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DynamicForm, type FieldConfig } from '../components/forms/DynamicForm';
 import { employeeService } from '../services/employeeService';
+=======
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DynamicForm, type FieldConfig } from '../components/forms/DynamicForm';
+import { MOCK_USERS, upsertUser } from '../services/mockData';
+>>>>>>> MS-ltfe-report
 import type { UserProfile } from '../types';
 import { ROLE_OPTIONS } from '../constants';
 
 export const UserEditPage = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
@@ -37,6 +45,34 @@ export const UserEditPage = () => {
     } catch {
       alert('Failed to update user via API.');
     }
+=======
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [successMsg, setSuccessMsg] = useState<string>('');
+
+  const selectedUser = MOCK_USERS.find((u) => u.id === selectedUserId);
+
+  const handleCancel = () => navigate('/users');
+
+  const handleSubmit = (data: Record<string, string | boolean>) => {
+    if (!selectedUser) return;
+    const userData: UserProfile = {
+      ...selectedUser,
+      name: data.name as string,
+      email: data.email as string,
+      phone: data.phone as string,
+      role: data.role as UserProfile['role'],
+      department: data.department as string,
+      location: data.location as string,
+      workspace: data.workspace as string,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent((data.name as string) || 'User')}&background=2563eb&color=fff`,
+    };
+    upsertUser(userData);
+    setSuccessMsg('User updated successfully!');
+    setTimeout(() => {
+      setSuccessMsg('');
+      navigate('/users');
+    }, 1500);
+>>>>>>> MS-ltfe-report
   };
 
   const fields: FieldConfig[] = [
@@ -92,7 +128,11 @@ export const UserEditPage = () => {
             }}
           >
             <option value="">-- Choose User --</option>
+<<<<<<< HEAD
             {usersList.map((u) => (
+=======
+            {MOCK_USERS.map((u) => (
+>>>>>>> MS-ltfe-report
               <option key={u.id} value={u.id}>
                 {u.name} ({u.role.replace(/_/g, ' ')}) - {u.email}
               </option>

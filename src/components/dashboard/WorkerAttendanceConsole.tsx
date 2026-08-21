@@ -120,7 +120,11 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
 
     // Seed generation based on current selections
     const selectionKey = `${selectedProject}-${selectedSite}-${selectedChainage}`;
+<<<<<<< HEAD
     const seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+=======
+    let seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+>>>>>>> MS-ltfe-report
 
     for (let i = 0; i < countToGenerate; i++) {
       const nameIdx = (seed + i * 3) % GENERIC_NAMES.length;

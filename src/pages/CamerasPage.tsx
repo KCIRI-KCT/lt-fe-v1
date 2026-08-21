@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
 import { CameraCard } from '../components/cards/CameraCard';
 import { cameraService, checkAllCamerasHealth } from '../services/cameraService';
@@ -6,6 +7,14 @@ import type { Camera } from '../types';
 export const CamerasPage = () => {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
+=======
+import { useState, useEffect } from 'react';
+import { CameraCard } from '../components/cards/CameraCard';
+import { MOCK_CAMERAS } from '../services/mockData';
+import { useApp } from '../hooks/useApp';
+
+export const CamerasPage = () => {
+>>>>>>> MS-ltfe-report
   const [filter, setFilter] = useState<string>('all');
   const [selectedSite, setSelectedSite] = useState<string>('all');
   const [selectedChainage, setSelectedChainage] = useState<string>('all');
@@ -16,6 +25,7 @@ export const CamerasPage = () => {
   const [showReportToast, setShowReportToast] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
+<<<<<<< HEAD
   useEffect(() => {
     let isMounted = true;
     cameraService.getCameras()
@@ -33,13 +43,19 @@ export const CamerasPage = () => {
       });
     return () => { isMounted = false; };
   }, []);
+=======
+  const { user } = useApp();
+>>>>>>> MS-ltfe-report
 
   // Camera HUD overlay states
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [shutterFlash, setShutterFlash] = useState(false);
+<<<<<<< HEAD
   const [streamError, setStreamError] = useState(false);
+=======
+>>>>>>> MS-ltfe-report
   const [actionToastMsg, setActionToastMsg] = useState('');
   const [showActionToast, setShowActionToast] = useState(false);
 
@@ -88,7 +104,11 @@ export const CamerasPage = () => {
   // Extract unique Sites and Chainages dynamically
   const siteOptions = Array.from(
     new Set(
+<<<<<<< HEAD
       cameras.map((c) => {
+=======
+      MOCK_CAMERAS.map((c) => {
+>>>>>>> MS-ltfe-report
         const parts = c.siteName?.split(' - ') || [];
         return parts[0] || '';
       }).filter(Boolean)
@@ -97,13 +117,18 @@ export const CamerasPage = () => {
 
   const chainageOptions = Array.from(
     new Set(
+<<<<<<< HEAD
       cameras.map((c) => {
+=======
+      MOCK_CAMERAS.map((c) => {
+>>>>>>> MS-ltfe-report
         const parts = c.siteName?.split(' - ') || [];
         return parts[1] || '';
       }).filter(Boolean)
     )
   );
 
+<<<<<<< HEAD
   // Camera malfunctions derived dynamically from offline or error status cameras
   const malfunctions = cameras
     .filter((c) => c.status === 'offline' || c.status === 'error' || c.status === 'maintenance')
@@ -122,6 +147,18 @@ export const CamerasPage = () => {
     if (filter === 'online' && statusStr !== 'online' && statusStr !== 'active') return false;
     if (filter === 'offline' && (statusStr === 'online' || statusStr === 'active')) return false;
     if (filter !== 'all' && filter !== 'online' && filter !== 'offline' && statusStr !== filter) return false;
+=======
+  // Sorting camera malfunctions Mock Data (floating high frequencies to top)
+  const malfunctions = [
+    { id: 'm-1', name: 'Worker Shed - Site A', siteName: 'Site A - KM 0-15', code: 'CAM-03', frequency: 28, lastTime: '2026-07-15 19:45:12', issue: 'RTSP socket connection handshake reset' },
+    { id: 'm-2', name: 'Tunnel Vent - Site C', siteName: 'Site C - KM 30-45', code: 'CAM-06', frequency: 19, lastTime: '2026-07-15 18:22:05', issue: 'Fatal frame rate decay below 5 FPS' },
+    { id: 'm-3', name: 'Material Storage - Site B', siteName: 'Site B - KM 15-30', code: 'CAM-05', frequency: 8, lastTime: '2026-07-15 17:10:43', issue: 'PTZ telemetry address binding error' },
+    { id: 'm-4', name: 'Excavation Zone - Site A', siteName: 'Site A - KM 0-15', code: 'CAM-02', frequency: 3, lastTime: '2026-07-15 15:12:19', issue: 'Video stream format parsing disruption' }
+  ];
+
+  const filtered = MOCK_CAMERAS.filter((c) => {
+    if (filter !== 'all' && c.status !== filter) return false;
+>>>>>>> MS-ltfe-report
 
     const parts = c.siteName?.split(' - ') || [];
     const sitePart = parts[0] || '';
@@ -133,7 +170,11 @@ export const CamerasPage = () => {
     return true;
   });
 
+<<<<<<< HEAD
   const activeCamera = cameras.find((c) => c.id === activeCamId);
+=======
+  const activeCamera = MOCK_CAMERAS.find((c) => c.id === activeCamId);
+>>>>>>> MS-ltfe-report
 
   const handleGenerateReport = () => {
     setIsGeneratingReport(true);
@@ -150,6 +191,7 @@ export const CamerasPage = () => {
     const interval = setInterval(() => {
       setTimestamp(new Date().toLocaleString());
     }, 1000);
+<<<<<<< HEAD
 
     return () => clearInterval(interval);
   }, [activeCamId]);
@@ -206,10 +248,31 @@ export const CamerasPage = () => {
         console.error('Failed to send PTZ command to Jetson Nano / camera backend:', err);
       }
     }
+=======
+    return () => clearInterval(interval);
+  }, [activeCamId]);
+
+  // Handle PTZ action trigger
+  const handlePtz = (action: string) => {
+    setPtzAction(action);
+    setCamOffset((prev) => {
+      switch (action) {
+        case 'PAN LEFT': return { ...prev, x: prev.x - 10 };
+        case 'PAN RIGHT': return { ...prev, x: prev.x + 10 };
+        case 'TILT UP': return { ...prev, y: prev.y - 10 };
+        case 'TILT DOWN': return { ...prev, y: prev.y + 10 };
+        case 'ZOOM IN': return { ...prev, zoom: Math.min(3, prev.zoom + 0.15) };
+        case 'ZOOM OUT': return { ...prev, zoom: Math.max(1, prev.zoom - 0.15) };
+        case 'RESET': return { x: 0, y: 0, zoom: 1 };
+        default: return prev;
+      }
+    });
+>>>>>>> MS-ltfe-report
 
     setTimeout(() => {
       setPtzAction('');
     }, 1000);
+<<<<<<< HEAD
   }, [activeCamId, camOffset]);
 
   // Keyboard Shortcuts for PTZ Camera Controls
@@ -269,6 +332,9 @@ export const CamerasPage = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeCamId, camOffset, handlePtz]);
+=======
+  };
+>>>>>>> MS-ltfe-report
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -368,6 +434,7 @@ export const CamerasPage = () => {
           <div className="col-12 col-lg-5">
             <label className="form-label text-muted small fw-semibold">Filter by Status</label>
             <div className="d-flex flex-wrap gap-1">
+<<<<<<< HEAD
               {['all', 'online', 'offline', 'error', 'maintenance'].map((s) => {
                 const count = s === 'all'
                   ? cameras.length
@@ -394,6 +461,18 @@ export const CamerasPage = () => {
                   </button>
                 );
               })}
+=======
+              {['all', 'online', 'offline', 'error', 'maintenance'].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  onClick={() => setFilter(s)}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)} ({s === 'all' ? MOCK_CAMERAS.length : MOCK_CAMERAS.filter((c) => c.status === s).length})
+                </button>
+              ))}
+>>>>>>> MS-ltfe-report
             </div>
           </div>
 
@@ -452,6 +531,7 @@ export const CamerasPage = () => {
         {/* Left Column: Camera Cards Grid */}
         <div className="col-12 col-lg-8">
           <div className="row g-3">
+<<<<<<< HEAD
             {loading ? (
               <div className="col-12 text-center py-5">
                 <div className="spinner-border text-primary" role="status" />
@@ -461,6 +541,12 @@ export const CamerasPage = () => {
               filtered.map((cam) => (
                 <div key={cam.id} className="col-12 col-md-6">
                   <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} />
+=======
+            {filtered.length > 0 ? (
+              filtered.map((camera) => (
+                <div key={camera.id} className="col-12 col-md-6 col-xl-6">
+                  <CameraCard camera={camera} onView={(id) => setActiveCamId(id)} />
+>>>>>>> MS-ltfe-report
                 </div>
               ))
             ) : (
@@ -563,6 +649,11 @@ export const CamerasPage = () => {
 
       {/* Stream Viewer Popup Modal */}
       {activeCamera && (() => {
+<<<<<<< HEAD
+=======
+        const isAdmin = user?.role === 'admin';
+
+>>>>>>> MS-ltfe-report
         return (
           <div className="live-stream-overlay">
             <div
@@ -593,10 +684,16 @@ export const CamerasPage = () => {
                         setIsExpanded(false);
                         setIsRecording(false);
                         setRecordingSeconds(0);
+<<<<<<< HEAD
                         setStreamError(false);
                       }}
                     >
                       {cameras.filter(c => c.status === 'online').map((c) => (
+=======
+                      }}
+                    >
+                      {MOCK_CAMERAS.filter(c => c.status === 'online').map((c) => (
+>>>>>>> MS-ltfe-report
                         <option key={c.id} value={c.id}>
                           {c.name} ({c.type.toUpperCase()})
                         </option>
@@ -621,7 +718,11 @@ export const CamerasPage = () => {
               <div className="p-3">
                 <div className="row g-3">
                   {/* Viewscreen */}
+<<<<<<< HEAD
                   <div className="col-12 col-lg-8">
+=======
+                  <div className={isAdmin ? "col-12" : "col-12 col-lg-8"}>
+>>>>>>> MS-ltfe-report
                     <div className="stream-viewscreen">
                       {/* Photo Snapshot Shutter Flash */}
                       {shutterFlash && <div className="shutter-flash-overlay" />}
@@ -639,6 +740,7 @@ export const CamerasPage = () => {
                       )}
 
                       <div
+<<<<<<< HEAD
                         className="stream-cam-placeholder position-relative overflow-hidden w-100 h-100"
                       >
                         {activeCamera.rtspUrl && (activeCamera.rtspUrl.startsWith('http://') || activeCamera.rtspUrl.startsWith('https://')) && !streamError ? (
@@ -671,6 +773,20 @@ export const CamerasPage = () => {
                         )}
                       </div>
 
+=======
+                        className="stream-cam-placeholder"
+                        style={{
+                          transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camOffset.zoom})`,
+                        }}
+                      >
+                        <i className="bi bi-camera-video fs-1 mb-2 opacity-50" />
+                        <p className="fw-semibold text-uppercase tracking-wider opacity-75">{activeCamera.type} Feed</p>
+                        <code className="small text-muted bg-dark bg-opacity-50 px-2 py-1 rounded">{activeCamera.rtspUrl}</code>
+                      </div>
+
+                      <div className="scanlines" />
+
+>>>>>>> MS-ltfe-report
                       {/* HUD Overlays */}
                       <div className="position-absolute top-0 start-0 p-3 text-success fw-bold font-monospace small">
                         LIVE • {activeCamera.status.toUpperCase()}
@@ -690,7 +806,11 @@ export const CamerasPage = () => {
                       {/* HUD Control Overlay Buttons */}
                       <div
                         className="position-absolute bottom-0 end-0 m-3 d-flex align-items-center gap-2 bg-dark bg-opacity-75 backdrop-blur px-3 py-1.5 rounded-pill border border-secondary border-opacity-50"
+<<<<<<< HEAD
                         style={{ zIndex: 20 }}
+=======
+                        style={{ zIndex: 10 }}
+>>>>>>> MS-ltfe-report
                       >
                         {/* Video Record Option */}
                         <button
@@ -727,6 +847,7 @@ export const CamerasPage = () => {
                     </div>
                   </div>
 
+<<<<<<< HEAD
                   {/* PTZ Controls */}
                   <div className="col-12 col-lg-4 d-flex flex-column justify-content-between">
                     <div className="p-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -796,6 +917,79 @@ export const CamerasPage = () => {
                       Interactive PTZ controller moves camera stream coordinates and adjusts zoom scaling factors.
                     </div>
                   </div>
+=======
+                  {/* Controls (Hidden for Admin Role) */}
+                  {!isAdmin && (
+                    <div className="col-12 col-lg-4 d-flex flex-column justify-content-between">
+                      <div className="p-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <h6 className="fw-bold mb-3 border-bottom border-secondary pb-2">
+                          <i className="bi bi-sliders me-2 text-primary" />PTZ Controller
+                        </h6>
+
+                        {/* Coordinates display */}
+                        <div className="d-flex align-items-center justify-content-between mb-3 gap-2" style={{ fontSize: '11px' }}>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Pan</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(camOffset.x / 2.5)}°</div>
+                          </div>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Tilt</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{Math.round(-camOffset.y / 2.5)}°</div>
+                          </div>
+                          <div className="bg-dark bg-opacity-75 p-1.5 rounded border border-secondary text-center flex-grow-1">
+                            <div className="small text-uppercase text-secondary fw-semibold" style={{ fontSize: '8px', letterSpacing: '0.3px' }}>Zoom</div>
+                            <div className="fw-bold text-success font-monospace" style={{ fontSize: '12px' }}>{camOffset.zoom.toFixed(2)}x</div>
+                          </div>
+                        </div>
+
+                        {/* Directional Pad */}
+                        <div className="my-4">
+                          <div className="ptz-grid">
+                            {/* Row 1 */}
+                            <div />
+                            <button className="ptz-btn" title="Tilt Up" onClick={() => handlePtz('TILT UP')}>
+                              <i className="bi bi-chevron-up" />
+                            </button>
+                            <div />
+
+                            {/* Row 2 */}
+                            <button className="ptz-btn" title="Pan Left" onClick={() => handlePtz('PAN LEFT')}>
+                              <i className="bi bi-chevron-left" />
+                            </button>
+                            <button className="ptz-btn text-muted" title="Center" onClick={() => handlePtz('RESET')}>
+                              <i className="bi bi-house" />
+                            </button>
+                            <button className="ptz-btn" title="Pan Right" onClick={() => handlePtz('PAN RIGHT')}>
+                              <i className="bi bi-chevron-right" />
+                            </button>
+
+                            {/* Row 3 */}
+                            <div />
+                            <button className="ptz-btn" title="Tilt Down" onClick={() => handlePtz('TILT DOWN')}>
+                              <i className="bi bi-chevron-down" />
+                            </button>
+                            <div />
+                          </div>
+                        </div>
+
+                        {/* Zoom / Scale */}
+                        <div className="d-flex justify-content-center gap-2 mt-3">
+                          <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM IN')}>
+                            <i className="bi bi-plus-circle me-1" />Zoom In
+                          </button>
+                          <button className="btn btn-sm btn-outline-light px-3" onClick={() => handlePtz('ZOOM OUT')}>
+                            <i className="bi bi-dash-circle me-1" />Zoom Out
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-2 border border-secondary rounded text-muted small mt-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <i className="bi bi-info-circle me-2" />
+                        Interactive PTZ controller moves simulated workspace coordinates and adjusts zoom scaling factors.
+                      </div>
+                    </div>
+                  )}
+>>>>>>> MS-ltfe-report
                 </div>
               </div>
             </div>
