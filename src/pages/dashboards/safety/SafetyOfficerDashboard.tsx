@@ -15,10 +15,7 @@ import {
   getAllPPENotifications,
   updatePPENotificationStatus,
   getPendingPPENotifications,
-<<<<<<< HEAD
   fetchPPENotificationsFromAPI,
-=======
->>>>>>> MS-ltfe-report
 } from '../../../services/ppeNotificationService';
 import type { PPENotification } from '../../../types';
 
@@ -89,7 +86,6 @@ export const SafetyOfficerDashboard = () => {
   const [notifications, setNotifications] = useState<PPENotification[]>(() => getAllPPENotifications());
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-<<<<<<< HEAD
   // Refresh notifications from API & storage
   const refreshNotifications = useCallback(async () => {
     const apiNotifs = await fetchPPENotificationsFromAPI();
@@ -102,12 +98,6 @@ export const SafetyOfficerDashboard = () => {
       }
     });
     setNotifications(combined);
-=======
-  // Refresh notifications from storage
-  const refreshNotifications = useCallback(() => {
-    const updated = getAllPPENotifications();
-    setNotifications(updated);
->>>>>>> MS-ltfe-report
   }, []);
 
   // Poll for new notifications every 5 seconds

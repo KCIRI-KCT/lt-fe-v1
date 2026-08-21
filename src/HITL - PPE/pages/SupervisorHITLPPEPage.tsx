@@ -7,11 +7,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
-import { updateAIAlertStatus } from '../../services/mockData';
-<<<<<<< HEAD
+import { safetyService } from '../../services/safetyService';
 import { resolveHITLViolation } from '../../services/ppeNotificationService';
-=======
->>>>>>> MS-ltfe-report
+
+const updateAIAlertStatus = (id: string, status: string, extra?: Record<string, unknown>) => {
+  return safetyService.updateAIAlertStatus(id, status)
+    .then((res) => ({ ...res, ...extra }))
+    .catch(() => null);
+};
 
 // ── CUSTOM COMPONENT IMPORT ────────────────────────────────────────────────
 import HITLCameraCapture from '../components/HITLCameraCapture';
@@ -132,16 +135,11 @@ function SupervisorHITLPPEPage({
 
   // ── Submit Handler ────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-=======
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
->>>>>>> MS-ltfe-report
     e.preventDefault();
 
     setIsSubmitting(true);
 
-<<<<<<< HEAD
     const submissionData = {
       taskId: taskId || 'local-manual-task',
       supervisorId: profile?.id,
@@ -185,54 +183,6 @@ function SupervisorHITLPPEPage({
     } else {
       navigate(hitlBasePath);
     }
-=======
-    // Simulate frontend form submission & storage
-    setTimeout(() => {
-      const submissionData = {
-        taskId: taskId || 'local-manual-task',
-        supervisorId: profile?.id,
-        supervisorName: profile?.name,
-        siteName: siteName.trim(),
-        notes: notes.trim(),
-        chainageInput: chainageInput,
-        imageLocalUrl: capturedImages[0],
-        submittedAt: new Date().toISOString()
-      };
-
-      console.log('--- HITL PPE Submitted ---');
-      console.log(submissionData);
-
-      // Save locally to localStorage
-      try {
-        const history = JSON.parse(localStorage.getItem('hitl_ppe_submissions') || '[]');
-        history.push(submissionData);
-        localStorage.setItem('hitl_ppe_submissions', JSON.stringify(history));
-      } catch (err) {
-        console.warn('Unable to write to localStorage:', err);
-      }
-
-      // Mark the PPE violation as resolved
-      if (taskId) {
-        updateAIAlertStatus(taskId, 'resolved');
-      }
-
-      showToast('PPE Report submitted successfully!', 'success');
-
-      // Reset state
-      setCapturedImages([]);
-      setIsCameraOpen(false);
-      setNotes('');
-      setIsSubmitting(false);
-
-      if (isModal) {
-        if (onSubmitSuccess) {
-          onSubmitSuccess(submissionData);
-        }
-      } else {
-        navigate(hitlBasePath);
-      }
-    }, 1000);
->>>>>>> MS-ltfe-report
   };
 
   const formContent = (

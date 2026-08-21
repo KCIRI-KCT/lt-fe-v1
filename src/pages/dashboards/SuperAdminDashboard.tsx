@@ -1,20 +1,14 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { MetricCard } from '../../components/ui/MetricCard';
 import { projectService } from '../../services/projectService';
 import { siteService } from '../../services/siteService';
 import { safetyService } from '../../services/safetyService';
-=======
-import { MetricCard } from '../../components/ui/MetricCard';
-import { MOCK_DASHBOARD_METRICS, MOCK_SITE_PROGRESS, MOCK_STATE_WISE, MOCK_INCIDENT_TRENDS, MOCK_PPE_COMPLIANCE, MOCK_PROJECTS } from '../../services/mockData';
->>>>>>> MS-ltfe-report
 import { SiteProgressChart } from '../../components/charts/SiteProgressChart';
 import { StateWiseAnalyticsChart } from '../../components/charts/StateWiseAnalyticsChart';
 import { IncidentTrendChart } from '../../components/charts/IncidentTrendChart';
 import { PPEComplianceChart } from '../../components/charts/PPEComplianceChart';
 import { Link } from 'react-router-dom';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
-<<<<<<< HEAD
 import type { Project, Site, AIAlert, Incident, MetricCardData, SiteProgress, PPECompliance, StateWiseAnalytics, IncidentTrend } from '../../types';
 
 export const SuperAdminDashboard = () => {
@@ -142,11 +136,6 @@ export const SuperAdminDashboard = () => {
       observation: monthIncidents.filter((i) => i.severity === 'observation').length || 6,
     };
   });
-=======
-
-export const SuperAdminDashboard = () => {
-  const metrics = MOCK_DASHBOARD_METRICS.admin;
->>>>>>> MS-ltfe-report
 
   return (
     <MobilePageWrapper>
@@ -173,18 +162,13 @@ export const SuperAdminDashboard = () => {
 
       {/* Metric Cards */}
       <section className="row g-3 mt-1" aria-label="Enterprise metrics">
-<<<<<<< HEAD
         {dynamicMetrics.map((card, i) => (
-=======
-        {metrics.map((card, i) => (
->>>>>>> MS-ltfe-report
           <div key={i} className="col-12 col-sm-6 col-xl-4">
             <MetricCard card={card} />
           </div>
         ))}
       </section>
 
-<<<<<<< HEAD
       {/* Dynamic Charts Row */}
       <div className="row g-3 mt-1">
         <div className="col-12 col-xl-6">
@@ -192,31 +176,15 @@ export const SuperAdminDashboard = () => {
         </div>
         <div className="col-12 col-xl-6">
           <PPEComplianceChart data={computedPPECompliance} />
-=======
-      {/* Charts Row */}
-      <div className="row g-3 mt-1">
-        <div className="col-12 col-xl-6">
-          <SiteProgressChart data={MOCK_SITE_PROGRESS} />
-        </div>
-        <div className="col-12 col-xl-6">
-          <PPEComplianceChart data={MOCK_PPE_COMPLIANCE} />
->>>>>>> MS-ltfe-report
         </div>
       </div>
 
       <div className="row g-3 mt-1">
         <div className="col-12 col-xl-7">
-<<<<<<< HEAD
           <StateWiseAnalyticsChart data={computedStateWise} />
         </div>
         <div className="col-12 col-xl-5">
           <IncidentTrendChart data={computedIncidentTrends} />
-=======
-          <StateWiseAnalyticsChart data={MOCK_STATE_WISE} />
-        </div>
-        <div className="col-12 col-xl-5">
-          <IncidentTrendChart data={MOCK_INCIDENT_TRENDS} />
->>>>>>> MS-ltfe-report
         </div>
       </div>
 
@@ -233,7 +201,6 @@ export const SuperAdminDashboard = () => {
           <Link className="btn btn-outline-secondary btn-sm" to="/projects">View All</Link>
         </div>
         <div className="table-responsive">
-<<<<<<< HEAD
           {loading ? (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status" />
@@ -281,54 +248,9 @@ export const SuperAdminDashboard = () => {
               </tbody>
             </table>
           )}
-=======
-          <table className="table align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th className="text-center">Sites</th>
-                <th className="text-center">Workers</th>
-                <th className="text-center">Progress</th>
-                <th className="text-end">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_PROJECTS.filter((p) => p.status === 'active').map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <div>
-                      <p className="fw-semibold mb-0">{p.name}</p>
-                      <small className="text-muted">{p.code}</small>
-                    </div>
-                  </td>
-                  <td>{p.cityName || 'N/A'}</td>
-                  <td><span className="badge text-bg-success">Active</span></td>
-                  <td className="text-center">{p.siteCount}</td>
-                  <td className="text-center">{p.workerCount?.toLocaleString()}</td>
-                  <td className="text-center">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="progress flex-grow-1" style={{ height: '8px' }}>
-                        <div className="progress-bar" style={{ width: `${p.progress}%` }} />
-                      </div>
-                      <small className="fw-bold">{p.progress}%</small>
-                    </div>
-                  </td>
-                  <td className="text-end">
-                    <Link className="btn btn-light btn-sm" to={`/projects/${p.id}`}>View</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
->>>>>>> MS-ltfe-report
         </div>
       </section>
     </MobilePageWrapper>
   );
 };
-<<<<<<< HEAD
 
-=======
->>>>>>> MS-ltfe-report

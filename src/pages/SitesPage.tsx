@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { SiteCard } from '../components/cards/SiteCard';
 import { siteService } from '../services/siteService';
@@ -26,17 +25,6 @@ export const SitesPage = () => {
   }, []);
 
   const filtered = sites.filter((s) => {
-=======
-import { useState } from 'react';
-import { SiteCard } from '../components/cards/SiteCard';
-import { MOCK_SITES } from '../services/mockData';
-
-export const SitesPage = () => {
-  const [filter, setFilter] = useState<string>('all');
-  const [search, setSearch] = useState('');
-
-  const filtered = MOCK_SITES.filter((s) => {
->>>>>>> MS-ltfe-report
     if (filter !== 'all' && s.status !== filter) return false;
     if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.code.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -78,7 +66,6 @@ export const SitesPage = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status" />
@@ -93,15 +80,6 @@ export const SitesPage = () => {
           ))}
         </div>
       )}
-=======
-      <div className="row g-3">
-        {filtered.map((site) => (
-          <div key={site.id} className="col-12 col-sm-6 col-xl-4">
-            <SiteCard site={site} onView={(id) => console.log('View site', id)} />
-          </div>
-        ))}
-      </div>
->>>>>>> MS-ltfe-report
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
+import { getFirstSidebarRoute } from '../../utils/navigation';
 import type { UserRole } from '../../types';
 
 interface ProtectedRouteProps {
@@ -16,7 +17,8 @@ export const ProtectedRoute = ({ requiredRoles, redirectTo = '/login' }: Protect
   }
 
   if (requiredRoles && requiredRoles.length > 0 && !hasRole(requiredRoles)) {
-    return <Navigate to="/health" replace />;
+    const fallback = getFirstSidebarRoute(auth.user?.role);
+    return <Navigate to={fallback} replace />;
   }
 
   return <Outlet />;

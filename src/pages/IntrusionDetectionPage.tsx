@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { safetyService } from '../services/safetyService';
 import type { AIAlert } from '../types';
@@ -23,12 +22,6 @@ export const IntrusionDetectionPage = () => {
   }, []);
 
   const intrusionAlerts = alerts.filter(a =>
-=======
-import { MOCK_AI_ALERTS } from '../services/mockData';
-
-export const IntrusionDetectionPage = () => {
-  const intrusionAlerts = MOCK_AI_ALERTS.filter(a =>
->>>>>>> MS-ltfe-report
     ['restricted_zone', 'fire_detected', 'smoke_detected'].includes(a.type)
   );
 
@@ -64,7 +57,6 @@ export const IntrusionDetectionPage = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
@@ -74,9 +66,6 @@ export const IntrusionDetectionPage = () => {
       ) : (
         <>
           {/* Stats */}
-=======
-      {/* Stats */}
->>>>>>> MS-ltfe-report
       <section className="row g-3 mt-1">
         {stats.map((s, i) => (
           <div key={i} className="col-12 col-sm-6 col-xl-3">
@@ -179,12 +168,8 @@ export const IntrusionDetectionPage = () => {
           </div>
         </div>
       </section>
-<<<<<<< HEAD
     </>
   )}
 </div>
-=======
-    </div>
->>>>>>> MS-ltfe-report
   );
 };

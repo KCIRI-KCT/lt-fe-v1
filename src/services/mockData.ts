@@ -2,12 +2,7 @@ import type {
   UserProfile, Project, Site, Worker, Attendance, Camera,
   AIAlert, Incident, Message, Report, Country, State, City,
   SystemHealth, PPECompliance,
-<<<<<<< HEAD
-  SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData
-=======
-  SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData,
-  ReportHistoryItem, UserRoleLabel
->>>>>>> MS-ltfe-report
+  SiteProgress, StateWiseAnalytics, IncidentTrend, ChainageData, UserRoleLabel
 } from '../types';
 import { storage, KEYS } from './storage';
 
@@ -191,11 +186,7 @@ export const MOCK_ATTENDANCE: Attendance[] = (() => {
 
 // Cameras
 const INITIAL_CAMERAS: Camera[] = [
-<<<<<<< HEAD
   { id: '1', name: 'Demo AI Feed Camera 01', rtspUrl: 'http://10.1.82.235:8080/feed/0', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 100 },
-=======
-  { id: '1', name: 'Main Gate - Site A', rtspUrl: 'rtsp://192.168.1.10/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Main Entrance', status: 'online', type: 'fixed', lastOnline: today, healthScore: 95 },
->>>>>>> MS-ltfe-report
   { id: '2', name: 'Excavation Zone - Site A', rtspUrl: 'rtsp://192.168.1.11/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Excavation Area', status: 'online', type: 'ptz', lastOnline: today, healthScore: 88 },
   { id: '3', name: 'Worker Shed - Site A', rtspUrl: 'rtsp://192.168.1.12/stream1', siteId: '1', siteName: 'Site A - KM 0-15', location: 'Worker Rest Area', status: 'offline', type: 'fixed', lastOnline: '2026-07-12', healthScore: 45 },
   { id: '4', name: 'Bridge Construction - Site B', rtspUrl: 'rtsp://192.168.1.20/stream1', siteId: '2', siteName: 'Site B - KM 15-30', location: 'Bridge Pier 3', status: 'online', type: 'fixed', lastOnline: today, healthScore: 91 },
@@ -396,12 +387,22 @@ export const MOCK_REPORTS: Report[] = (() => {
   return storage.get<Report[]>(KEYS.REPORTS, INITIAL_REPORTS);
 })();
 
-<<<<<<< HEAD
-=======
-// ============================================================================
-// Report History (Enhanced mock data for Reports Page)
-// ============================================================================
-
+// Dashboard
+export const MOCK_PPE_COMPLIANCE: PPECompliance = { helmet: 89, vest: 81, mask: 85, boots: 79, gloves: 74 };
+export const MOCK_SITE_PROGRESS: SiteProgress[] = [
+  { siteId: '1', siteName: 'Site A - KM 0-15', planned: 38, actual: 35, variance: -3 },
+  { siteId: '2', siteName: 'Site B - KM 15-30', planned: 32, actual: 34, variance: 2 },
+  { siteId: '3', siteName: 'Site C - KM 30-45', planned: 28, actual: 25, variance: -3 },
+];
+export const MOCK_STATE_WISE: StateWiseAnalytics[] = [
+  { state: 'Tamil Nadu', projects: 2, sites: 3, workers: 785, incidents: 18, compliance: 92 },
+  { state: 'Maharashtra', projects: 1, sites: 2, workers: 400, incidents: 12, compliance: 88 },
+];
+export const MOCK_INCIDENT_TRENDS: IncidentTrend[] = [
+  { date: '2026-01', critical: 2, major: 5, minor: 8, observation: 12 },
+  { date: '2026-02', critical: 1, major: 3, minor: 6, observation: 10 },
+  { date: '2026-03', critical: 3, major: 4, minor: 9, observation: 14 },
+];
 export const MOCK_USER_ROLE: UserRoleLabel = 'Project Manager';
 
 export const MOCK_PROJECTS_LIST: string[] = [
@@ -421,145 +422,25 @@ export const MOCK_SITES_LIST: string[] = [
 ];
 
 export const MOCK_CHAINAGES_LIST: string[] = [
-  'CH 0+500',
-  'CH 1+100',
+  'CH 0+000',
   'CH 2+500',
-  'CH 3+200',
-  'CH 4+800',
   'CH 5+000',
   'CH 10+000',
-  'CH 12+500',
   'CH 15+000',
 ];
 
 export const MOCK_REPORT_TYPES: string[] = [
-  'All Report',
-  'PPE Report',
-  'Safety Report',
-  'Chainage Report',
-  'Site Report',
+  'Safety & PPE Violations Summary',
+  'Worker Attendance & Shift Log',
+  'Progress & Structural Casting',
+  'Equipment & Machinery Utilization',
+  'Site Intrusion & Security Alerts',
 ];
 
 export const MOCK_SAFETY_REPORT_TYPES: string[] = [
-  'PPE Report',
-  'Safety Report',
-];
-
-export const INITIAL_REPORT_HISTORY: ReportHistoryItem[] = [
-  {
-    id: 1,
-    reportName: 'Daily PPE Report',
-    reportType: 'PPE Report',
-    project: 'Chennai Expressway',
-    site: 'Site A',
-    chainage: 'CH 0+500',
-    generatedBy: 'Project Manager',
-    generatedDate: '23 Jul 2026',
-    status: 'Ready',
-    format: 'PDF',
-  },
-  {
-    id: 2,
-    reportName: 'Safety Audit',
-    reportType: 'Safety Report',
-    project: 'Chennai Expressway',
-    site: 'Site B',
-    chainage: 'CH 1+100',
-    generatedBy: 'Safety Officer',
-    generatedDate: '22 Jul 2026',
-    status: 'Ready',
-    format: 'CSV',
-  },
-  {
-    id: 3,
-    reportName: 'Chainage Progress Report',
-    reportType: 'Chainage Report',
-    project: 'Mumbai Ring Road',
-    site: 'Site D',
-    chainage: 'CH 2+500',
-    generatedBy: 'Site Engineer',
-    generatedDate: '21 Jul 2026',
-    status: 'Ready',
-    format: 'PDF',
-  },
-  {
-    id: 4,
-    reportName: 'Site Inspection Report',
-    reportType: 'Site Report',
-    project: 'Hyderabad Metro II',
-    site: 'Site E',
-    chainage: 'CH 10+000',
-    generatedBy: 'Project Manager',
-    generatedDate: '20 Jul 2026',
-    status: 'Ready',
-    format: 'CSV',
-  },
-  {
-    id: 5,
-    reportName: 'Monthly Safety Summary',
-    reportType: 'Safety Report',
-    project: 'Chennai Expressway',
-    site: 'Site A',
-    chainage: 'CH 0+500',
-    generatedBy: 'Safety Manager',
-    generatedDate: '19 Jul 2026',
-    status: 'Generating',
-    format: 'PDF',
-  },
-  {
-    id: 6,
-    reportName: 'PPE Compliance Weekly',
-    reportType: 'PPE Report',
-    project: 'Mumbai Ring Road',
-    site: 'Site D',
-    chainage: 'CH 3+200',
-    generatedBy: 'Safety Officer',
-    generatedDate: '18 Jul 2026',
-    status: 'Ready',
-    format: 'PDF',
-  },
-  {
-    id: 7,
-    reportName: 'Site B Chainage Survey',
-    reportType: 'Chainage Report',
-    project: 'Chennai Expressway',
-    site: 'Site B',
-    chainage: 'CH 5+000',
-    generatedBy: 'Site Engineer',
-    generatedDate: '17 Jul 2026',
-    status: 'Ready',
-    format: 'CSV',
-  },
-  {
-    id: 8,
-    reportName: 'Safety Drill Report',
-    reportType: 'Safety Report',
-    project: 'Kochi Port',
-    site: 'Site C',
-    chainage: 'CH 15+000',
-    generatedBy: 'Safety Manager',
-    generatedDate: '16 Jul 2026',
-    status: 'Failed',
-    format: 'PDF',
-  },
-];
-
->>>>>>> MS-ltfe-report
-// Dashboard
-export const MOCK_PPE_COMPLIANCE: PPECompliance = { helmet: 89, vest: 81, mask: 85, boots: 79, gloves: 74 };
-export const MOCK_SITE_PROGRESS: SiteProgress[] = [
-  { siteId: '1', siteName: 'Site A - KM 0-15', planned: 38, actual: 35, variance: -3 },
-  { siteId: '2', siteName: 'Site B - KM 15-30', planned: 32, actual: 34, variance: 2 },
-  { siteId: '3', siteName: 'Site C - KM 30-45', planned: 28, actual: 25, variance: -3 },
-];
-export const MOCK_STATE_WISE: StateWiseAnalytics[] = [
-  { state: 'Tamil Nadu', projects: 2, sites: 3, workers: 785, incidents: 18, compliance: 92 },
-  { state: 'Maharashtra', projects: 1, sites: 2, workers: 400, incidents: 12, compliance: 88 },
-];
-export const MOCK_INCIDENT_TRENDS: IncidentTrend[] = [
-  { date: '2026-01', critical: 2, major: 5, minor: 8, observation: 12 },
-  { date: '2026-02', critical: 1, major: 3, minor: 6, observation: 10 },
-  { date: '2026-03', critical: 3, major: 4, minor: 9, observation: 14 },
+  'PPE Non-Compliance Audit',
+  'High-Risk Near-Miss Telemetry',
+  'Zone Violation & Restricted Area Log',
 ];
 
 // System Health
@@ -575,14 +456,7 @@ export const MOCK_SYSTEM_HEALTH: SystemHealth = {
 };
 
 // Notifications
-export const MOCK_NOTIFICATIONS = [
-  { title: 'PPE Violation [Critical] - No Vest (Site-C, 2+500 m)', time: '2:00 PM', path: '/ai-monitoring', variant: 'danger' },
-  { title: 'PPE Violation [Critical] - No Vest, No Helmet, No Boots (Site-B, 5+000 m)', time: '2:10 PM', path: '/ai-monitoring', variant: 'danger' },
-  { title: 'PPE Violation [Critical] - No Glove (Site-D, 1+000 m)', time: '2:30 PM', path: '/ai-monitoring', variant: 'danger' },
-  { title: 'Fire Detected at Site D', time: '10 minutes ago', path: '/incidents', variant: 'danger' },
-  { title: 'Daily Safety Report Ready', time: '1 hour ago', path: '/reports', variant: 'primary' },
-  { title: 'Camera #3 Offline', time: '2 hours ago', path: '/cameras', variant: 'warning' },
-];
+export const MOCK_NOTIFICATIONS: Array<{ title: string; time: string; path: string; variant: string }> = [];
 
 export const NAV_ITEMS_CONFIG = [
   { label: 'System Health', path: '/health', icon: 'bi bi-heart-pulse', roles: ['super_admin'] },

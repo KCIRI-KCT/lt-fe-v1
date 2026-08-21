@@ -1,49 +1,82 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
-import { MOCK_NOTIFICATIONS } from '../../services/mockData';
-import { Menu, Clock, Bell, VideoOff, TriangleAlert, Cpu, Volume2, VolumeX, PersonStanding } from 'lucide-react';
+import { safetyService } from '../../services/safetyService';
+import { cameraService } from '../../services/cameraService';
+import { Menu, Clock, Bell, Volume2, VolumeX, PersonStanding } from 'lucide-react';
 
 function playNavbarChime() {
   if (localStorage.getItem('kciri_notif_muted') === 'true') {
     return;
   }
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioContextClass();
     const playTone = (freq: number, start: number, duration: number, gain: number) => {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
-      osc.connect(g); g.connect(ctx.destination);
-      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
       g.gain.setValueAtTime(0, ctx.currentTime + start);
       g.gain.linearRampToValueAtTime(gain, ctx.currentTime + start + 0.02);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
-      osc.start(ctx.currentTime + start); osc.stop(ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration);
     };
-    playTone(523, 0, 0.18, 0.3); playTone(659, 0.14, 0.22, 0.22);
-  } catch { /* silent */ }
+    playTone(523, 0, 0.18, 0.3);
+    playTone(659, 0.14, 0.22, 0.22);
+  } catch {
+    /* silent fallback */
+  }
 }
-
 
 export const Navbar = () => {
   const { user, toggleSidebar } = useApp();
   const [currentTime, setCurrentTime] = useState<string>('');
   const [bellShake, setBellShake] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(2);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem('kciri_notif_muted') === 'true');
-  const poolIdx = useRef(0);
+  const [liveNotifications, setLiveNotifications] = useState<Array<{
+    id: string;
+    title: string;
+    description: string;
+    time: string;
+    variant: 'danger' | 'warning' | 'primary' | 'info';
+    path: string;
+    category: 'camera' | 'ai_alert' | 'system';
+  }>>([]);
+
+  const [clearedIds, setClearedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('kciri_cleared_notifs');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Timestamp (ms) of last "Clear All" — notifications older than this are hidden
+  const [clearedAt, setClearedAt] = useState<number>(() => {
+    const saved = localStorage.getItem('kciri_cleared_at');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const [textSize, setTextSize] = useState<string>(() => localStorage.getItem('kciri_a11y_text') || 'normal');
+  const [contrast, setContrast] = useState<string>(() => localStorage.getItem('kciri_a11y_contrast') || 'default');
+
+  const knownAlertIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
 
   const toggleMute = useCallback(() => {
-    setIsMuted(prev => {
+    setIsMuted((prev) => {
       const next = !prev;
       localStorage.setItem('kciri_notif_muted', String(next));
       window.dispatchEvent(new Event('storage'));
       return next;
     });
   }, []);
-
-  const [textSize, setTextSize] = useState<string>(() => localStorage.getItem('kciri_a11y_text') || 'normal');
-  const [contrast, setContrast] = useState<string>(() => localStorage.getItem('kciri_a11y_contrast') || 'default');
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,29 +107,128 @@ export const Navbar = () => {
     setContrast('default');
   };
 
-  const triggerNavNotif = useCallback(() => {
-    setBellShake(true);
-    setTimeout(() => setBellShake(false), 800);
-    setUnreadCount(c => c + 1);
-    playNavbarChime();
-  }, []);
+  // Fetch real notifications from camera and AI alerts (10.1.150.142:8000/api/ai-alerts)
+  const fetchLiveNotifications = useCallback(async () => {
+    try {
+      const [alerts, cameras] = await Promise.allSettled([
+        safetyService.getAIAlerts(),
+        cameraService.getCameras(),
+      ]);
+
+      const notifs: Array<{
+        id: string;
+        title: string;
+        description: string;
+        time: string;
+        variant: 'danger' | 'warning' | 'primary' | 'info';
+        path: string;
+        category: 'camera' | 'ai_alert' | 'system';
+      }> = [];
+
+      let hasNewDetection = false;
+
+      // 1. Live AI Alerts from backend
+      if (alerts.status === 'fulfilled' && Array.isArray(alerts.value)) {
+        alerts.value.slice(0, 15).forEach((alt) => {
+          if (clearedIds.has(alt.id)) return;
+          // Suppress alerts that existed before the last "Clear All"
+          if (clearedAt > 0 && alt.timestamp) {
+            const alertMs = new Date(alt.timestamp).getTime();
+            if (alertMs <= clearedAt) return;
+          }
+          if (!isFirstLoadRef.current && !knownAlertIdsRef.current.has(alt.id)) {
+            hasNewDetection = true;
+          }
+          knownAlertIdsRef.current.add(alt.id);
+
+          const isCritical = alt.severity === 'critical' || alt.severity === 'high';
+          const timeStr = alt.timestamp ? new Date(alt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live';
+
+          notifs.push({
+            id: alt.id,
+            title: alt.description || `${alt.type.replace(/_/g, ' ').toUpperCase()} Violation`,
+            description: `${alt.cameraName || 'Camera Feed'} • ${alt.siteName || 'Site Segment'}`,
+            time: timeStr,
+            variant: isCritical ? 'danger' : 'warning',
+            path: '/ai-monitoring',
+            category: 'ai_alert',
+          });
+        });
+      }
+
+      // 2. Camera Feeds & Offline Disconnects
+      if (cameras.status === 'fulfilled' && Array.isArray(cameras.value)) {
+        cameras.value.forEach((cam) => {
+          const camId = `cam-stat-${cam.id}`;
+          if (clearedIds.has(camId)) return;
+
+          const isOffline = cam.status === 'offline' || String(cam.status) === 'inactive' || cam.status === 'error';
+          if (isOffline) {
+            notifs.push({
+              id: camId,
+              title: `${cam.name} Stream Disconnected`,
+              description: `${cam.location || cam.siteName || 'Corridor Zone'} (Offline Feed)`,
+              time: 'Live',
+              variant: 'danger',
+              path: '/cameras',
+              category: 'camera',
+            });
+          }
+        });
+      }
+
+      setLiveNotifications(notifs);
+      setUnreadCount(notifs.length);
+
+      if (hasNewDetection) {
+        setBellShake(true);
+        setTimeout(() => setBellShake(false), 800);
+        playNavbarChime();
+      }
+
+      isFirstLoadRef.current = false;
+    } catch {
+      // Fallback gracefully
+    }
+  }, [clearedIds, clearedAt]);
 
   useEffect(() => {
-    const handleNotifEvent = (e: Event) => {
-      triggerNavNotif();
-    };
+    fetchLiveNotifications();
+    const interval = setInterval(fetchLiveNotifications, 15000);
+    return () => clearInterval(interval);
+  }, [fetchLiveNotifications]);
 
+  const handleClearAll = () => {
+    const now = Date.now();
+    const allCurrentIds = new Set(liveNotifications.map((n) => n.id));
+    // Save individual IDs
+    setClearedIds((prev) => {
+      const merged = new Set([...prev, ...allCurrentIds]);
+      try {
+        localStorage.setItem('kciri_cleared_notifs', JSON.stringify([...merged]));
+      } catch {
+        // storage error ignored
+      }
+      return merged;
+    });
+    // Save "cleared at" timestamp so re-polled alerts older than this are suppressed
+    setClearedAt(now);
+    try {
+      localStorage.setItem('kciri_cleared_at', String(now));
+    } catch {
+      // storage error ignored
+    }
+    setLiveNotifications([]);
+    setUnreadCount(0);
+  };
+
+  useEffect(() => {
     const syncMute = () => {
       setIsMuted(localStorage.getItem('kciri_notif_muted') === 'true');
     };
-
     window.addEventListener('storage', syncMute);
-    window.addEventListener('new-app-notification', handleNotifEvent);
-    return () => {
-      window.removeEventListener('storage', syncMute);
-      window.removeEventListener('new-app-notification', handleNotifEvent);
-    };
-  }, [triggerNavNotif]);
+    return () => window.removeEventListener('storage', syncMute);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -135,8 +267,9 @@ export const Navbar = () => {
           <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
           <img src="/images/kciri_logo.png" alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
         </div>
-        <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>L&T Construction Monitoring</span>
-
+        <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
+          L&T Construction Monitoring
+        </span>
 
         <div className="navbar-actions ms-auto d-flex align-items-center gap-2">
           {currentTime && (
@@ -152,8 +285,8 @@ export const Navbar = () => {
             style={{ border: 'none', background: 'transparent' }}
             type="button"
             onClick={toggleMute}
-            title={isMuted ? "Unmute sound" : "Mute sound"}
-            aria-label={isMuted ? "Unmute sound" : "Mute sound"}
+            title={isMuted ? 'Unmute sound' : 'Mute sound'}
+            aria-label={isMuted ? 'Unmute sound' : 'Mute sound'}
           >
             {isMuted ? <VolumeX size={18} className="text-danger" /> : <Volume2 size={18} className="text-success" />}
           </button>
@@ -176,26 +309,26 @@ export const Navbar = () => {
                 <PersonStanding size={16} className="text-primary" />
                 <span>Accessibility Center</span>
               </div>
-              
+
               {/* Text Size Controls */}
               <div className="mb-3">
                 <label className="form-label small fw-semibold text-muted mb-1.5">Text Size</label>
                 <div className="d-flex gap-1">
-                  <button 
+                  <button
                     className={`btn btn-xs flex-grow-1 py-1 px-1.5 border small ${textSize === 'normal' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleTextSizeChange('normal')}
                     style={{ fontSize: '11px' }}
                   >
                     Normal
                   </button>
-                  <button 
+                  <button
                     className={`btn btn-xs flex-grow-1 py-1 px-1.5 border small ${textSize === 'large' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleTextSizeChange('large')}
                     style={{ fontSize: '11px' }}
                   >
                     Large
                   </button>
-                  <button 
+                  <button
                     className={`btn btn-xs flex-grow-1 py-1 px-1.5 border small ${textSize === 'xl' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleTextSizeChange('xl')}
                     style={{ fontSize: '11px' }}
@@ -209,21 +342,21 @@ export const Navbar = () => {
               <div className="mb-3">
                 <label className="form-label small fw-semibold text-muted mb-1.5">Contrast & Filters</label>
                 <div className="d-grid gap-1.5">
-                  <button 
+                  <button
                     className={`btn btn-sm text-start py-1 px-2 border d-flex align-items-center justify-content-between ${contrast === 'default' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleContrastChange('default')}
                   >
                     <span style={{ fontSize: '12px' }}>Default Theme</span>
                     <i className="bi bi-circle-half" />
                   </button>
-                  <button 
+                  <button
                     className={`btn btn-sm text-start py-1 px-2 border d-flex align-items-center justify-content-between ${contrast === 'high' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleContrastChange('high')}
                   >
                     <span style={{ fontSize: '12px' }}>High Contrast</span>
                     <i className="bi bi-contrast" />
                   </button>
-                  <button 
+                  <button
                     className={`btn btn-sm text-start py-1 px-2 border d-flex align-items-center justify-content-between ${contrast === 'grayscale' ? 'btn-primary' : 'btn-white bg-white text-dark'}`}
                     onClick={() => handleContrastChange('grayscale')}
                   >
@@ -235,7 +368,7 @@ export const Navbar = () => {
 
               {/* Reset Button */}
               <div className="pt-2 border-top">
-                <button 
+                <button
                   className="btn btn-sm btn-outline-danger w-100 py-1"
                   onClick={resetAccessibility}
                   style={{ fontSize: '12px' }}
@@ -246,6 +379,7 @@ export const Navbar = () => {
             </div>
           </div>
 
+          {/* Notifications Dropdown */}
           <div className="dropdown">
             <button
               className="icon-button d-flex align-items-center justify-content-center position-relative"
@@ -255,104 +389,86 @@ export const Navbar = () => {
               aria-label="Notifications"
               onClick={() => setUnreadCount(0)}
             >
-              {/* Pulsing dot */}
-              <span
-                className="notification-dot notification-dot-pulse"
-                style={{
-                  position: 'absolute',
-                  top: '4px',
-                  right: '4px',
-                  background: '#dc2626',
-                  width: '9px',
-                  height: '9px',
-                  borderRadius: '50%',
-                  border: '1.5px solid #fff',
-                }}
-              />
-              {/* Unread count badge */}
               {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-4px',
-                    background: '#dc2626',
-                    color: '#fff',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    borderRadius: '10px',
-                    padding: '1px 4px',
-                    lineHeight: 1.4,
-                    minWidth: '16px',
-                    textAlign: 'center',
-                    border: '1.5px solid #fff',
-                  }}
-                >
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
+                <>
+                  <span
+                    className="notification-dot notification-dot-pulse"
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: '#dc2626',
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      border: '1.5px solid #fff',
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-2px',
+                      right: '-4px',
+                      background: '#dc2626',
+                      color: '#fff',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      borderRadius: '10px',
+                      padding: '1px 4px',
+                      lineHeight: 1.4,
+                      minWidth: '16px',
+                      textAlign: 'center',
+                      border: '1.5px solid #fff',
+                    }}
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                </>
               )}
               <span className={bellShake ? 'bell-shake' : ''}>
                 <Bell size={18} />
               </span>
             </button>
-            <div className="dropdown-menu dropdown-menu-end notification-menu p-3" style={{ width: '320px', maxHeight: '420px', overflowY: 'auto' }}>
-              <div className="dropdown-header fw-bold text-body border-bottom pb-2 mb-2 px-0">Notifications</div>
-              {user?.role === 'admin' ? (
-                <div className="d-grid gap-3">
-                  <div>
-                    <span className="small text-danger fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <VideoOff size={12} /> CAMERA FAILURES
-                    </span>
-                    <div className="d-grid gap-1.5 ps-1">
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">CAM-204 Stream Disconnected</div>
-                        <small className="text-muted">10m ago • Highway Zone B</small>
-                      </div>
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">CAM-105 High packet drop (22%)</div>
-                        <small className="text-muted">30m ago • Entrance Gate</small>
-                      </div>
-                    </div>
-                  </div>
+            <div className="dropdown-menu dropdown-menu-end notification-menu p-3 shadow-lg" style={{ width: '340px', maxHeight: '440px', overflowY: 'auto', borderRadius: '12px' }}>
+              <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2 px-0">
+                <span className="dropdown-header fw-bold text-body p-0 m-0">Notifications</span>
+                {liveNotifications.length > 0 && (
+                  <button
+                    className="btn btn-link btn-xs text-primary p-0 text-decoration-none fw-semibold"
+                    style={{ fontSize: '11.5px' }}
+                    onClick={handleClearAll}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
 
-                  <div>
-                    <span className="small text-warning fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <TriangleAlert size={12} /> NETWORK FAILURES
-                    </span>
-                    <div className="d-grid gap-1.5 ps-1">
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">Gateway Node #2 Ping Failure</div>
-                        <small className="text-muted">5m ago • Route Gateway</small>
-                      </div>
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">DNS 2 resolution latency high</div>
-                        <small className="text-muted">1h ago • Secondary Server</small>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="small text-info fw-bold d-flex align-items-center gap-1.5 mb-1" style={{ fontSize: '0.72rem', letterSpacing: '0.3px' }}>
-                      <Cpu size={12} /> SYSTEM MALFUNCTIONS
-                    </span>
-                    <div className="d-grid gap-1.5 ps-1">
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">EDGE-02 core temperature high (82°C)</div>
-                        <small className="text-muted">20m ago • Processing Box</small>
-                      </div>
-                      <div className="py-1" style={{ fontSize: '0.78rem' }}>
-                        <div className="text-body fw-medium">FastAPI local socket overflow</div>
-                        <small className="text-muted">2h ago • Main Server</small>
-                      </div>
-                    </div>
-                  </div>
+              {liveNotifications.length === 0 ? (
+                <div className="text-center py-4 text-muted">
+                  <Bell size={24} className="opacity-25 mb-2 d-block mx-auto" />
+                  <div className="small fw-semibold">No new notifications</div>
+                  <div className="text-muted" style={{ fontSize: '11px' }}>Live feed from cameras and AI alerts will appear here</div>
                 </div>
               ) : (
                 <div className="d-grid gap-2">
-                  {MOCK_NOTIFICATIONS.map((n, i) => (
-                    <Link key={i} className="dropdown-item py-1 px-2 rounded hover-bg-light" to={n.path} style={{ fontSize: '0.8rem' }}>
-                      <div className={`fw-medium text-${n.variant}`}>{n.title}</div>
-                      <small className="text-muted d-block mt-0.5">{n.time}</small>
+                  {liveNotifications.map((n) => (
+                    <Link
+                      key={n.id}
+                      className="dropdown-item py-1.5 px-2 rounded hover-bg-light border-bottom border-light text-wrap"
+                      to={n.path}
+                      style={{ fontSize: '0.8rem' }}
+                    >
+                      <div className="d-flex align-items-start justify-content-between gap-1">
+                        <div className={`fw-semibold text-${n.variant} text-truncate`} style={{ maxWidth: '210px' }}>
+                          {n.title}
+                        </div>
+                        <span className="badge bg-light text-muted font-monospace" style={{ fontSize: '9.5px' }}>
+                          {n.time}
+                        </span>
+                      </div>
+                      <small className="text-muted d-block mt-0.5" style={{ fontSize: '11px' }}>
+                        {n.description}
+                      </small>
                     </Link>
                   ))}
                 </div>
@@ -360,6 +476,7 @@ export const Navbar = () => {
             </div>
           </div>
 
+          {/* User Profile Dropdown */}
           <div className="dropdown">
             <button
               className="profile-button dropdown-toggle"

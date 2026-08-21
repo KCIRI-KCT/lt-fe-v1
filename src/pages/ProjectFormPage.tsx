@@ -2,15 +2,29 @@
 // Project Form Page — Custom form to manage Projects & Nested Sites/Chainage
 // ============================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-<<<<<<< HEAD
 import { projectService } from '../services/projectService';
-import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS } from '../services/mockData';
-=======
-import { MOCK_PROJECTS, MOCK_CITIES, MOCK_STATES, MOCK_USERS, upsertProject } from '../services/mockData';
->>>>>>> MS-ltfe-report
-import type { Project, NestedSite, ProjectRoleAssignment } from '../types';
+import { employeeService } from '../services/employeeService';
+import type { Project, NestedSite, ProjectRoleAssignment, UserProfile, State, City } from '../types';
+
+const DEFAULT_STATES: State[] = [
+  { id: 'tn', name: 'Tamil Nadu', countryId: 'in' },
+  { id: 'ka', name: 'Karnataka', countryId: 'in' },
+  { id: 'mh', name: 'Maharashtra', countryId: 'in' },
+  { id: 'dl', name: 'Delhi', countryId: 'in' },
+  { id: 'tg', name: 'Telangana', countryId: 'in' },
+];
+
+const DEFAULT_CITIES: City[] = [
+  { id: 'chennai', name: 'Chennai', stateId: 'tn' },
+  { id: 'coimbatore', name: 'Coimbatore', stateId: 'tn' },
+  { id: 'bangalore', name: 'Bengaluru', stateId: 'ka' },
+  { id: 'mumbai', name: 'Mumbai', stateId: 'mh' },
+  { id: 'pune', name: 'Pune', stateId: 'mh' },
+  { id: 'delhi', name: 'New Delhi', stateId: 'dl' },
+  { id: 'hyderabad', name: 'Hyderabad', stateId: 'tg' },
+];
 
 interface RoleAssignment {
   userId: string;
@@ -21,77 +35,29 @@ export const ProjectFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id && id !== 'add';
-  const project = isEdit ? MOCK_PROJECTS.find((p) => p.id === id) : undefined;
 
   const today = new Date().toISOString().split('T')[0];
   const defaultEndDate = new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0];
 
   // Project Info States
-  const [name, setName] = useState(project?.name || '');
-  const [description, setDescription] = useState(project?.description || '');
-  const [cityId, setCityId] = useState(project?.cityId || '');
-  const [stateId, setStateId] = useState(() => {
-    if (project?.cityId) {
-      const city = MOCK_CITIES.find((c) => c.id === project.cityId);
-      return city?.stateId || '';
-    }
-    return '';
-  });
-  const [startDate, setStartDate] = useState(project?.startDate || today);
-  const [endDate, setEndDate] = useState(project?.endDate || defaultEndDate);
+  const [projectData, setProjectData] = useState<Project | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [cityId, setCityId] = useState('');
+  const [stateId, setStateId] = useState('');
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(defaultEndDate);
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
 
   // User Assignments States
-  const [managers, setManagers] = useState<RoleAssignment[]>(() => {
-    if (project) {
-      if (project.roleAssignments && project.roleAssignments.length > 0) {
-        const mgrs = project.roleAssignments.filter(ra => ra.role === 'project_manager').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
-        return mgrs.length > 0 ? mgrs : [{ userId: project.managerId || '', siteId: '' }];
-      }
-      return [{ userId: project.managerId || '', siteId: '' }];
-    }
-    return [{ userId: '', siteId: '' }];
-  });
-
-  const [supervisors, setSupervisors] = useState<RoleAssignment[]>(() => {
-    if (project) {
-      if (project.roleAssignments && project.roleAssignments.length > 0) {
-        const sups = project.roleAssignments.filter(ra => ra.role === 'site_supervisor').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
-        return sups.length > 0 ? sups : [{ userId: project.supervisorId || '', siteId: '' }];
-      }
-      return [{ userId: project.supervisorId || '', siteId: '' }];
-    }
-    return [{ userId: '', siteId: '' }];
-  });
-
-  const [engineers, setEngineers] = useState<RoleAssignment[]>(() => {
-    if (project) {
-      if (project.roleAssignments && project.roleAssignments.length > 0) {
-        const engs = project.roleAssignments.filter(ra => ra.role === 'site_engineer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
-        return engs.length > 0 ? engs : [{ userId: project.engineerId || '', siteId: '' }];
-      }
-      return [{ userId: project.engineerId || '', siteId: '' }];
-    }
-    return [{ userId: '', siteId: '' }];
-  });
-
-  const [safetyOfficers, setSafetyOfficers] = useState<RoleAssignment[]>(() => {
-    if (project && project.roleAssignments) {
-      const sOffs = project.roleAssignments.filter(ra => ra.role === 'safety_officer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
-      return sOffs.length > 0 ? sOffs : [{ userId: '', siteId: '' }];
-    }
-    return [{ userId: '', siteId: '' }];
-  });
-
-  const [safetyEngineers, setSafetyEngineers] = useState<RoleAssignment[]>(() => {
-    if (project && project.roleAssignments) {
-      const sEngs = project.roleAssignments.filter(ra => ra.role === 'safety_engineer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
-      return sEngs.length > 0 ? sEngs : [{ userId: '', siteId: '' }];
-    }
-    return [{ userId: '', siteId: '' }];
-  });
+  const [managers, setManagers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
+  const [supervisors, setSupervisors] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
+  const [engineers, setEngineers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
+  const [safetyOfficers, setSafetyOfficers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
+  const [safetyEngineers, setSafetyEngineers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
 
   // Nested Sites States
-  const [sites, setSites] = useState<NestedSite[]>(project?.sites || []);
+  const [sites, setSites] = useState<NestedSite[]>([]);
 
   // New Site Input States
   const [newSiteName, setNewSiteName] = useState('');
@@ -101,6 +67,47 @@ export const ProjectFormPage = () => {
 
   const [errorMsg, setErrorMsg] = useState('');
 
+  useEffect(() => {
+    employeeService.getEmployees()
+      .then((users) => setUsersList(users))
+      .catch(() => null);
+
+    if (isEdit && id) {
+      projectService.getProject(id)
+        .then((proj) => {
+          if (proj) {
+            setProjectData(proj);
+            setName(proj.name || '');
+            setDescription(proj.description || '');
+            setCityId(proj.cityId || '');
+            const cObj = DEFAULT_CITIES.find(c => c.id === proj.cityId);
+            if (cObj) setStateId(cObj.stateId);
+            setStartDate(proj.startDate || today);
+            setEndDate(proj.endDate || defaultEndDate);
+            if (proj.sites) setSites(proj.sites);
+
+            if (proj.roleAssignments && proj.roleAssignments.length > 0) {
+              const mgrs = proj.roleAssignments.filter(ra => ra.role === 'project_manager').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
+              if (mgrs.length > 0) setManagers(mgrs);
+
+              const sups = proj.roleAssignments.filter(ra => ra.role === 'site_supervisor').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
+              if (sups.length > 0) setSupervisors(sups);
+
+              const engs = proj.roleAssignments.filter(ra => ra.role === 'site_engineer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
+              if (engs.length > 0) setEngineers(engs);
+
+              const sOffs = proj.roleAssignments.filter(ra => ra.role === 'safety_officer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
+              if (sOffs.length > 0) setSafetyOfficers(sOffs);
+
+              const sEngs = proj.roleAssignments.filter(ra => ra.role === 'safety_engineer').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
+              if (sEngs.length > 0) setSafetyEngineers(sEngs);
+            }
+          }
+        })
+        .catch(() => null);
+    }
+  }, [isEdit, id, today, defaultEndDate]);
+
   // Handle State Change -> Reset City
   const handleStateChange = (selectedStateId: string) => {
     setStateId(selectedStateId);
@@ -108,7 +115,7 @@ export const ProjectFormPage = () => {
   };
 
   // Filter cities by state
-  const filteredCities = MOCK_CITIES.filter((c) => c.stateId === stateId);
+  const filteredCities = DEFAULT_CITIES.filter((c) => c.stateId === stateId);
 
   // Add Site to List
   const handleAddSite = (e: React.FormEvent) => {
@@ -175,14 +182,14 @@ export const ProjectFormPage = () => {
       return;
     }
 
-    const selectedState = MOCK_STATES.find((s) => s.id === stateId);
-    const selectedCity = MOCK_CITIES.find((c) => c.id === cityId);
+    const selectedState = DEFAULT_STATES.find((s) => s.id === stateId);
+    const selectedCity = DEFAULT_CITIES.find((c) => c.id === cityId);
 
     // Build the project role assignments list
     const roleAssignments: ProjectRoleAssignment[] = [];
     const addAssignments = (arr: RoleAssignment[], role: ProjectRoleAssignment['role']) => {
       arr.forEach(item => {
-        const u = MOCK_USERS.find(user => user.id === item.userId);
+        const u = usersList.find(user => user.id === item.userId);
         const s = sites.find(site => site.id === item.siteId);
         if (u && s) {
           roleAssignments.push({
@@ -206,24 +213,19 @@ export const ProjectFormPage = () => {
     const firstSupervisor = roleAssignments.find(ra => ra.role === 'site_supervisor');
     const firstEngineer = roleAssignments.find(ra => ra.role === 'site_engineer');
 
-<<<<<<< HEAD
-    const projData: Partial<Project> = {
-      id: isEdit && project ? project.id : undefined,
-=======
-    const projData: Project = {
-      id: isEdit && project ? project.id : Date.now().toString(),
->>>>>>> MS-ltfe-report
+    const projPayload: Partial<Project> = {
+      id: isEdit && projectData ? projectData.id : undefined,
       name: name.trim(),
-      code: project?.code || `PRJ-${Date.now().toString().slice(-4)}`,
+      code: projectData?.code || `PRJ-${Date.now().toString().slice(-4)}`,
       description: description.trim(),
       cityId,
       cityName: selectedCity?.name || '',
       stateName: selectedState?.name || '',
       startDate,
       endDate,
-      status: project?.status || 'active',
-      budget: project?.budget || 10000000,
-      progress: project?.progress || 0,
+      status: projectData?.status || 'active',
+      budget: projectData?.budget || 10000000,
+      progress: projectData?.progress || 0,
       managerId: firstManager?.userId || '',
       managerName: firstManager?.userName || '',
       supervisorId: firstSupervisor?.userId || '',
@@ -231,21 +233,16 @@ export const ProjectFormPage = () => {
       engineerId: firstEngineer?.userId || '',
       engineerName: firstEngineer?.userName || '',
       siteCount: sites.length,
-      workerCount: project?.workerCount || 150,
+      workerCount: projectData?.workerCount || 150,
       sites: sites,
       roleAssignments
     };
 
-<<<<<<< HEAD
-    if (isEdit && project) {
-      projectService.updateProject(project.id, projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
+    if (isEdit && projectData) {
+      projectService.updateProject(projectData.id, projPayload as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
     } else {
-      projectService.createProject(projData as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
+      projectService.createProject(projPayload as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
     }
-=======
-    upsertProject(projData);
-    navigate('/projects');
->>>>>>> MS-ltfe-report
   };
 
   const renderRoleSection = (
@@ -255,7 +252,7 @@ export const ProjectFormPage = () => {
     userFilterRole: string,
     isRequired = false
   ) => {
-    const users = MOCK_USERS.filter((u) => {
+    const users = usersList.filter((u) => {
       if (userFilterRole === 'safety_engineer') {
         return u.role === 'safety_manager' || u.role === 'site_engineer';
       }
@@ -345,23 +342,24 @@ export const ProjectFormPage = () => {
       </div>
     );
   };
+
   // Helper to calculate weeks
   const getWeeksCount = (startStr: string, endStr: string) => {
     if (!startStr || !endStr) return { finished: 0, remaining: 0 };
-    const today = new Date();
+    const todayDate = new Date();
     const start = new Date(startStr);
     const end = new Date(endStr);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return { finished: 0, remaining: 0 };
 
     let finished = 0;
-    if (today.getTime() > start.getTime()) {
-      const elapsedMs = Math.min(today.getTime(), end.getTime()) - start.getTime();
+    if (todayDate.getTime() > start.getTime()) {
+      const elapsedMs = Math.min(todayDate.getTime(), end.getTime()) - start.getTime();
       finished = Math.max(0, Math.ceil(elapsedMs / (1000 * 60 * 60 * 24 * 7)));
     }
     
     let remaining = 0;
-    if (today.getTime() < end.getTime()) {
-      const remainingMs = end.getTime() - Math.max(today.getTime(), start.getTime());
+    if (todayDate.getTime() < end.getTime()) {
+      const remainingMs = end.getTime() - Math.max(todayDate.getTime(), start.getTime());
       remaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24 * 7)));
     }
     
@@ -369,7 +367,7 @@ export const ProjectFormPage = () => {
   };
 
   const { finished: finishedWeeks, remaining: remainingWeeks } = getWeeksCount(startDate, endDate);
-  const isCompleted = isEdit && project?.status === 'completed';
+  const isCompleted = isEdit && projectData?.status === 'completed';
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -443,7 +441,7 @@ export const ProjectFormPage = () => {
                     required
                   >
                     <option value="">Select State</option>
-                    {MOCK_STATES.map((s) => (
+                    {DEFAULT_STATES.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>

@@ -1,12 +1,6 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
 import { workerService } from '../services/workerService';
-=======
-import { useState } from 'react';
-import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_WORKERS } from '../services/mockData';
->>>>>>> MS-ltfe-report
 import type { Worker } from '../types';
 import { STATUS_BADGES } from '../constants';
 
@@ -30,16 +24,12 @@ const columns: Column<Worker>[] = [
 ];
 
 export const WorkforcePage = () => {
-<<<<<<< HEAD
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
-=======
->>>>>>> MS-ltfe-report
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-<<<<<<< HEAD
   useEffect(() => {
     let isMounted = true;
     workerService.getWorkers()
@@ -56,9 +46,6 @@ export const WorkforcePage = () => {
   }, []);
 
   const filtered = workers.filter((w) =>
-=======
-  const filtered = MOCK_WORKERS.filter((w) =>
->>>>>>> MS-ltfe-report
     !search || w.name.toLowerCase().includes(search.toLowerCase()) || w.employeeId.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -79,7 +66,6 @@ export const WorkforcePage = () => {
           <button className="btn btn-primary btn-sm"><i className="bi bi-person-plus" /> Add Worker</button>
         </div>
       </div>
-<<<<<<< HEAD
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status" />
@@ -101,22 +87,6 @@ export const WorkforcePage = () => {
           showPagination={true}
         />
       )}
-=======
-      <ReusableDataTable
-        columns={columns}
-        data={sliced}
-        keyExtractor={(w) => w.id}
-        searchQuery={search}
-        onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search workers..."
-        total={filtered.length}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPagination={true}
-      />
->>>>>>> MS-ltfe-report
     </div>
   );
 };

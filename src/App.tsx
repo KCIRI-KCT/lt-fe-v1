@@ -18,7 +18,8 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((m) => ({ de
 const SitesPage = lazy(() => import('./pages/SitesPage').then((m) => ({ default: m.SitesPage })));
 const WorkforcePage = lazy(() => import('./pages/WorkforcePage').then((m) => ({ default: m.WorkforcePage })));
 const CamerasPage = lazy(() => import('./pages/CamerasPage').then((m) => ({ default: m.CamerasPage })));
-const AIMonitoringPage = lazy(() => import('./pages/AIMonitoringPage').then((m) => ({ default: m.AIMonitoringPage })));
+const AIMonitoringPage = lazy(() => import('./pages/Alerts').then((m) => ({ default: m.Alerts })));
+const AlertsPage = lazy(() => import('./pages/Alerts').then((m) => ({ default: m.Alerts })));
 const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })));
 const MessagesPage = lazy(() => import('./pages/MessagesPage').then((m) => ({ default: m.MessagesPage })));
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
@@ -69,8 +70,6 @@ const WorkforceRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor
 const ProgressRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 // PPE Detection & Intrusion: Safety Manager and Safety Officer only
 const SafetyDetectionRoles: UserRole[] = ['admin', 'safety_manager', 'safety_officer'];
-// PM Dashboard: Project Manager and Site Supervisor
-const PMDashboardRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor'];
 
 function App() {
   return (
@@ -128,6 +127,7 @@ function App() {
                   {/* AI Monitoring / Activity Recognition */}
                   <Route element={<ProtectedRoute requiredRoles={SafetyRoles} />}>
                     <Route path="/ai-monitoring" element={<AIMonitoringPage />} />
+                    <Route path="/alerts" element={<AlertsPage />} />
                   </Route>
 
                   {/* Incidents */}
@@ -159,18 +159,18 @@ function App() {
                   </Route>
 
                   {/* Dashboards */}
-                  <Route element={<ProtectedRoute requiredRoles={AllRoles} />}>
+                  <Route element={<ProtectedRoute requiredRoles={['admin'] as UserRole[]} />}>
                     <Route path="/health" element={<SystemHealthPage />} />
                   </Route>
-                  <Route element={<ProtectedRoute requiredRoles={PMDashboardRoles} />}>
+                  <Route element={<ProtectedRoute requiredRoles={['admin', 'project_manager'] as UserRole[]} />}>
                     <Route path="/project-manager" element={<ProjectManagerDashboard />} />
                   </Route>
-                  <Route element={<ProtectedRoute requiredRoles={['admin', 'site_engineer'] as UserRole[]} />}>
+                  <Route element={<ProtectedRoute requiredRoles={['admin', 'site_engineer', 'site_supervisor'] as UserRole[]} />}>
                     <Route path="/site-engineer" element={<SiteEngineerDashboard />} />
                   </Route>
 
-                  {/* Safety Officer Dashboard */}
-                  <Route element={<ProtectedRoute requiredRoles={['admin', 'safety_officer'] as UserRole[]} />}>
+                  {/* Safety Dashboard */}
+                  <Route element={<ProtectedRoute requiredRoles={['admin', 'safety_officer', 'safety_manager'] as UserRole[]} />}>
                     <Route path="/safety-officer" element={<SafetyOfficerDashboard />} />
                   </Route>
 

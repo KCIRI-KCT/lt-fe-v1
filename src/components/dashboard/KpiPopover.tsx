@@ -1,5 +1,3 @@
-import { MOCK_PPE_COMPLIANCE } from '../../services/mockData';
-
 interface KpiPopoverProps {
   cardId: string;
   onClose: () => void;
@@ -248,14 +246,14 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
           icon: 'bi-person-check-fill',
           desc: 'AI compliance checks on helmet, safety vests, masks, protective boots, and gloves.',
           stats: [
-            { label: 'Helmet Compliance', value: `${MOCK_PPE_COMPLIANCE.helmet}%`, trend: MOCK_PPE_COMPLIANCE.helmet >= 90 ? 'Target met' : `${90 - MOCK_PPE_COMPLIANCE.helmet}% below target`, isPositive: MOCK_PPE_COMPLIANCE.helmet >= 90 },
-            { label: 'Safety Vest Compliance', value: `${MOCK_PPE_COMPLIANCE.vest}%`, trend: MOCK_PPE_COMPLIANCE.vest >= 85 ? 'Acceptable' : 'Critical watchlist', isPositive: MOCK_PPE_COMPLIANCE.vest >= 85 },
-            { label: 'Mask Compliance', value: `${MOCK_PPE_COMPLIANCE.mask}%`, trend: MOCK_PPE_COMPLIANCE.mask >= 85 ? 'Acceptable' : 'Needs attention', isPositive: MOCK_PPE_COMPLIANCE.mask >= 85 },
-            { label: 'Safety Boots Compliance', value: `${MOCK_PPE_COMPLIANCE.boots}%`, trend: 'Needs corrective action', isPositive: false },
-            { label: 'Safety Gloves Compliance', value: `${MOCK_PPE_COMPLIANCE.gloves}%`, trend: 'Training required', isPositive: false },
+            { label: 'Helmet Compliance', value: '92%', trend: 'Target met', isPositive: true },
+            { label: 'Safety Vest Compliance', value: '88%', trend: 'Acceptable', isPositive: true },
+            { label: 'Mask Compliance', value: '86%', trend: 'Acceptable', isPositive: true },
+            { label: 'Safety Boots Compliance', value: '84%', trend: 'Stable compliance', isPositive: true },
+            { label: 'Safety Gloves Compliance', value: '82%', trend: 'Active monitoring', isPositive: true },
           ],
           chartColor: '#16a34a',
-          miniChartData: [90, 88, 87, 85, 84, 82, Math.round((MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask + MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5)],
+          miniChartData: [90, 88, 87, 85, 84, 82, 86],
           breakdownTitle: 'Site-Wise PPE Compliance Rate',
           contractors: [
             { name: 'Site A - KM 0-15', value: '92% Rate', status: 'Excellent', project: 'Chennai-Bangalore Expressway' },
@@ -309,11 +307,7 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
 
   const details = getCardDetails();
 
-<<<<<<< HEAD
   const filteredContractors = details.contractors.filter((c) => {
-=======
-  const filteredContractors = details.contractors.filter((c: any) => {
->>>>>>> MS-ltfe-report
     if (selectedSite && c.name !== selectedSite) return false;
     if (selectedProject && c.project && c.project !== selectedProject) return false;
     return true;

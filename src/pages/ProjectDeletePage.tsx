@@ -1,17 +1,27 @@
-import { useState } from 'react';
-import { MOCK_PROJECTS, upsertProject, deleteProject } from '../services/mockData';
+import { useState, useEffect, useCallback } from 'react';
+import { projectService } from '../services/projectService';
+import type { Project } from '../types';
 
 export const ProjectDeletePage = () => {
   const [activeTab, setActiveTab] = useState<'request' | 'approve'>('request');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toastMsg, setToastMsg] = useState<string>('');
-  const [refreshState, setRefreshState] = useState<number>(0);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
 
-  // Force component re-render when local storage/arrays modify
-  const triggerRefresh = () => {
-    setSelectedIds([]);
-    setRefreshState(prev => prev + 1);
-  };
+  const fetchProjects = useCallback(async () => {
+    try {
+      const data = await projectService.getProjects();
+      setProjectsList(data);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    projectService.getProjects()
+      .then((data) => setProjectsList(data))
+      .catch(() => null);
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -19,8 +29,8 @@ export const ProjectDeletePage = () => {
   };
 
   // Filter projects by current state
-  const pendingRequests = MOCK_PROJECTS.filter((p) => p.deleteRequested);
-  const activeProjects = MOCK_PROJECTS.filter((p) => !p.deleteRequested);
+  const pendingRequests = projectsList.filter((p) => p.deleteRequested);
+  const activeProjects = projectsList.filter((p) => !p.deleteRequested);
 
   const currentList = activeTab === 'request' ? activeProjects : pendingRequests;
 
@@ -41,53 +51,50 @@ export const ProjectDeletePage = () => {
   };
 
   // Tab 1 Action: Submit Request
-  const handleSubmitRequests = () => {
+  const handleSubmitRequests = async () => {
     if (selectedIds.length === 0) return;
     
-    selectedIds.forEach((id) => {
-      const proj = MOCK_PROJECTS.find((p) => p.id === id);
-      if (proj) {
-        upsertProject({ ...proj, deleteRequested: true });
-      }
-    });
+    await Promise.allSettled(
+      selectedIds.map((id) => projectService.requestDeleteProject(id, 'User requested deletion via console'))
+    );
 
     showToast(`Successfully submitted delete requests for ${selectedIds.length} project(s).`);
-    triggerRefresh();
+    setSelectedIds([]);
+    fetchProjects();
   };
 
   // Tab 2 Action: Approve Request (Permanent Delete)
-  const handleApproveRequests = () => {
+  const handleApproveRequests = async () => {
     if (selectedIds.length === 0) return;
     const count = selectedIds.length;
 
-    selectedIds.forEach((id) => {
-      deleteProject(id);
-    });
+    await Promise.allSettled(
+      selectedIds.map((id) => projectService.confirmDeleteProject(id))
+    );
 
     showToast(`Approved deletion. Permanently removed ${count} project(s).`);
-    triggerRefresh();
+    setSelectedIds([]);
+    fetchProjects();
   };
 
   // Tab 2 Action: Reject Request (Restore Status)
-  const handleRejectRequests = () => {
+  const handleRejectRequests = async () => {
     if (selectedIds.length === 0) return;
     const count = selectedIds.length;
 
-    selectedIds.forEach((id) => {
-      const proj = MOCK_PROJECTS.find((p) => p.id === id);
-      if (proj) {
-        upsertProject({ ...proj, deleteRequested: false });
-      }
-    });
+    await Promise.allSettled(
+      selectedIds.map((id) => projectService.updateProject(id, { deleteRequested: false }))
+    );
 
     showToast(`Rejected delete requests. Restored ${count} project(s) to active status.`);
-    triggerRefresh();
+    setSelectedIds([]);
+    fetchProjects();
   };
 
   const isAllSelected = currentList.length > 0 && selectedIds.length === currentList.length;
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4" key={refreshState}>
+    <div className="container-fluid px-3 px-lg-4 py-4">
       {/* Top Banner Message */}
       {toastMsg && (
         <div className="position-fixed bottom-0 end-0 m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex align-items-center gap-2 animate-fade-in" style={{ zIndex: 1050 }}>

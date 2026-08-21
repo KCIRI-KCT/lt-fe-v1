@@ -1,17 +1,9 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
 import { projectService } from '../services/projectService';
 import { STATUS_BADGES } from '../constants';
 import type { Project } from '../types';
-=======
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_PROJECTS } from '../services/mockData';
-import { STATUS_BADGES } from '../constants';
->>>>>>> MS-ltfe-report
 
 interface ProjectSiteRow {
   id: string;
@@ -32,11 +24,8 @@ interface ProjectSiteRow {
 }
 
 export const ProjectsPage = () => {
-<<<<<<< HEAD
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-=======
->>>>>>> MS-ltfe-report
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('projectName');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -53,7 +42,6 @@ export const ProjectsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-<<<<<<< HEAD
   useEffect(() => {
     let isMounted = true;
     projectService.getProjects()
@@ -71,8 +59,6 @@ export const ProjectsPage = () => {
     return () => { isMounted = false; };
   }, []);
 
-=======
->>>>>>> MS-ltfe-report
   const columns: Column<ProjectSiteRow>[] = [
     {
       key: 'projectName',
@@ -115,11 +101,7 @@ export const ProjectsPage = () => {
   ];
 
   // Flat-map projects to get a list of all project-site items
-<<<<<<< HEAD
   const rows: ProjectSiteRow[] = projectsList.flatMap((p) => {
-=======
-  const rows: ProjectSiteRow[] = MOCK_PROJECTS.flatMap((p) => {
->>>>>>> MS-ltfe-report
     const sites = p.sites || [];
     if (sites.length === 0) {
       return [{
@@ -225,7 +207,6 @@ export const ProjectsPage = () => {
 
   const sliced = sorted.slice((page - 1) * pageSize, page * pageSize);
 
-<<<<<<< HEAD
   const selectedProject = projectsList.find(p => p.id === selectedProjectId);
 
   if (loading) {
@@ -238,9 +219,6 @@ export const ProjectsPage = () => {
       </div>
     );
   }
-=======
-  const selectedProject = MOCK_PROJECTS.find(p => p.id === selectedProjectId);
->>>>>>> MS-ltfe-report
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -275,11 +253,7 @@ export const ProjectsPage = () => {
         onPageSizeChange={setPageSize}
         showPagination={true}
         rowClassName={(r) => {
-<<<<<<< HEAD
           const parentProj = projectsList.find(p => p.id === r.projectId);
-=======
-          const parentProj = MOCK_PROJECTS.find(p => p.id === r.projectId);
->>>>>>> MS-ltfe-report
           return parentProj?.status === 'completed' ? 'project-row-finished' : '';
         }}
       />

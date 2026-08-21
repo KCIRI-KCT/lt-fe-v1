@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../hooks/useApp';
 import { DynamicForm } from '../components/forms/DynamicForm';
-import { MOCK_USERS } from '../services/mockData';
 
 type SettingsTab = 'profile' | 'account' | 'system';
 
@@ -56,11 +55,8 @@ export const Settings = () => {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent((values.name as string) || 'User')}&background=2563eb&color=fff`,
     };
 
-    const idx = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (idx >= 0) MOCK_USERS[idx] = updatedUser;
-
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
     localStorage.setItem('ai-monitor.authUser', JSON.stringify(updatedUser));
-    localStorage.setItem('ai-monitor.users', JSON.stringify(MOCK_USERS));
 
     setSuccessMsg('Profile details saved successfully! Refreshing...');
     setTimeout(() => {

@@ -1,5 +1,7 @@
-import { MOCK_AI_ALERTS } from '../../services/mockData';
+import { useState, useEffect } from 'react';
+import { safetyService } from '../../services/safetyService';
 import { AI_ALERT_CONFIG } from '../../constants';
+import type { AIAlert } from '../../types';
 
 interface AlertItem {
   id: string;
@@ -12,6 +14,7 @@ interface AlertItem {
 interface RightDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  alerts?: AIAlert[];
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -31,8 +34,20 @@ const getTimeAgo = (timestamp: string) => {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 };
 
-export const RightDrawer = ({ isOpen, onClose }: RightDrawerProps) => {
-  const drawerAlerts: AlertItem[] = [...MOCK_AI_ALERTS]
+export const RightDrawer = ({ isOpen, onClose, alerts }: RightDrawerProps) => {
+  const [fetchedAlerts, setFetchedAlerts] = useState<AIAlert[]>([]);
+
+  useEffect(() => {
+    if (!alerts && isOpen) {
+      safetyService.getAIAlerts()
+        .then((data) => setFetchedAlerts(data))
+        .catch(() => null);
+    }
+  }, [alerts, isOpen]);
+
+  const activeAlerts = alerts || fetchedAlerts;
+
+  const drawerAlerts: AlertItem[] = [...activeAlerts]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 6)
     .map((alert) => ({

@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react';
-import type { ReportHistoryItem, UserRoleLabel, ReportFileFormat } from '../../types';
-import {
-  MOCK_USER_ROLE,
-  MOCK_PROJECTS_LIST,
-  MOCK_SITES_LIST,
-  MOCK_CHAINAGES_LIST,
-  MOCK_REPORT_TYPES,
-  MOCK_SAFETY_REPORT_TYPES,
-} from '../../services/mockData';
+import { useApp } from '../../hooks/useApp';
+import { projectService } from '../../services/projectService';
+import { siteService } from '../../services/siteService';
+import type { ReportHistoryItem, ReportFileFormat, Project, Site, ChainageData } from '../../types';
+
+const REPORT_TYPES = [
+  'All Report',
+  'Weekly Progress Summary',
+  'Highway Construction Progress',
+  'Structural Work Log',
+  'Equipment & Machinery Utilization',
+  'Workforce Attendance Log',
+  'Quality Inspection & Cube Tests',
+  'Financial Burn & Budget Variance',
+];
+
+const SAFETY_REPORT_TYPES = [
+  'Daily Safety & AI Incident Summary',
+  'PPE Compliance & Violation Log',
+  'Intrusion & Hazard Detection Log',
+  'Audit & Corrective Action Report',
+];
 
 interface GenerateReportModalProps {
   show: boolean;
@@ -16,7 +29,8 @@ interface GenerateReportModalProps {
 }
 
 export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateReportModalProps) => {
-  const [role] = useState<UserRoleLabel>(MOCK_USER_ROLE);
+  const { user } = useApp();
+  const role = user.role;
   const [project, setProject] = useState('');
   const [site, setSite] = useState('');
   const [chainage, setChainage] = useState('');
@@ -24,9 +38,27 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
   const [fileFormat, setFileFormat] = useState<ReportFileFormat>('PDF');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [prevShow, setPrevShow] = useState(show);
 
-  // Reset form when modal opens
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [sitesList, setSitesList] = useState<Site[]>([]);
+  const [chainagesList, setChainagesList] = useState<ChainageData[]>([]);
+
   useEffect(() => {
+    projectService.getProjects()
+      .then((data) => setProjectsList(data))
+      .catch(() => null);
+    siteService.getSites()
+      .then((data) => setSitesList(data))
+      .catch(() => null);
+    siteService.getChainages()
+      .then((data) => setChainagesList(data as unknown as ChainageData[]))
+      .catch(() => null);
+  }, []);
+
+  // Reset form when modal opens (adjusted during render to avoid cascading renders in useEffect)
+  if (show !== prevShow) {
+    setPrevShow(show);
     if (show) {
       setProject('');
       setSite('');
@@ -36,17 +68,17 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
       setIsGenerating(false);
       setProgress(0);
     }
-  }, [show]);
+  }
 
-  const isProjectManager = role === 'Project Manager';
-  const isSafetyRole = role === 'Safety Officer' || role === 'Safety Manager';
+  const isProjectManager = role === 'project_manager' || role === 'admin';
+  const isSafetyRole = role === 'safety_officer' || role === 'safety_manager';
 
   const handleTypeToggle = (type: string) => {
     if (type === 'All Report') {
       if (selectedTypes.includes('All Report')) {
         setSelectedTypes([]);
       } else {
-        setSelectedTypes([...MOCK_REPORT_TYPES]);
+        setSelectedTypes([...REPORT_TYPES]);
       }
       return;
     }
@@ -78,7 +110,7 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
               project: project || 'All Projects',
               site: site || 'All Sites',
               chainage: chainage || 'All Chainages',
-              generatedBy: role,
+              generatedBy: String(role).replace(/_/g, ' '),
               generatedDate: new Date().toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'short',
@@ -133,8 +165,8 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
                   onChange={(e) => setProject(e.target.value)}
                 >
                   <option value="">Select Project</option>
-                  {MOCK_PROJECTS_LIST.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                  {projectsList.map((p) => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -149,9 +181,11 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
                 onChange={(e) => setSite(e.target.value)}
               >
                 <option value="">Select Site</option>
-                {MOCK_SITES_LIST.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {sitesList
+                  .filter((s) => !project || s.projectName === project)
+                  .map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
               </select>
             </div>
 
@@ -164,9 +198,11 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
                 onChange={(e) => setChainage(e.target.value)}
               >
                 <option value="">Select Chainage</option>
-                {MOCK_CHAINAGES_LIST.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {chainagesList
+                  .filter((c) => !site || c.site === site)
+                  .map((c) => (
+                    <option key={c.id} value={c.name || c.id}>{c.name || c.id}</option>
+                  ))}
               </select>
             </div>
 
@@ -180,13 +216,13 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
                   onChange={(e) => setSelectedTypes(e.target.value ? [e.target.value] : [])}
                 >
                   <option value="">Select Report Type</option>
-                  {MOCK_SAFETY_REPORT_TYPES.map((t) => (
+                  {SAFETY_REPORT_TYPES.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               ) : (
                 <div className="d-flex flex-column gap-2 mt-1">
-                  {MOCK_REPORT_TYPES.map((type) => (
+                  {REPORT_TYPES.map((type) => (
                     <label
                       key={type}
                       className="d-flex align-items-center gap-2 p-2 rounded border report-type-checkbox"

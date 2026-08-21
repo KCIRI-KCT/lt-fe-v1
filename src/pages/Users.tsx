@@ -1,12 +1,6 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
 import { employeeService } from '../services/employeeService';
-=======
-import { useState } from 'react';
-import { FilterableTable, type Column } from '../components/tables/ReusableDataTable';
-import { MOCK_USERS } from '../services/mockData';
->>>>>>> MS-ltfe-report
 import type { UserProfile } from '../types';
 import { ROLE_LABELS, ROLE_COLORS, ROLE_OPTIONS } from '../constants';
 
@@ -25,11 +19,8 @@ const columns: Column<UserProfile>[] = [
 ];
 
 export const Users = () => {
-<<<<<<< HEAD
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-=======
->>>>>>> MS-ltfe-report
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -42,7 +33,6 @@ export const Users = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-<<<<<<< HEAD
   useEffect(() => {
     let isMounted = true;
     employeeService.getEmployees()
@@ -58,8 +48,6 @@ export const Users = () => {
     return () => { isMounted = false; };
   }, []);
 
-=======
->>>>>>> MS-ltfe-report
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
     setPage(1);
@@ -104,11 +92,7 @@ export const Users = () => {
     },
   ];
 
-<<<<<<< HEAD
   const filtered = usersList.filter((u) => {
-=======
-  const filtered = MOCK_USERS.filter((u) => {
->>>>>>> MS-ltfe-report
     const matchesSearch = !search ||
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -166,7 +150,6 @@ export const Users = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
@@ -196,29 +179,6 @@ export const Users = () => {
           showPagination={true}
         />
       )}
-=======
-      <FilterableTable
-        columns={columns}
-        data={sliced}
-        keyExtractor={(u) => u.id}
-        searchQuery={search}
-        onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search by name, email, employee id..."
-        total={sorted.length}
-        filters={filters}
-        filterValues={filterValues}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        showPagination={true}
-      />
->>>>>>> MS-ltfe-report
     </div>
   );
 };

@@ -2,26 +2,18 @@
 // Camera Form Page — Create/Edit camera with defined input fields
 // ============================================================================
 
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DynamicForm, type FieldConfig } from '../components/forms/DynamicForm';
 import { cameraService } from '../services/cameraService';
 import { siteService } from '../services/siteService';
 import type { Camera, Site } from '../types';
-=======
-import { useNavigate, useParams } from 'react-router-dom';
-import { DynamicForm, type FieldConfig } from '../components/forms/DynamicForm';
-import { MOCK_CAMERAS, MOCK_SITES, upsertCamera } from '../services/mockData';
-import type { Camera } from '../types';
->>>>>>> MS-ltfe-report
 import { CAMERA_TYPE_OPTIONS } from '../constants';
 
 export const CameraFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id && id !== 'add';
-<<<<<<< HEAD
 
   const [camera, setCamera] = useState<Camera | undefined>(undefined);
   const [sites, setSites] = useState<Site[]>([]);
@@ -83,38 +75,12 @@ export const CameraFormPage = () => {
     } finally {
       setSubmitting(false);
     }
-=======
-  const camera = isEdit ? MOCK_CAMERAS.find((c) => c.id === id) : undefined;
-
-  const handleCancel = () => navigate('/cameras');
-
-  const handleSubmit = (data: Record<string, string | boolean>) => {
-    const cameraData: Camera = {
-      id: isEdit && camera ? camera.id : Date.now().toString(),
-      name: data.name as string,
-      rtspUrl: data.rtspUrl as string,
-      siteId: data.siteId as string,
-      siteName: MOCK_SITES.find((s) => s.id === data.siteId)?.name || '',
-      location: data.location as string,
-      status: isEdit ? camera?.status || 'online' : 'online',
-      type: data.type as Camera['type'],
-      lastOnline: isEdit ? camera?.lastOnline || '' : '',
-      healthScore: Number(data.healthScore) || 0,
-    };
-    upsertCamera(cameraData);
-    navigate('/cameras');
->>>>>>> MS-ltfe-report
   };
 
   const fields: FieldConfig[] = [
     { name: 'name', label: 'Camera Name', type: 'text', placeholder: 'e.g., Main Gate - Site A', required: true, colSpan: 6 },
-<<<<<<< HEAD
     { name: 'rtspUrl', label: 'Camera IP / Feed URL', type: 'text', placeholder: 'e.g. 10.1.82.235:8080 or http://10.1.82.235:8080/feed/0', required: true, colSpan: 6 },
     { name: 'siteId', label: 'Site', type: 'select', options: sites.map((s) => ({ value: s.id, label: s.name })), required: true, colSpan: 6 },
-=======
-    { name: 'rtspUrl', label: 'RTSP URL', type: 'text', placeholder: 'rtsp://192.168.1.10/stream1', required: true, colSpan: 6 },
-    { name: 'siteId', label: 'Site', type: 'select', options: MOCK_SITES.map((s) => ({ value: s.id, label: s.name })), required: true, colSpan: 6 },
->>>>>>> MS-ltfe-report
     { name: 'location', label: 'Location', type: 'text', placeholder: 'Specific location description', required: true, colSpan: 6 },
     { name: 'type', label: 'Camera Type', type: 'select', options: CAMERA_TYPE_OPTIONS, required: true, colSpan: 6 },
     { name: 'healthScore', label: 'Health Score', type: 'number', placeholder: '0-100', colSpan: 6 },
@@ -142,7 +108,6 @@ export const CameraFormPage = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
       {errorMsg && (
         <div className="alert alert-danger mt-3" role="alert">
           <i className="bi bi-exclamation-triangle-fill me-2" />
@@ -167,16 +132,6 @@ export const CameraFormPage = () => {
             />
           </fieldset>
         )}
-=======
-      <div className="panel mt-3">
-        <DynamicForm
-          fields={fields}
-          initialValues={initialValues}
-          onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Update Camera' : 'Create Camera'}
-          onCancel={handleCancel}
-        />
->>>>>>> MS-ltfe-report
       </div>
     </div>
   );

@@ -1,15 +1,101 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_CHAINAGES } from '../../services/mockData';
+import { siteService } from '../../services/siteService';
+import type { ChainageData, Site } from '../../types';
 import { MobileModal } from '../../components/common/MobileModal';
 
 interface StationDetailModalProps {
   stationId: string;
+  chainagesList?: ChainageData[];
+  sitesList?: Site[];
   onClose: () => void;
 }
 
-export const StationDetailModal = ({ stationId, onClose }: StationDetailModalProps) => {
+export const StationDetailModal = ({ stationId, chainagesList, sitesList = [], onClose }: StationDetailModalProps) => {
   const navigate = useNavigate();
-  const station = MOCK_CHAINAGES.find((ch) => ch.id === stationId) || MOCK_CHAINAGES[0];
+  const [fetchedChainages, setFetchedChainages] = useState<ChainageData[]>([]);
+  const [fetchedSites, setFetchedSites] = useState<Site[]>([]);
+
+  useEffect(() => {
+    if (!chainagesList || chainagesList.length === 0) {
+      siteService.getChainages()
+        .then((data) => setFetchedChainages(data as unknown as ChainageData[]))
+        .catch(() => null);
+    }
+    if (!sitesList || sitesList.length === 0) {
+      siteService.getSites()
+        .then((data) => setFetchedSites(data))
+        .catch(() => null);
+    }
+  }, [chainagesList, sitesList]);
+
+  const activeChainages = chainagesList && chainagesList.length > 0 ? chainagesList : fetchedChainages;
+  const activeSites = sitesList && sitesList.length > 0 ? sitesList : fetchedSites;
+
+  // 1. Try finding in Chainages
+  const matchedChainage = activeChainages.find((ch) => ch.id === stationId || ch.name === stationId);
+
+  // 2. Try finding in Sites
+  const matchedSite = activeSites.find((s) => s.id === stationId || s.name === stationId);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sAny = (matchedSite || {}) as any;
+
+  const station = matchedChainage ? {
+    id: matchedChainage.id,
+    name: matchedChainage.name || matchedChainage.id,
+    site: matchedChainage.site || 'Site Segment',
+    project: matchedChainage.project || 'L&T Infrastructure Project',
+    lat: Number(matchedChainage.lat) || 19.076,
+    lng: Number(matchedChainage.lng) || 72.8777,
+    progress: Number(matchedChainage.progress) || 55,
+    status: matchedChainage.status || 'green',
+    safetyScore: Number(matchedChainage.safetyScore) || 94,
+    workers: Number(matchedChainage.workers) || 48,
+    aiAlerts: Number(matchedChainage.aiAlerts) || 0,
+    highwayProgress: Number(matchedChainage.highwayProgress) || 60,
+    structuralProgress: Number(matchedChainage.structuralProgress) || 50,
+    supervisor: matchedChainage.supervisor || 'Suresh Reddy',
+    engineer: matchedChainage.engineer || 'Priya Sharma',
+    cameras: Number(matchedChainage.cameras) || 4,
+    lastUpdate: matchedChainage.lastUpdate || 'Live Telemetry Active',
+  } : matchedSite ? {
+    id: matchedSite.id,
+    name: matchedSite.name,
+    site: matchedSite.name,
+    project: matchedSite.projectName || 'L&T Infrastructure Project',
+    lat: Number(matchedSite.latitude) || 19.076,
+    lng: Number(matchedSite.longitude) || 72.8777,
+    progress: Number(sAny.progress) || 65,
+    status: (Number(matchedSite.safetyScore || sAny.safety_score) || 90) >= 90 ? 'green' as const : 'yellow' as const,
+    safetyScore: Number(matchedSite.safetyScore || sAny.safety_score) || 92,
+    workers: Number(matchedSite.workerCount) || 120,
+    aiAlerts: Number(sAny.openAlerts) || 2,
+    highwayProgress: Math.min(100, Math.round((Number(sAny.progress) || 65) * 1.15)),
+    structuralProgress: Math.max(0, Math.round((Number(sAny.progress) || 65) * 0.85)),
+    supervisor: matchedSite.supervisorName || 'Rajesh Kumar',
+    engineer: 'Lead Site Engineer',
+    cameras: Number(sAny.cameraCount) || 8,
+    lastUpdate: 'Live Telemetry Active',
+  } : {
+    id: stationId,
+    name: stationId,
+    site: 'Site Segment',
+    project: 'L&T Operations Project',
+    lat: 19.076,
+    lng: 72.8777,
+    progress: 60,
+    status: 'green' as const,
+    safetyScore: 92,
+    workers: 50,
+    aiAlerts: 1,
+    highwayProgress: 65,
+    structuralProgress: 55,
+    supervisor: 'Rajesh Kumar',
+    engineer: 'Lead Engineer',
+    cameras: 4,
+    lastUpdate: 'Live Telemetry Active',
+  };
 
   return (
     <MobileModal
@@ -106,11 +192,7 @@ export const StationDetailModal = ({ stationId, onClose }: StationDetailModalPro
               <div>
                 <div className="text-muted" style={{ fontSize: '12px', fontWeight: 500 }}>GPS Coordinates</div>
                 <div className="fw-semibold text-dark font-monospace" style={{ fontSize: '13.5px' }}>
-<<<<<<< HEAD
                   {(Number(station.lat) || 19.076).toFixed(5)}, {(Number(station.lng) || 72.8777).toFixed(5)}
-=======
-                  {station.lat.toFixed(5)}, {station.lng.toFixed(5)}
->>>>>>> MS-ltfe-report
                 </div>
               </div>
             </div>

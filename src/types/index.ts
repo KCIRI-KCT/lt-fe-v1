@@ -27,6 +27,10 @@ export interface UserProfile {
   department?: string;
   joinedAt?: string;
   employeeId?: string;
+  siteId?: string;
+  siteName?: string;
+  projectId?: string;
+  projectName?: string;
   createdAt?: string;
   joiningDate?: string;
   address?: string;
@@ -302,7 +306,7 @@ export type AIAlertType =
   | 'no_ppe';
 
 export type AlertSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type AlertStatus = 'new' | 'acknowledged' | 'resolved' | 'dismissed';
+export type AlertStatus = 'new' | 'open' | 'acknowledged' | 'resolved' | 'dismissed';
 
 // ============================================================================
 // PPE Violation Acknowledgment & Notification System
@@ -419,7 +423,7 @@ export interface Report {
   siteId?: string;
   projectId?: string;
   chainageId?: string;
-  dateRange: { start: string; end: string };
+  dateRange?: { start: string; end: string };
   format: 'pdf' | 'csv' | 'excel';
   url?: string;
   status: 'generating' | 'ready' | 'failed';
@@ -435,45 +439,6 @@ export type ReportType =
   | 'custom';
 
 // ============================================================================
-<<<<<<< HEAD
-=======
-// Report History (Enhanced for Reports Page)
-// ============================================================================
-
-export type ReportHistoryStatus = 'Ready' | 'Generating' | 'Failed';
-export type ReportFileFormat = 'PDF' | 'CSV';
-
-export interface ReportHistoryItem {
-  id: number;
-  reportName: string;
-  reportType: string;
-  project: string;
-  site: string;
-  chainage: string;
-  generatedBy: string;
-  generatedDate: string;
-  status: ReportHistoryStatus;
-  format: ReportFileFormat;
-  description?: string;
-}
-
-export type UserRoleLabel =
-  | 'Project Manager'
-  | 'Site Engineer'
-  | 'Site Supervisor'
-  | 'Safety Officer'
-  | 'Safety Manager';
-
-export interface ReportGenerationRequest {
-  project?: string;
-  site: string;
-  chainage: string;
-  reportTypes: string[];
-  fileFormat: ReportFileFormat;
-}
-
-// ============================================================================
->>>>>>> MS-ltfe-report
 // Dashboard Metrics
 // ============================================================================
 
@@ -574,4 +539,22 @@ export interface TableFilters {
   dateFrom?: string;
   dateTo?: string;
   [key: string]: unknown;
+}
+
+export type ReportHistoryStatus = 'Completed' | 'Pending' | 'Failed' | 'Ready' | 'Generating';
+export type ReportFileFormat = 'PDF' | 'CSV' | 'Excel';
+export type UserRoleLabel = 'Project Manager' | 'Site Supervisor' | 'Safety Officer' | 'Safety Manager' | 'Site Engineer' | 'Super Admin';
+
+export interface ReportHistoryItem {
+  id: string | number;
+  reportName: string;
+  type?: string;
+  reportType?: string;
+  project: string;
+  site: string;
+  chainage: string;
+  generatedBy: string;
+  generatedDate: string;
+  status: ReportHistoryStatus;
+  format: ReportFileFormat;
 }

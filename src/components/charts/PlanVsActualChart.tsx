@@ -9,9 +9,9 @@ interface PlanVsActualChartProps {
   className?: string;
 }
 
-const W = 480;
-const H = 180;
-const PAD = { top: 10, right: 10, bottom: 25, left: 32 };
+const W = 500;
+const H = 200;
+const PAD = { top: 14, right: 18, bottom: 28, left: 38 };
 
 const toPath = (points: [number, number][]): string =>
   points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ');
@@ -28,8 +28,8 @@ export const PlanVsActualChart = ({ data, className = '' }: PlanVsActualChartPro
   const actualPts: [number, number][] = data.map((d, i) => [xScale(i), yScale(d.actual)]);
 
   return (
-    <div className={`w-100 h-100 d-flex flex-column justify-content-center ${className}`}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', overflow: 'visible' }} aria-label="Plan vs Actual chart">
+    <div className={`w-100 h-100 d-flex flex-column justify-content-center px-1 py-1 ${className}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', maxHeight: '220px', overflow: 'visible' }} aria-label="Plan vs Actual chart">
         {/* Y grid lines */}
         {[0, 25, 50, 75, 100].map((tick) => {
           const y = yScale((tick / 100) * maxVal);

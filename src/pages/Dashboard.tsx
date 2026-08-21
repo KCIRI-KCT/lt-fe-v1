@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MetricCard } from '../components/ui/MetricCard';
@@ -37,15 +36,6 @@ export const Dashboard = () => {
     { label: 'Total Workforce', value: totalWorkers.toLocaleString() || '1,240', icon: 'bi-people', variant: 'warning', meta: { text: 'On-site today', value: '+4.2%', positive: true } },
     { label: 'Safety Score', value: `${avgSafety}%`, icon: 'bi-shield-check', variant: 'success', meta: { text: 'Overall safety index', value: '+0.8%', positive: true } },
   ];
-=======
-import { Link } from 'react-router-dom';
-import { MetricCard } from '../components/ui/MetricCard';
-import { MOCK_DASHBOARD_METRICS } from '../services/mockData';
-import { MOCK_PROJECTS } from '../services/mockData';
-
-export const Dashboard = () => {
-  const metrics = MOCK_DASHBOARD_METRICS.admin;
->>>>>>> MS-ltfe-report
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -65,11 +55,7 @@ export const Dashboard = () => {
       </div>
 
       <section className="row g-3 mt-1" aria-label="Dashboard metrics">
-<<<<<<< HEAD
         {dynamicMetrics.map((card, i) => (
-=======
-        {metrics.map((card, i) => (
->>>>>>> MS-ltfe-report
           <div key={i} className="col-12 col-sm-6 col-xl-3">
             <MetricCard card={card} />
           </div>
@@ -85,7 +71,6 @@ export const Dashboard = () => {
           <Link className="btn btn-outline-secondary btn-sm" to="/projects">Manage Projects</Link>
         </div>
         <div className="table-responsive">
-<<<<<<< HEAD
           {loading ? (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status" />
@@ -117,32 +102,6 @@ export const Dashboard = () => {
               </tbody>
             </table>
           )}
-=======
-          <table className="table align-middle mb-0">
-            <thead>
-              <tr>
-                <th scope="col">Project</th>
-                <th scope="col">Location</th>
-                <th scope="col">Status</th>
-                <th scope="col" className="text-center">Sites</th>
-                <th scope="col" className="text-center">Workers</th>
-                <th scope="col" className="text-end">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_PROJECTS.filter((p) => p.status === 'active').map((p) => (
-                <tr key={p.id}>
-                  <td><div><p className="fw-semibold mb-0">{p.name}</p><small className="text-muted">{p.code}</small></div></td>
-                  <td>{p.cityName || 'N/A'}</td>
-                  <td><span className="badge text-bg-success">Active</span></td>
-                  <td className="text-center">{p.siteCount}</td>
-                  <td className="text-center">{p.workerCount?.toLocaleString()}</td>
-                  <td className="text-end"><Link className="btn btn-light btn-sm" to={`/projects/${p.id}`}>View</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
->>>>>>> MS-ltfe-report
         </div>
       </section>
     </div>

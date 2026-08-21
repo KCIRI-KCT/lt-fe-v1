@@ -1,13 +1,9 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
 import { siteService } from '../services/siteService';
 import { cameraService } from '../services/cameraService';
 import { dashboardService } from '../services/dashboardService';
 import type { Project, Site, Chainage } from '../types';
-=======
-import { useState } from 'react';
->>>>>>> MS-ltfe-report
 
 type HealthTab = 'cameras' | 'edge' | 'server' | 'network';
 
@@ -145,7 +141,6 @@ export const SystemHealthPage = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-<<<<<<< HEAD
   // Dynamic DB data state
   const [dbProjects, setDbProjects] = useState<Project[]>([]);
   const [dbSites, setDbSites] = useState<Site[]>([]);
@@ -255,8 +250,6 @@ export const SystemHealthPage = () => {
     ? dbChainages.filter((c) => String(c.siteId || '') === String(filterSite))
     : dbChainages;
 
-=======
->>>>>>> MS-ltfe-report
   // Search & Filter state for Cameras
   const [camSearch, setCamSearch] = useState<string>('');
   const [camFilter, setCamFilter] = useState<'all' | 'online' | 'offline'>('all');
@@ -373,31 +366,7 @@ export const SystemHealthPage = () => {
     console.log(copySuccess, handleUpdateTelemetry, applyPreset, handleCopyJson);
   }
 
-<<<<<<< HEAD
 
-=======
-  // Mock Camera Details List (10 cameras)
-  const cameraDetails: CameraDetail[] = [
-    { name: 'AI Entrance Cam 02', id: 'CAM-201', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', health: 92, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.15/stream1', important: true },
-    { name: 'AI Tower Crane Cam 03', id: 'CAM-103', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 98, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.13/stream1', important: true },
-    { name: 'AI Perimeter Cam 05', id: 'CAM-105', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 95, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.14/stream1', important: true },
-    { name: 'AI Pole Cam 01', id: 'CAM-101', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', health: 96, last: 'Live', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.10/stream1', important: true },
-    { name: 'AI Pole Cam 02', id: 'CAM-102', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', health: 62, last: '4 min ago', edge: 'EDGE-01', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.11/stream1', important: false },
-    { name: 'AI Tower Cam 07', id: 'CAM-203', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', health: 93, last: 'Live', edge: 'EDGE-05', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.12/stream1', important: false },
-    { name: 'AI Yard Cam 04', id: 'CAM-104', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', health: 88, last: '12 min ago', edge: 'EDGE-01', status: 'Working', ai: 'Running', rtspUrl: 'rtsp://192.168.1.16/stream1', important: false },
-    { name: 'AI Tunnel Cam 08', id: 'CAM-301', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', health: 0, last: '1 hr ago', edge: 'EDGE-09', status: 'Offline', ai: 'Disconnected', rtspUrl: 'rtsp://192.168.1.17/stream1', important: false },
-  ];
-
-  // Mock Edge Device Details List (6 edge devices)
-  const edgeDetails: EdgeDetail[] = [
-    { name: 'Jetson NX Unit 01', id: 'EDGE-01', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-01', cpu: 38, ram: 61, temp: 52, storage: 64, network: 845, last: '10 sec ago', status: 'Working', ip: '192.168.10.101', location: 'Site A Office' },
-    { name: 'Jetson NX Unit 02', id: 'EDGE-02', site: 'Site A - KM 0-15', projectId: '1', chainageId: 'CH-05', cpu: 45, ram: 58, temp: 50, storage: 60, network: 810, last: '5 sec ago', status: 'Working', ip: '192.168.10.104', location: 'Site A Yard' },
-    { name: 'Jetson NX Unit 05', id: 'EDGE-05', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', cpu: 49, ram: 68, temp: 57, storage: 72, network: 772, last: '15 sec ago', status: 'Working', ip: '192.168.10.102', location: 'Site B Entrance' },
-    { name: 'Jetson NX Unit 06', id: 'EDGE-06', site: 'Site B - KM 15-30', projectId: '1', chainageId: 'CH-10', cpu: 41, ram: 55, temp: 48, storage: 58, network: 790, last: '20 sec ago', status: 'Working', ip: '192.168.10.105', location: 'Site B Main Office' },
-    { name: 'Jetson NX Unit 09', id: 'EDGE-09', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '18 min ago', status: 'Not Working', ip: '192.168.10.103', location: 'Site C Tunnel Entrance' },
-    { name: 'Jetson NX Unit 10', id: 'EDGE-10', site: 'Site C - KM 30-45', projectId: '1', chainageId: 'CH-15', cpu: 0, ram: 0, temp: null, storage: null, network: null, last: '2 hr ago', status: 'Not Working', ip: '192.168.10.106', location: 'Site C Storage Yard' },
-  ];
->>>>>>> MS-ltfe-report
 
   // Filtering cameras
   const filteredCameras = cameraDetails.filter((cam) => {
@@ -410,7 +379,6 @@ export const SystemHealthPage = () => {
 
     // Project filter
     if (appliedProject) {
-<<<<<<< HEAD
       if (String(cam.projectId || '') !== String(appliedProject)) return false;
     }
     // Site filter
@@ -421,15 +389,6 @@ export const SystemHealthPage = () => {
     if (appliedChainage) {
       if (String(cam.chainageId || '') !== String(appliedChainage)) return false;
     }
-=======
-      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
-      if (cam.projectId !== projId) return false;
-    }
-    // Site filter
-    if (appliedSite && cam.site !== appliedSite) return false;
-    // Chainage filter
-    if (appliedChainage && cam.chainageId !== appliedChainage) return false;
->>>>>>> MS-ltfe-report
 
     return matchesSearch && matchesFilter;
   });
@@ -445,7 +404,6 @@ export const SystemHealthPage = () => {
 
     // Project filter
     if (appliedProject) {
-<<<<<<< HEAD
       if (String(edge.projectId || '') !== String(appliedProject)) return false;
     }
     // Site filter
@@ -456,15 +414,6 @@ export const SystemHealthPage = () => {
     if (appliedChainage) {
       if (String(edge.chainageId || '') !== String(appliedChainage)) return false;
     }
-=======
-      const projId = appliedProject === 'Chennai-Bangalore Expressway' ? '1' : appliedProject === 'Mumbai Ring Road' ? '2' : '3';
-      if (edge.projectId !== projId) return false;
-    }
-    // Site filter
-    if (appliedSite && edge.site !== appliedSite) return false;
-    // Chainage filter
-    if (appliedChainage && edge.chainageId !== appliedChainage) return false;
->>>>>>> MS-ltfe-report
 
     return matchesSearch && matchesFilter;
   });
@@ -662,15 +611,9 @@ export const SystemHealthPage = () => {
                 }}
               >
                 <option value="">All Projects</option>
-<<<<<<< HEAD
                 {dbProjects.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-=======
-                <option value="Chennai-Bangalore Expressway">Chennai Expressway</option>
-                <option value="Mumbai Ring Road">Mumbai Ring Road</option>
-                <option value="Hyderabad Metro Phase II">Hyderabad Metro II</option>
->>>>>>> MS-ltfe-report
               </select>
             </div>
 
@@ -680,7 +623,6 @@ export const SystemHealthPage = () => {
                 className="form-select form-select-sm"
                 value={filterSite}
                 onChange={(e) => {
-<<<<<<< HEAD
                   setFilterSite(e.target.value);
                   setFilterChainage('');
                 }}
@@ -689,42 +631,6 @@ export const SystemHealthPage = () => {
                 {availableSites.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code || s.location})</option>
                 ))}
-=======
-                  const selectedVal = e.target.value;
-                  setFilterSite(selectedVal);
-                  setFilterChainage('');
-                  if (selectedVal) {
-                    if (['Site A - KM 0-15', 'Site B - KM 15-30', 'Site C - KM 30-45'].includes(selectedVal)) {
-                      setFilterProject('Chennai-Bangalore Expressway');
-                    } else if (['Site D - KM 0-12', 'Site E - KM 12-25'].includes(selectedVal)) {
-                      setFilterProject('Mumbai Ring Road');
-                    } else if (['Site F - KM 0-12', 'Site G - KM 12-25'].includes(selectedVal)) {
-                      setFilterProject('Hyderabad Metro Phase II');
-                    }
-                  }
-                }}
-              >
-                <option value="">All Sites</option>
-                {(!filterProject || filterProject === 'Chennai-Bangalore Expressway') && (
-                  <>
-                    <option value="Site A - KM 0-15">Site A - KM 0-15</option>
-                    <option value="Site B - KM 15-30">Site B - KM 15-30</option>
-                    <option value="Site C - KM 30-45">Site C - KM 30-45</option>
-                  </>
-                )}
-                {(!filterProject || filterProject === 'Mumbai Ring Road') && (
-                  <>
-                    <option value="Site D - KM 0-12">Site D - KM 0-12</option>
-                    <option value="Site E - KM 12-25">Site E - KM 12-25</option>
-                  </>
-                )}
-                {(!filterProject || filterProject === 'Hyderabad Metro Phase II') && (
-                  <>
-                    <option value="Site F - KM 0-12">Site F - KM 0-12</option>
-                    <option value="Site G - KM 12-25">Site G - KM 12-25</option>
-                  </>
-                )}
->>>>>>> MS-ltfe-report
               </select>
             </div>
 
@@ -734,28 +640,12 @@ export const SystemHealthPage = () => {
                 className="form-select form-select-sm"
                 value={filterChainage}
                 onChange={(e) => setFilterChainage(e.target.value)}
-<<<<<<< HEAD
                 disabled={!filterSite && availableChainages.length === 0}
               >
                 <option value="">All Chainages</option>
                 {availableChainages.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} {c.kmMarker ? `(${c.kmMarker})` : ''}</option>
                 ))}
-=======
-                disabled={!filterSite}
-              >
-                <option value="">All Chainages</option>
-                {filterSite === 'Site A - KM 0-15' && (
-                  <>
-                    <option value="CH-01">CH-01 (KM 2.5)</option>
-                    <option value="CH-05">CH-05 (KM 12.0)</option>
-                  </>
-                )}
-                {filterSite === 'Site B - KM 15-30' && <option value="CH-10">CH-10 (KM 22.4)</option>}
-                {filterSite === 'Site C - KM 30-45' && <option value="CH-15">CH-15 (KM 38.2)</option>}
-                {filterSite === 'Site D - KM 0-12' && <option value="CH-20">CH-20 (KM 4.8)</option>}
-                {filterSite === 'Site E - KM 12-25' && <option value="CH-25">CH-25 (KM 16.5)</option>}
->>>>>>> MS-ltfe-report
               </select>
             </div>
 
@@ -872,51 +762,28 @@ export const SystemHealthPage = () => {
               <div>
                 <div className="d-flex justify-content-between mb-1 text-muted small" style={{ fontSize: '0.75rem' }}>
                   <span>CPU Usage</span>
-<<<<<<< HEAD
                   <span className="fw-bold">{serverStats.cpuUsage}%</span>
                 </div>
                 <div className="progress" style={{ height: '6px' }}>
                   <div className="progress-bar bg-info animated-bar" style={{ width: `${serverStats.cpuUsage}%` }} />
-=======
-                  <span className="fw-bold">42%</span>
-                </div>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div className="progress-bar bg-info animated-bar" style={{ width: '42%' }} />
->>>>>>> MS-ltfe-report
                 </div>
               </div>
 
               <div>
                 <div className="d-flex justify-content-between mb-1 text-muted small" style={{ fontSize: '0.75rem' }}>
                   <span>Memory (RAM)</span>
-<<<<<<< HEAD
                   <span className="fw-bold">{serverStats.memoryUsage}%</span>
                 </div>
                 <div className="progress" style={{ height: '6px' }}>
                   <div className="progress-bar bg-warning animated-bar" style={{ width: `${serverStats.memoryUsage}%` }} />
-=======
-                  <span className="fw-bold">68%</span>
-                </div>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div className="progress-bar bg-warning animated-bar" style={{ width: '68%' }} />
->>>>>>> MS-ltfe-report
                 </div>
               </div>
 
               <div className="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
-<<<<<<< HEAD
               </div>
               <div className="d-flex justify-content-between align-items-center">
                 <span className="server-stat-item">Uptime</span>
                 <span className="server-stat-val small">{serverStats.uptime}</span>
-=======
-                {/* <span className="server-stat-item">AI Latency</span>
-                <span className="server-stat-val small">45 ms</span> */}
-              </div>
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="server-stat-item">Uptime</span>
-                <span className="server-stat-val small">36 Days, 14 Hrs</span>
->>>>>>> MS-ltfe-report
               </div>
             </div>
           </div>
@@ -1594,7 +1461,6 @@ export const SystemHealthPage = () => {
                     <table className="table table-borderless align-middle mb-0">
                       <tbody>
                         {[
-<<<<<<< HEAD
                           { key: 'Base API Endpoint URL', val: serverStats.apiUrl, icon: 'bi-globe' },
                           { key: 'REST Server Status', val: serverStats.status, icon: 'bi-check-circle-fill' },
                           { key: 'PostgreSQL Database', val: serverStats.database, icon: 'bi-database-fill' },
@@ -1605,19 +1471,6 @@ export const SystemHealthPage = () => {
                           { key: 'Memory (RAM)', val: `${serverStats.memoryUsage}%`, icon: 'bi-memory' },
                           { key: 'Disk Storage Usage', val: serverStats.diskUsage, icon: 'bi-hdd-fill' },
                           { key: 'System Uptime', val: serverStats.uptime, icon: 'bi-clock-history' },
-=======
-                          // { key: 'CPU Usage', val: '39%', icon: 'bi-cpu' },
-                          // { key: 'RAM Usage', val: '48%', icon: 'bi-memory' },
-                          { key: 'Storage Used', val: '31%', icon: 'bi-hdd-fill' },
-                          { key: 'Storage Free', val: '69%', icon: 'bi-hdd' },
-                          { key: 'Disk Usage', val: '52%', icon: 'bi-speedometer' },
-                          // { key: 'Uptime', val: '36d 14h', icon: 'bi-clock-history' },
-                          { key: 'Operating System', val: 'Ubuntu 24.04 LTS', icon: 'bi-shield' },
-                          { key: 'Python Compiler', val: '3.11.9', icon: 'bi-code-slash' },
-                          { key: 'PostgreSQL Database', val: 'Healthy', icon: 'bi-database-fill' },
-                          { key: 'FastAPI Router', val: 'Running', icon: 'bi-router' },
-                          { key: 'MQTT Broker', val: 'Running', icon: 'bi-router' },
->>>>>>> MS-ltfe-report
                         ].map((row, idx) => (
                           <tr key={idx} style={{ borderBottom: '1px solid var(--bs-border-color-translucent)' }}>
                             <td className="py-2.5 text-muted">

@@ -1,32 +1,16 @@
-<<<<<<< HEAD
 import { useState, useMemo, useEffect } from 'react';
-=======
-import { useState, useMemo } from 'react';
->>>>>>> MS-ltfe-report
 import { useApp } from '../../hooks/useApp';
 import { PlanVsActualChart } from '../../components/charts/PlanVsActualChart';
 import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
-<<<<<<< HEAD
 import { useNotifications, InlineAlertBanner } from '../../components/common/NotificationToast';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
 import { projectService } from '../../services/projectService';
 import { siteService } from '../../services/siteService';
 import { safetyService } from '../../services/safetyService';
 import type { Project, Site, ChainageData, AIAlert } from '../../types';
-=======
-import { useNotifications, ToastStack, InlineAlertBanner } from '../../components/common/NotificationToast';
-import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
-import {
-  MOCK_AI_ALERTS,
-  MOCK_CHAINAGES,
-  MOCK_PROJECTS,
-  MOCK_SITES,
-  MOCK_PPE_COMPLIANCE,
-} from '../../services/mockData';
->>>>>>> MS-ltfe-report
 
 // Week-wise, Month-wise, Year-wise Plan vs Actual data
 const PLAN_VS_ACTUAL_WEEKLY = [
@@ -45,14 +29,11 @@ const PLAN_VS_ACTUAL_MONTHLY = [
   { month: 'May', planned: 40, actual: 37 },
   { month: 'Jun', planned: 48, actual: 45 },
   { month: 'Jul', planned: 56, actual: 52 },
-<<<<<<< HEAD
   { month: 'Aug', planned: 64, actual: 60 },
   { month: 'Sep', planned: 72, actual: 68 },
   { month: 'Oct', planned: 80, actual: 76 },
   { month: 'Nov', planned: 88, actual: 84 },
   { month: 'Dec', planned: 100, actual: 95 },
-=======
->>>>>>> MS-ltfe-report
 ];
 
 const PLAN_VS_ACTUAL_YEARLY = [
@@ -65,7 +46,6 @@ const PLAN_VS_ACTUAL_YEARLY = [
 
 export const SiteEngineerDashboard = () => {
   const { user } = useApp();
-<<<<<<< HEAD
   const { inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(20000);
 
   // Dynamic API State
@@ -94,9 +74,6 @@ export const SiteEngineerDashboard = () => {
 
     return () => { isMounted = false; };
   }, []);
-=======
-  const { toasts, inlineAlert, bellShake, unreadCount, clearUnread } = useNotifications(20000);
->>>>>>> MS-ltfe-report
 
   // Filters dropdown state
   const [filterProject, setFilterProject] = useState('');
@@ -108,14 +85,10 @@ export const SiteEngineerDashboard = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-<<<<<<< HEAD
-  // Plan vs Actual Chart toggle: week / month / year & Selected Year
+  // Plan vs Actual Chart toggle: week / month / year & Selected Year/Month
   const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('month');
   const [chartYear, setChartYear] = useState<string>('2026');
-=======
-  // Plan vs Actual Chart toggle: week / month / year
-  const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('month');
->>>>>>> MS-ltfe-report
+  const [chartMonth, setChartMonth] = useState<string>('August');
 
   // KPI popover detail card state
   const [activeKpiCardId, setActiveKpiCardId] = useState<string | null>(null);
@@ -129,62 +102,54 @@ export const SiteEngineerDashboard = () => {
   // Active leaderboard details index
   const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
 
-<<<<<<< HEAD
   // ── DYNAMIC ALLOCATION COMPUTATIONS ──
   const allocatedProjects = useMemo(() => {
     return projectsList.filter(
-=======
-  // ── DYNAMIC ALLOCATION COMPUTATIONS (Code Optimization) ──
-  const allocatedProjects = useMemo(() => {
-    return MOCK_PROJECTS.filter(
->>>>>>> MS-ltfe-report
       (p) =>
         p.engineerId === user?.id ||
         p.managerId === user?.id ||
         p.engineerName === user?.name ||
         p.managerName === user?.name
     );
-<<<<<<< HEAD
   }, [projectsList, user]);
 
   const allocatedSites = useMemo(() => {
+    if (user?.role === 'site_supervisor' || user?.role === 'site_engineer' || user?.role === 'safety_manager' || user?.role === 'safety_officer') {
+      const match = sitesList.filter(
+        (s) =>
+          s.supervisorId === user?.id ||
+          s.supervisorName === user?.name ||
+          (user?.siteName && (s.name.toLowerCase().includes(user.siteName.toLowerCase()) || user.siteName.toLowerCase().includes(s.name.toLowerCase())))
+      );
+      if (match.length > 0) return match;
+      if (user?.siteName) {
+        const byName = sitesList.filter(s => s.name === user.siteName);
+        if (byName.length > 0) return byName;
+      }
+      return sitesList.slice(0, 1);
+    }
     if (allocatedProjects.length === 0) return sitesList;
     return sitesList.filter((s) =>
       allocatedProjects.some((p) => p.id === s.projectId)
     );
-  }, [allocatedProjects, sitesList]);
+  }, [allocatedProjects, sitesList, user]);
 
   const allocatedChainages = useMemo(() => {
+    if (user?.role === 'safety_officer') {
+      const match = chainagesList.filter(c =>
+        allocatedSites.some(s => s.name === c.site) || (user?.siteName && c.site === user.siteName)
+      );
+      return match.length > 0 ? match : chainagesList.slice(0, 2);
+    }
     return chainagesList.filter((c) =>
       allocatedSites.some((s) => s.name === c.site)
     );
-  }, [allocatedSites, chainagesList]);
+  }, [allocatedSites, chainagesList, user]);
 
   // Fallbacks if no allocations found
   const projectsToUse = allocatedProjects.length > 0 ? allocatedProjects : projectsList;
   const sitesToUse = allocatedSites.length > 0 ? allocatedSites : sitesList;
   const chainagesToUse = allocatedChainages.length > 0 ? allocatedChainages : chainagesList;
-=======
-  }, [user]);
-
-  const allocatedSites = useMemo(() => {
-    if (allocatedProjects.length === 0) return MOCK_SITES;
-    return MOCK_SITES.filter((s) =>
-      allocatedProjects.some((p) => p.id === s.projectId)
-    );
-  }, [allocatedProjects]);
-
-  const allocatedChainages = useMemo(() => {
-    return MOCK_CHAINAGES.filter((c) =>
-      allocatedSites.some((s) => s.name === c.site)
-    );
-  }, [allocatedSites]);
-
-  // Fallbacks if no allocations found (ensure no blank dashboards)
-  const projectsToUse = allocatedProjects.length > 0 ? allocatedProjects : MOCK_PROJECTS;
-  const sitesToUse = allocatedSites.length > 0 ? allocatedSites : MOCK_SITES;
-  const chainagesToUse = allocatedChainages.length > 0 ? allocatedChainages : MOCK_CHAINAGES;
->>>>>>> MS-ltfe-report
 
   // Filtered chainages based on active dropdown filters
   const activeChainages = useMemo(() => {
@@ -197,62 +162,50 @@ export const SiteEngineerDashboard = () => {
   }, [chainagesToUse, appliedProject, appliedSite, appliedChainage]);
 
   const avgProgress = useMemo(() => {
-<<<<<<< HEAD
     if (activeChainages.length > 0) {
-      return activeChainages.reduce((sum, ch) => sum + ch.progress, 0) / activeChainages.length;
+      const sum = activeChainages.reduce((acc, ch) => acc + (Number(ch.progress) || 0), 0);
+      return sum / activeChainages.length;
     }
-    return projectsToUse.length > 0
-      ? projectsToUse.reduce((sum, p) => sum + (p.progress || 0), 0) / projectsToUse.length
-      : 35.5;
+    if (projectsToUse.length > 0) {
+      const sum = projectsToUse.reduce((acc, p) => acc + (Number(p.progress) || 0), 0);
+      const avg = sum / projectsToUse.length;
+      return isNaN(avg) ? 35.5 : avg;
+    }
+    return 35.5;
   }, [activeChainages, projectsToUse]);
 
   const avgSafetyScore = useMemo(() => {
     if (activeChainages.length > 0) {
-      return activeChainages.reduce((sum, ch) => sum + ch.safetyScore, 0) / activeChainages.length;
+      const sum = activeChainages.reduce((acc, ch) => acc + (Number(ch.safetyScore) || 94), 0);
+      return sum / activeChainages.length;
     }
-    return sitesToUse.length > 0
-      ? sitesToUse.reduce((sum, s) => sum + (s.safetyScore || 95), 0) / sitesToUse.length
-      : 95;
+    if (sitesToUse.length > 0) {
+      const sum = sitesToUse.reduce((acc, s) => acc + (Number(s.safetyScore) || 94), 0);
+      const avg = sum / sitesToUse.length;
+      return isNaN(avg) ? 94.5 : avg;
+    }
+    return 94.5;
   }, [activeChainages, sitesToUse]);
 
   // 1. Dynamic KPIs calculations
   const totalWorkersVal = useMemo(() => {
     if (activeChainages.length > 0) {
-      return activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN');
+      return activeChainages.reduce((sum, ch) => sum + (Number(ch.workers) || 0), 0).toLocaleString('en-IN');
     }
-    return (sitesToUse.reduce((sum, s) => sum + (s.workerCount || 0), 0) || projectsToUse.reduce((sum, p) => sum + (p.workerCount || 0), 0) || 45).toLocaleString('en-IN');
+    const sumWorkers = (sitesToUse.reduce((sum, s) => sum + (Number(s.workerCount) || 0), 0) || projectsToUse.reduce((sum, p) => sum + (Number(p.workerCount) || 0), 0) || 120);
+    return (isNaN(sumWorkers) ? 120 : sumWorkers).toLocaleString('en-IN');
   }, [activeChainages, sitesToUse, projectsToUse]);
-=======
-    return activeChainages.length > 0
-      ? activeChainages.reduce((sum, ch) => sum + ch.progress, 0) / activeChainages.length
-      : 33.7;
-  }, [activeChainages]);
-
-  const avgSafetyScore = useMemo(() => {
-    return activeChainages.length > 0
-      ? activeChainages.reduce((sum, ch) => sum + ch.safetyScore, 0) / activeChainages.length
-      : 91.2;
-  }, [activeChainages]);
-
-  // 1. Dynamic KPIs calculations
-  const totalWorkersVal = useMemo(() => {
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '2,680'
-      : activeChainages.reduce((sum, ch) => sum + ch.workers, 0).toLocaleString('en-IN');
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
->>>>>>> MS-ltfe-report
 
   const safetyScoreVal = useMemo(() => {
-    return `${avgSafetyScore.toFixed(1)}%`;
+    return `${(Number(avgSafetyScore) || 94.5).toFixed(1)}%`;
   }, [avgSafetyScore]);
 
   const progressVal = useMemo(() => {
-    return `${avgProgress.toFixed(1)}%`;
+    return `${(Number(avgProgress) || 35.5).toFixed(1)}%`;
   }, [avgProgress]);
 
   // Machinery
   const machineryVal = useMemo(() => {
-<<<<<<< HEAD
     if (activeChainages.length > 0) {
       return activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString();
     }
@@ -261,16 +214,6 @@ export const SiteEngineerDashboard = () => {
 
   const activeAlertsList = useMemo(() => {
     return alertsList.filter((alert) => {
-=======
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '8'
-      : activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString();
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
-
-  // AI Alerts
-  const activeAlertsList = useMemo(() => {
-    return MOCK_AI_ALERTS.filter((alert) => {
->>>>>>> MS-ltfe-report
       if (appliedChainage && alert.chainageId !== appliedChainage) return false;
       if (appliedSite) {
         const siteObj = sitesToUse.find(s => s.name === appliedSite);
@@ -283,7 +226,6 @@ export const SiteEngineerDashboard = () => {
       }
       return true;
     });
-<<<<<<< HEAD
   }, [alertsList, sitesToUse, projectsToUse, appliedProject, appliedSite, appliedChainage]);
 
   const aiAlertsVal = activeAlertsList.length.toString();
@@ -301,32 +243,6 @@ export const SiteEngineerDashboard = () => {
   const qualityAuditsVal = useMemo(() => {
     return (activeChainages.length > 0 ? activeChainages.length * 4 : projectsToUse.length * 10 || 22).toString();
   }, [activeChainages, projectsToUse]);
-=======
-  }, [sitesToUse, projectsToUse, appliedProject, appliedSite, appliedChainage]);
-
-  const aiAlertsVal = activeAlertsList.length.toString();
-
-  // PPE Compliance — computed from real PPE compliance data
-  const basePpeAvg = Math.round(
-    (MOCK_PPE_COMPLIANCE.helmet + MOCK_PPE_COMPLIANCE.vest + MOCK_PPE_COMPLIANCE.mask +
-      MOCK_PPE_COMPLIANCE.boots + MOCK_PPE_COMPLIANCE.gloves) / 5
-  );
-  const ppeComplianceVal = useMemo(() => {
-    if (!appliedProject && !appliedSite && !appliedChainage) return `${basePpeAvg}%`;
-    const totalPpePending = activeChainages.reduce((sum, ch) => sum + ch.ppePending, 0);
-    const totalWorkers = activeChainages.reduce((sum, ch) => sum + ch.workers, 0) || 1;
-    const violationRate = Math.min(30, (totalPpePending / totalWorkers) * 100);
-    const dynamicPpe = Math.max(60, Math.round(basePpeAvg - violationRate));
-    return `${dynamicPpe}%`;
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
-
-  // Quality Audits
-  const qualityAuditsVal = useMemo(() => {
-    return (!appliedProject && !appliedSite && !appliedChainage)
-      ? '22'
-      : (activeChainages.length * 4).toString();
-  }, [activeChainages, appliedProject, appliedSite, appliedChainage]);
->>>>>>> MS-ltfe-report
 
   const dynamicKpiCards = useMemo(() => {
     return [
@@ -334,19 +250,12 @@ export const SiteEngineerDashboard = () => {
       { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'equipment', title: 'Machinery', value: machineryVal, trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-<<<<<<< HEAD
       { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
       { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
       { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Compliance ${ppeComplianceVal}`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     ];
   }, [progressVal, totalWorkersVal, machineryVal, qualityAuditsVal, safetyScoreVal, aiAlertsVal, ppeComplianceVal]);
 
-=======
-      { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
-      { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Helmet ${MOCK_PPE_COMPLIANCE.helmet}%`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
-    ];
-  }, [progressVal, totalWorkersVal, machineryVal, qualityAuditsVal, aiAlertsVal, ppeComplianceVal]);
->>>>>>> MS-ltfe-report
 
   // 2. Dynamic Safety Leaderboard logic
   const leaderboardTitle = useMemo(() => {
@@ -486,17 +395,12 @@ export const SiteEngineerDashboard = () => {
     }
   }, [appliedChainage, appliedSite, chainagesToUse, sitesToUse]);
 
-<<<<<<< HEAD
   // 4. Dynamic Cumulative Progress Chart Calculation Engine
-=======
-  // 4. Cumulative Chart scaling function
->>>>>>> MS-ltfe-report
   const getChartData = () => {
     let baseData = PLAN_VS_ACTUAL_MONTHLY;
     if (chartRange === 'week') baseData = PLAN_VS_ACTUAL_WEEKLY;
     else if (chartRange === 'year') baseData = PLAN_VS_ACTUAL_YEARLY;
 
-<<<<<<< HEAD
     // Apply Year multiplier scaling for historical / future view
     const yearScale = chartYear === '2024' ? 0.65 : chartYear === '2025' ? 0.85 : 1.0;
 
@@ -507,18 +411,6 @@ export const SiteEngineerDashboard = () => {
     return baseData.map((d) => ({
       ...d,
       planned: Math.min(100, Math.round(d.planned * (yearScale === 1.0 ? 1.0 : yearScale * 1.02))),
-=======
-    if (!appliedProject && !appliedSite && !appliedChainage) {
-      return baseData;
-    }
-
-    const maxActualInBase = baseData[baseData.length - 1].actual;
-    const scaleFactor = avgProgress / maxActualInBase;
-
-    return baseData.map((d) => ({
-      ...d,
-      planned: Math.min(100, Math.round(d.planned * scaleFactor * 1.05)),
->>>>>>> MS-ltfe-report
       actual: Math.min(100, Math.round(d.actual * scaleFactor)),
     }));
   };
@@ -631,13 +523,8 @@ export const SiteEngineerDashboard = () => {
                 setFilterSite(selectedVal);
                 setFilterChainage('');
                 if (selectedVal) {
-<<<<<<< HEAD
                   const selectedSiteObj = sitesList.find(s => s.name === selectedVal);
                   const matchedProj = projectsList.find(p => p.id === selectedSiteObj?.projectId);
-=======
-                  const selectedSiteObj = MOCK_SITES.find(s => s.name === selectedVal);
-                  const matchedProj = MOCK_PROJECTS.find(p => p.id === selectedSiteObj?.projectId);
->>>>>>> MS-ltfe-report
                   if (matchedProj) {
                     setFilterProject(matchedProj.name);
                   }
@@ -710,11 +597,7 @@ export const SiteEngineerDashboard = () => {
               }}
             >
               <div className="d-flex align-items-center justify-content-between mb-2">
-<<<<<<< HEAD
                 <span className="small text-muted fw-bold text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.3px', lineHeight: '1.2' }}>
-=======
-                <span className="small text-muted fw-bold text-uppercase text-truncate" style={{ fontSize: '10px', letterSpacing: '0.3px', maxWidth: '100px' }}>
->>>>>>> MS-ltfe-report
                   {card.title}
                 </span>
                 <span className={`badge ${card.badgeClass} rounded-circle p-1.5 d-flex align-items-center justify-content-center`} style={{ width: 22, height: 22 }}>
@@ -815,14 +698,13 @@ export const SiteEngineerDashboard = () => {
 
         {/* Plan vs Actual Progress Chart */}
         <div className="col-12 col-md-6 col-xl-5">
-          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '380px' }}>
-            <div className="d-flex align-items-center justify-content-between mb-2 border-bottom pb-1.5">
+          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '350px' }}>
+            <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 border-bottom pb-2 gap-2">
               <div className="d-flex align-items-center gap-2">
                 <i className="bi bi-graph-up-arrow text-primary fs-5" />
                 <h3 className="h6 mb-0 fw-bold">Plan vs Actual Cumulative Progress</h3>
               </div>
-<<<<<<< HEAD
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-1.5">
                 {/* Period Dropdown (Week / Month / Year) */}
                 <select
                   className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
@@ -835,6 +717,21 @@ export const SiteEngineerDashboard = () => {
                   <option value="month">Month-wise</option>
                   <option value="year">Year-wise</option>
                 </select>
+
+                {/* Month Dropdown (shown when chartRange is 'week' or 'month') */}
+                {(chartRange === 'week' || chartRange === 'month') && (
+                  <select
+                    className="form-select form-select-sm py-1 px-2 border-secondary-subtle fw-medium text-dark"
+                    style={{ fontSize: '11px', width: 'auto', borderRadius: '6px' }}
+                    value={chartMonth}
+                    onChange={(e) => setChartMonth(e.target.value)}
+                    aria-label="Select chart target month"
+                  >
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                )}
 
                 {/* Year Dropdown */}
                 {chartRange !== 'year' && (
@@ -850,30 +747,25 @@ export const SiteEngineerDashboard = () => {
                     <option value="2024">2024</option>
                   </select>
                 )}
-=======
-              <div className="btn-group d-flex align-items-center" >
+
+                {/* Reset Chart Period Filters Button */}
                 <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'week' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('week')}
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm py-1 px-2 d-flex align-items-center gap-1"
+                  style={{ fontSize: '11px', borderRadius: '6px' }}
+                  onClick={() => {
+                    setChartRange('month');
+                    setChartMonth('August');
+                    setChartYear('2026');
+                  }}
+                  title="Reset chart period filters"
                 >
-                  Week
+                  <i className="bi bi-arrow-counterclockwise" style={{ fontSize: '11px' }} />
+                  <span>Reset</span>
                 </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'month' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('month')}
-                >
-                  Month
-                </button>
-                <button
-                  className={`btn btn-xs py-1 px-3 ${chartRange === 'year' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setChartRange('year')}
-                >
-                  Year
-                </button>
->>>>>>> MS-ltfe-report
               </div>
             </div>
-            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100">
+            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100 p-1">
               <PlanVsActualChart data={getChartData()} />
             </div>
           </div>
@@ -1116,10 +1008,19 @@ export const SiteEngineerDashboard = () => {
       )}
 
       {activeStationId && (
-        <StationDetailModal stationId={activeStationId} onClose={() => setActiveStationId(null)} />
+        <StationDetailModal
+          stationId={activeStationId}
+          chainagesList={chainagesToUse}
+          sitesList={sitesList}
+          onClose={() => setActiveStationId(null)}
+        />
       )}
 
-      <RightDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <RightDrawer
+        isOpen={drawerOpen}
+        alerts={alertsList}
+        onClose={() => setDrawerOpen(false)}
+      />
     </MobilePageWrapper>
   );
 };

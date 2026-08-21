@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { employeeService } from '../../services/employeeService';
@@ -26,15 +25,6 @@ export const UserDetails = () => {
       </div>
     );
   }
-=======
-import { useParams, Link } from 'react-router-dom';
-import { MOCK_USERS } from '../../services/mockData';
-import { ROLE_LABELS, ROLE_COLORS } from '../../constants';
-
-export const UserDetails = () => {
-  const { id } = useParams();
-  const user = MOCK_USERS.find((u) => u.id === id);
->>>>>>> MS-ltfe-report
 
   if (!user) {
     return (

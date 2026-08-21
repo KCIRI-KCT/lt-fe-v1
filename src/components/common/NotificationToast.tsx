@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { MOCK_NOTIFICATIONS } from '../../services/mockData';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 
 export interface NotifItem {
   id: string;
@@ -40,35 +40,31 @@ function playAlertSound() {
 }
 
 // ── useNotifications hook — exported for reuse in dashboards ────────────────
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNotifications(intervalMs = 60000) {
-  const POOL: NotifItem[] = MOCK_NOTIFICATIONS.map((n, i) => ({
-    id: `notif-${i}`,
-    title: n.title,
-    time: n.time,
-    variant: n.variant as NotifItem['variant'],
-    path: n.path,
-  }));
-
-  const [toasts, setToasts] = useState<NotifItem[]>([]);
+  void intervalMs;
   const [inlineAlert, setInlineAlert] = useState<NotifItem | null>(null);
   const [bellShake, setBellShake] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem('kciri_notif_muted') === 'true');
-  const poolIdx = useRef(0);
 
   const toggleMute = useCallback(() => {
     setIsMuted(prev => {
       const next = !prev;
       localStorage.setItem('kciri_notif_muted', String(next));
-      // Dispatch storage event manually for components in the same window (e.g. Navbar)
       window.dispatchEvent(new Event('storage'));
       return next;
     });
   }, []);
 
-  const triggerNotification = useCallback(() => {
-    const notif = POOL[poolIdx.current % POOL.length];
-    poolIdx.current += 1;
+  const triggerNotification = useCallback((item?: Partial<NotifItem>) => {
+    const notif: NotifItem = {
+      id: item?.id || `notif-${Date.now()}`,
+      title: item?.title || 'System Alert Notification',
+      time: item?.time || 'Just now',
+      variant: item?.variant || 'primary',
+      path: item?.path || '/alerts',
+    };
 
     // Bell shake
     setBellShake(true);
@@ -100,13 +96,6 @@ export function useNotifications(intervalMs = 60000) {
     window.addEventListener('storage', syncMute);
     return () => window.removeEventListener('storage', syncMute);
   }, []);
-
-  // Auto-fire on interval
-  useEffect(() => {
-    const timer = setTimeout(triggerNotification, 3000); // first one after 3s
-    const interval = setInterval(triggerNotification, intervalMs);
-    return () => { clearTimeout(timer); clearInterval(interval); };
-  }, [triggerNotification, intervalMs]);
 
   return { toasts: [], inlineAlert, bellShake, unreadCount, clearUnread, triggerNotification, isMuted, toggleMute };
 }
@@ -243,4 +232,8 @@ export const InlineAlertBanner = ({ alert }: { alert: NotifItem }) => (
       {alert.time}
     </span>
   </div>
+);
+
+export const NotificationToast = ({ toasts = [] }: { toasts?: NotifItem[] }) => (
+  <ToastStack toasts={toasts} />
 );

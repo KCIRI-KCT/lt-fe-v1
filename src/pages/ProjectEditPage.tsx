@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_PROJECTS } from '../services/mockData';
+import { projectService } from '../services/projectService';
+import type { Project } from '../types';
 
 export const ProjectEditPage = () => {
   const navigate = useNavigate();
   const [selectedProjId, setSelectedProjId] = useState<string>('');
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    projectService.getProjects()
+      .then((data) => setProjects(data))
+      .catch(() => null);
+  }, []);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -35,7 +43,7 @@ export const ProjectEditPage = () => {
             }}
           >
             <option value="">-- Choose Project --</option>
-            {MOCK_PROJECTS.map((p) => (
+            {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.code})
               </option>

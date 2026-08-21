@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { MOCK_CHAINAGES } from '../../services/mockData';
+import React, { useState, useEffect, useMemo } from 'react';
+import { siteService } from '../../services/siteService';
+import type { ChainageData } from '../../types';
 import { Users, ShieldCheck, TrendingUp, TrendingDown, Clock, CheckCircle2, AlertTriangle, FileSpreadsheet, RotateCcw } from 'lucide-react';
 
 interface WorkerAttendanceConsoleProps {
@@ -7,6 +8,7 @@ interface WorkerAttendanceConsoleProps {
   selectedSite: string;
   selectedChainage: string;
   userRole?: string;
+  chainagesList?: ChainageData[];
 }
 
 interface WorkerRecord {
@@ -49,22 +51,37 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
   selectedSite,
   selectedChainage,
   userRole = 'site_engineer',
+  chainagesList,
 }) => {
   const [activeTab, setActiveTab] = useState<'day' | 'week' | 'month' | 'year'>('day');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('August');
+  const [selectedWeek, setSelectedWeek] = useState<string>('Week 3');
+  const [selectedYear, setSelectedYear] = useState<string>('2026');
+  const [fetchedChainages, setFetchedChainages] = useState<ChainageData[]>([]);
+
+  useEffect(() => {
+    if (!chainagesList || chainagesList.length === 0) {
+      siteService.getChainages()
+        .then((data) => setFetchedChainages(data as unknown as ChainageData[]))
+        .catch(() => null);
+    }
+  }, [chainagesList]);
+
+  const activeChainages = chainagesList && chainagesList.length > 0 ? chainagesList : fetchedChainages;
 
   // 1. Compute Active Context and Counts
   const contextStats = useMemo(() => {
     // Filter chainages matching active dropdown filters
-    const matchedChainages = MOCK_CHAINAGES.filter((ch) => {
+    const matchedChainages = activeChainages.filter((ch) => {
       if (selectedProject && ch.project !== selectedProject) return false;
       if (selectedSite && ch.site !== selectedSite) return false;
       if (selectedChainage && ch.id !== selectedChainage) return false;
       return true;
     });
 
-    const totalWorkers = matchedChainages.reduce((sum, ch) => sum + ch.workers, 0) || 280;
+    const totalWorkers = matchedChainages.reduce((sum, ch) => sum + (Number(ch.workers) || 45), 0) || 280;
 
     // Deterministic attendance rate based on filters
     let seed = 0.942; // default
@@ -111,7 +128,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
       totalWageCost,
       variance,
     };
-  }, [selectedProject, selectedSite, selectedChainage]);
+  }, [selectedProject, selectedSite, selectedChainage, activeChainages]);
 
   // 2. Generate Deterministic Workers List for Daywise table
   const workerList = useMemo(() => {
@@ -120,11 +137,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
 
     // Seed generation based on current selections
     const selectionKey = `${selectedProject}-${selectedSite}-${selectedChainage}`;
-<<<<<<< HEAD
     const seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-=======
-    let seed = selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
->>>>>>> MS-ltfe-report
 
     for (let i = 0; i < countToGenerate; i++) {
       const nameIdx = (seed + i * 3) % GENERIC_NAMES.length;
@@ -415,8 +428,84 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
             <div className="d-flex flex-column flex-grow-1 overflow-hidden justify-content-between">
               {/* Custom SVG/CSS Bar Chart for Trends */}
               <div className="my-2 border rounded p-3 bg-light-subtle d-flex flex-column justify-content-between" style={{ minHeight: '170px' }}>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="small fw-semibold text-secondary">Workforce Attendance Trend (% Present)</span>
+                <div className="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small fw-semibold text-secondary">Attendance Trend:</span>
+                    {activeTab === 'week' && (
+                      <div className="d-flex align-items-center gap-1.5">
+                        <select
+                          className="form-select form-select-sm py-0.5 px-2 border-secondary-subtle"
+                          style={{ fontSize: '11px', width: 'auto' }}
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                          {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select
+                          className="form-select form-select-sm py-0.5 px-2 border-secondary-subtle"
+                          style={{ fontSize: '11px', width: 'auto' }}
+                          value={selectedWeek}
+                          onChange={(e) => setSelectedWeek(e.target.value)}
+                        >
+                          {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map(w => (
+                            <option key={w} value={w}>{w}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {activeTab === 'month' && (
+                      <div className="d-flex align-items-center gap-1.5">
+                        <select
+                          className="form-select form-select-sm py-0.5 px-2 border-secondary-subtle"
+                          style={{ fontSize: '11px', width: 'auto' }}
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                          {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select
+                          className="form-select form-select-sm py-0.5 px-2 border-secondary-subtle"
+                          style={{ fontSize: '11px', width: 'auto' }}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(e.target.value)}
+                        >
+                          {['2024', '2025', '2026'].map(y => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {activeTab === 'year' && (
+                      <select
+                        className="form-select form-select-sm py-0.5 px-2 border-secondary-subtle"
+                        style={{ fontSize: '11px', width: 'auto' }}
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                      >
+                        {['2024', '2025', '2026'].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm py-0.5 px-2 d-flex align-items-center gap-1"
+                      style={{ fontSize: '11px' }}
+                      onClick={() => {
+                        setSelectedMonth('August');
+                        setSelectedWeek('Week 3');
+                        setSelectedYear('2026');
+                      }}
+                      title="Reset Period Filters"
+                    >
+                      <RotateCcw size={11} />
+                      <span>Reset</span>
+                    </button>
+                  </div>
                   <span className="badge bg-primary text-white font-monospace">Avg: {contextStats.attendanceRate.toFixed(1)}%</span>
                 </div>
 

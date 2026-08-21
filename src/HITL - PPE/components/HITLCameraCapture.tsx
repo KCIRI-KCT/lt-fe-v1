@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 /* eslint-disable @typescript-eslint/no-explicit-any */
-=======
->>>>>>> MS-ltfe-report
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const DIRECTION_LABELS = [

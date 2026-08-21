@@ -10,7 +10,6 @@ interface AIAlertCardProps {
   userRole?: string;
 }
 
-<<<<<<< HEAD
 export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }: AIAlertCardProps) => {
   const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
   const timeAgo = getTimeAgo(alert.timestamp);
@@ -18,142 +17,88 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }
   const severityBadge = SEVERITY_BADGES[severityKey] || SEVERITY_BADGES[alert.severity] || 'text-bg-danger';
   const locationLabel = alert.siteCode || alert.siteName || 'N/A';
   const chainageLabel = alert.chainageLabel || alert.chainageId;
+  const statusNormalized = (alert.status || 'open').toLowerCase();
 
-=======
-/**
- * Determine which roles can acknowledge a PPE violation.
- * When these roles acknowledge, it triggers a notification to Safety Officer.
- * Safety Officer is the ONLY one who can resolve (through PPE HITL).
- */
-const PPE_ACKNOWLEDGER_ROLES = ['project_manager', 'site_engineer', 'site_supervisor', 'safety_manager'];
-
-/**
- * Check if a role is allowed to acknowledge (but NOT resolve) PPE violations
- */
-const canAcknowledgePPE = (role: string): boolean => {
-  return PPE_ACKNOWLEDGER_ROLES.includes(role);
-};
-
-export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, userRole }: AIAlertCardProps) => {
-  const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
-  const timeAgo = getTimeAgo(alert.timestamp);
-  const severityBadge = SEVERITY_BADGES[alert.severity] || 'text-bg-secondary';
-  const locationLabel = alert.siteCode || alert.siteName || 'N/A';
-  const chainageLabel = alert.chainageLabel || alert.chainageId;
-
-  const isPPEViolation = alert.type === 'no_ppe';
-  const isSafetyOfficer = userRole === 'safety_officer';
-  const isSafetyOfficerPPE = isSafetyOfficer && isPPEViolation;
-
->>>>>>> MS-ltfe-report
   return (
-    <div className="panel mb-3" style={{ borderLeft: `4px solid ${config.color}`, padding: '16px' }}>
-      <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-3">
-        <div className="d-flex align-items-center gap-3 flex-grow-1 min-width-0">
-          <span className="metric-icon" style={{ background: `${config.color}20`, color: config.color, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-            <i className={config.icon} aria-hidden="true" style={{ fontSize: '20px' }} />
-          </span>
+    <div className="card mb-3 border-0 shadow-sm overflow-hidden" style={{ borderLeft: `5px solid ${config.color}` }}>
+      <div className="card-body p-3">
+        <div className="d-flex flex-column flex-md-row align-items-start gap-3">
+          
+          {/* Base64 / URL Snapshot Preview Thumbnail */}
+          {alert.snapshot ? (
+            <div 
+              className="position-relative flex-shrink-0 rounded overflow-hidden cursor-pointer group shadow-xs" 
+              style={{ width: '100px', height: '70px', background: '#000' }}
+              onClick={() => onView?.(alert.id)}
+            >
+              <img 
+                src={alert.snapshot} 
+                alt={config.label}
+                className="w-100 h-100 object-fit-cover opacity-90 hover-opacity-100 transition-all"
+              />
+              <div className="position-absolute bottom-0 start-0 w-100 p-1 text-center bg-dark bg-opacity-75 text-white fw-semibold" style={{ fontSize: '9px' }}>
+                <i className="bi bi-camera-fill me-1" />Preview
+              </div>
+            </div>
+          ) : (
+            <div 
+              className="flex-shrink-0 rounded d-flex align-items-center justify-content-center"
+              style={{ width: '48px', height: '48px', background: `${config.color}18`, color: config.color }}
+            >
+              <i className={config.icon} aria-hidden="true" style={{ fontSize: '22px' }} />
+            </div>
+          )}
+
+          {/* Alert Telemetry Details */}
           <div className="flex-grow-1 min-width-0">
             <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-              <h6 className="fw-bold mb-0">{config.label}</h6>
-<<<<<<< HEAD
-              <span className={`badge ${severityBadge}`}>{severityKey}</span>
-=======
-              <span className={`badge ${severityBadge}`}>{alert.severity}</span>
->>>>>>> MS-ltfe-report
-              <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-info' : 'text-bg-success'}`}>
-                {alert.status}
+              <h6 className="fw-bold mb-0 text-dark" style={{ fontSize: '15px' }}>{config.label}</h6>
+              <span className="badge bg-light text-secondary border font-monospace" style={{ fontSize: '10px' }}>#{alert.id}</span>
+              <span className={`badge text-uppercase ${severityBadge}`} style={{ fontSize: '10px' }}>{severityKey}</span>
+              <span className={`badge ${statusNormalized === 'open' ? 'text-bg-danger' : statusNormalized === 'acknowledged' ? 'text-bg-warning text-dark' : 'text-bg-success'}`} style={{ fontSize: '10px' }}>
+                {statusNormalized}
               </span>
             </div>
-            <p className="text-muted small mb-1">{alert.description}</p>
-            <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
-              {alert.cameraName && <span><i className="bi bi-camera-video me-1" />{alert.cameraName}</span>}
-              <span><i className="bi bi-geo-alt me-1" />{locationLabel}</span>
-              {chainageLabel && <span><i className="bi bi-signpost-split me-1" />{chainageLabel}</span>}
-              <span><i className="bi bi-clock me-1" />{timeAgo}</span>
+
+            <p className="text-muted small mb-2 text-truncate-2" style={{ fontSize: '13px' }}>{alert.description}</p>
+
+            <div className="d-flex flex-wrap align-items-center gap-3 text-muted" style={{ fontSize: '12px' }}>
+              {alert.cameraName && <span className="fw-medium text-dark"><i className="bi bi-camera-video me-1 text-primary" />{alert.cameraName}</span>}
+              <span><i className="bi bi-geo-alt me-1 text-danger" />{locationLabel}</span>
+              {chainageLabel && <span><i className="bi bi-signpost-split me-1 text-info" />{chainageLabel}</span>}
+              <span><i className="bi bi-clock me-1 text-secondary" />{timeAgo}</span>
             </div>
           </div>
-        </div>
-        <div className="d-flex gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
-<<<<<<< HEAD
-          {onView && (
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-              <i className="bi bi-eye me-1" />View
-            </button>
-          )}
 
-          {alert.status === 'new' && onAcknowledge && (
-            <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
-              <i className="bi bi-check-circle me-1" />Acknowledge
-            </button>
-          )}
-
-          {(alert.status === 'acknowledged' || alert.status === 'new') && (
-            <button
-              className="btn btn-sm btn-success"
-              onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
-            >
-              <i className="bi bi-check2-circle me-1" />Solve
-            </button>
-          )}
-
-          {alert.status === 'resolved' && (
-            <span className="badge text-bg-success d-flex align-items-center gap-1 py-1.5 px-3">
-              <i className="bi bi-check-all" /> Resolved
-            </span>
-=======
-          {isSafetyOfficerPPE ? (
-            /* SAFETY OFFICER: Can Solve (Resolve through PPE HITL) */
-            (alert.status === 'new' || alert.status === 'acknowledged') && (
-              <button
-                className="btn btn-sm btn-success"
-                onClick={() => onSolve ? onSolve(alert.id) : onResolve?.(alert.id)}
-              >
-                <i className="bi bi-check2-circle me-1" />Solve
+          {/* Action Buttons */}
+          <div className="d-flex flex-wrap gap-2 mt-2 mt-md-0 ms-md-auto align-self-stretch align-self-md-center justify-content-end">
+            {onView && (
+              <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" onClick={() => onView(alert.id)}>
+                <i className="bi bi-eye-fill" /> View Detail
               </button>
-            )
-          ) : isPPEViolation && canAcknowledgePPE(userRole || '') ? (
-            /* PPE ACKNOWLEDGERS: Project Manager, Site Engineer, Site Supervisor, Safety Manager
-               - They can only ACKNOWLEDGE (not resolve)
-               - Acknowledging sends notification to Safety Officer */
-            <>
-              {onView && (
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-                  <i className="bi bi-eye me-1" />View
-                </button>
-              )}
-              {alert.status === 'new' && onAcknowledge && (
-                <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
-                  <i className="bi bi-check-circle me-1" />Acknowledge
-                </button>
-              )}
-              {alert.status === 'acknowledged' && (
-                <span className="badge text-bg-info d-flex align-items-center gap-1 py-2 px-3">
-                  <i className="bi bi-check-circle" /> Acknowledged
-                </span>
-              )}
-            </>
-          ) : (
-            /* OTHER ROLES or NON-PPE alerts: Default behavior */
-            <>
-              {onView && (
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => onView(alert.id)}>
-                  <i className="bi bi-eye me-1" />View
-                </button>
-              )}
-              {alert.status === 'new' && onAcknowledge && (
-                <button className="btn btn-sm btn-outline-info" onClick={() => onAcknowledge(alert.id, alert)}>
-                  <i className="bi bi-check-circle me-1" />Acknowledge
-                </button>
-              )}
-              {alert.status === 'acknowledged' && onResolve && (
-                <button className="btn btn-sm btn-outline-success" onClick={() => onResolve(alert.id)}>
-                  <i className="bi bi-check2-all me-1" />Resolve
-                </button>
-              )}
-            </>
->>>>>>> MS-ltfe-report
-          )}
+            )}
+
+            {(statusNormalized === 'open' || statusNormalized === 'new') && onAcknowledge && (
+              <button className="btn btn-sm btn-outline-warning text-dark d-flex align-items-center gap-1" onClick={() => onAcknowledge(alert.id, alert)}>
+                <i className="bi bi-shield-check" /> Acknowledge
+              </button>
+            )}
+
+            {(statusNormalized === 'acknowledged' || statusNormalized === 'open' || statusNormalized === 'new') && (
+              <button
+                className="btn btn-sm btn-success d-flex align-items-center gap-1"
+                onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
+              >
+                <i className="bi bi-check-circle-fill" /> Resolve Violation
+              </button>
+            )}
+
+            {statusNormalized === 'resolved' && (
+              <span className="badge text-bg-success-subtle text-success border border-success d-flex align-items-center gap-1 py-1.5 px-3">
+                <i className="bi bi-check-all fs-6" /> Resolved
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -2,10 +2,6 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react
 import type { Theme, UserProfile, AppContextState, UserRole } from '../types';
 import { AppContext } from './appContextBase';
 import { STORAGE_KEYS, BREAKPOINTS } from '../constants';
-<<<<<<< HEAD
-=======
-import { MOCK_USERS } from '../services/mockData';
->>>>>>> MS-ltfe-report
 
 const getSavedItem = (key: string): string | null => {
   try {
@@ -90,7 +86,6 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-<<<<<<< HEAD
 function getSessionUser(): UserProfile | null {
   try {
     const saved = sessionStorage.getItem('user');
@@ -103,36 +98,6 @@ function getSessionUser(): UserProfile | null {
 
 function getSessionToken(): string | null {
   return sessionStorage.getItem('access_token');
-=======
-function getInitialUser(): UserProfile {
-  const saved = getSavedItem(STORAGE_KEYS.AUTH_USER);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved) as UserProfile;
-      if (parsed.role as string === 'super_admin') {
-        parsed.role = 'admin';
-        setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(parsed));
-      } else if (parsed.role as string === 'project_director') {
-        parsed.role = 'site_engineer';
-        setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(parsed));
-      }
-      return parsed;
-    } catch {
-      // fall through
-    }
-  }
-  const demoUser = MOCK_USERS[0];
-  setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(demoUser));
-  return demoUser;
-}
-
-function getInitialToken(): string {
-  const saved = getSavedItem(STORAGE_KEYS.AUTH_TOKEN);
-  if (saved) return saved;
-  const token = 'demo-token-12345';
-  setSavedItem(STORAGE_KEYS.AUTH_TOKEN, token);
-  return token;
->>>>>>> MS-ltfe-report
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -143,7 +108,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
   const [sidebarMini, setSidebarMiniState] = useState<boolean>(() => isDesktop() && getSavedItem(STORAGE_KEYS.SIDEBAR_MINI) === 'true');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-<<<<<<< HEAD
   
   const initialUser = getSessionUser() || {
     id: '1',
@@ -158,12 +122,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [authToken, setAuthToken] = useState<string | null>(getSessionToken);
 
   const isAuthenticated = Boolean(authToken || sessionStorage.getItem('access_token'));
-=======
-  const [authUser, setAuthUser] = useState<UserProfile>(getInitialUser);
-  const [authToken, setAuthToken] = useState<string>(getInitialToken);
-
-  const isAuthenticated = true; // Demo mode always authenticated
->>>>>>> MS-ltfe-report
   const permissions = useMemo(() => ROLE_PERMISSIONS[authUser.role] || [], [authUser.role]);
 
   // Apply theme to document
@@ -226,7 +184,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-<<<<<<< HEAD
     try {
       const { authService } = await import('../services/authService');
       const response = await authService.login(email, password);
@@ -265,27 +222,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('role_id');
     setAuthToken(null);
-=======
-    // Mock login
-    void password; // Suppress unused warning for mock implementation
-    const user = MOCK_USERS.find((u) => u.email === email);
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
-    const token = `token-${user.id}-${Date.now()}`;
-    setAuthUser(user);
-    setAuthToken(token);
-    setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-    setSavedItem(STORAGE_KEYS.AUTH_TOKEN, token);
-  }, []);
-
-  const logout = useCallback(() => {
-    const demoUser = MOCK_USERS[0];
-    setAuthUser(demoUser);
-    setAuthToken('demo-token-12345');
-    setSavedItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(demoUser));
-    setSavedItem(STORAGE_KEYS.AUTH_TOKEN, 'demo-token-12345');
->>>>>>> MS-ltfe-report
   }, []);
 
   const hasPermission = useCallback((permission: string): boolean => {
@@ -293,7 +229,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [permissions]);
 
   const hasRole = useCallback((roles: UserRole[]): boolean => {
-    return roles.includes(authUser.role);
+    if (!authUser?.role) return false;
+    const currentRole = String(authUser.role).toLowerCase().trim().replace(/[\s-]+/g, '_');
+    return roles.some((r) => {
+      const normalizedRole = String(r).toLowerCase().trim().replace(/[\s-]+/g, '_');
+      return normalizedRole === currentRole;
+    });
   }, [authUser]);
 
   const value: AppContextState = {
