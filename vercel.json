@@ -4,5 +4,18 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ]
+    ],
+     "redirects": [
+    {
+      "source": "/((?!404-maintenance$).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "lt-fe-v1.vercel.app"
+        }
+      ],
+      "destination": "/404-maintenance",
+      "permanent": false
+    }
+  ]
 }
