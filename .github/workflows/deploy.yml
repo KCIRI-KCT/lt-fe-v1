@@ -1,0 +1,26 @@
+name: Deploy Frontend to Intranet Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy on Self-Hosted Intranet Runner
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Deploy with Docker Compose (Node serve on Port 3000)
+        run: |
+          echo "Building and restarting Docker container on port 3000..."
+          docker compose down
+          docker compose up -d --build
+
+      - name: Cleanup Stale Images
+        run: |
+          docker image prune -f
+          echo "Deployment complete! Application running on http://10.1.150.142:3000"

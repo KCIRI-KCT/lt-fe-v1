@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  lt-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://10.1.150.142:8000/api/
+    image: lt-frontend:latest
+    container_name: lt_frontend_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
