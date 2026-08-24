@@ -42,7 +42,6 @@ const CameraDeletePage = lazy(() => import('./pages/CameraDeletePage').then((m) 
 const ProgressPage = lazy(() => import('./pages/ProgressPage').then((m) => ({ default: m.ProgressPage })));
 const PPEDetectionPage = lazy(() => import('./pages/PPEDetectionPage').then((m) => ({ default: m.PPEDetectionPage })));
 const IntrusionDetectionPage = lazy(() => import('./pages/IntrusionDetectionPage').then((m) => ({ default: m.IntrusionDetectionPage })));
-const MaintenancePage = lazy(() => import('./pages/MaintenancePage').then((m) => ({ default: m.MaintenancePage })));
 
 const PageLoader = () => <LoadingState message="Loading page..." />;
 
@@ -59,9 +58,6 @@ const CatchAllRedirect = () => {
   return <Navigate to="/login" replace />;
 };
 
-// Check if app maintenance mode environment flag is set
-const IS_GLOBAL_MAINTENANCE = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
-
 // ============================================================================
 // Role-based route guards
 // ============================================================================
@@ -76,16 +72,6 @@ const ProgressRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor'
 const SafetyDetectionRoles: UserRole[] = ['admin', 'safety_manager', 'safety_officer'];
 
 function App() {
-  if (IS_GLOBAL_MAINTENANCE && window.location.pathname !== '/maintenance') {
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <MaintenancePage />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
   return (
     <ErrorBoundary>
       <BrowserRouter>
@@ -93,7 +79,6 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public routes */}
-              <Route path="/404-maintenance" element={<MaintenancePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/logout" element={<LoginPage />} />
 

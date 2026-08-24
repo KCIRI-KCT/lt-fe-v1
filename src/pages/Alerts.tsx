@@ -4,12 +4,14 @@ import { safetyService } from '../services/safetyService';
 import { AIAlertCard } from '../components/cards/AIAlertCard';
 import { AlertDetailModal } from '../components/common/AlertDetailModal';
 import { NotificationToast } from '../components/common/NotificationToast';
+import SupervisorHITLPPEPage from '../HITL - PPE/pages/SupervisorHITLPPEPage';
 
 export const Alerts = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AIAlert | null>(null);
+  const [solvingAlert, setSolvingAlert] = useState<AIAlert | null>(null);
   
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +65,12 @@ export const Alerts = () => {
     } catch (err) {
       console.error(`Failed to update alert ${id} status:`, err);
     }
+  };
+
+  // Open the HITL PPE Report popup to solve the violation
+  const handleSolve = (id: string) => {
+    const found = alerts.find((a) => a.id === id);
+    if (found) setSolvingAlert(found);
   };
 
   // Filtered Alert List
@@ -300,8 +308,8 @@ export const Alerts = () => {
                 if (found) setSelectedAlert(found);
               }}
               onAcknowledge={(id) => handleUpdateStatus(id, 'ACKNOWLEDGED')}
-              onResolve={(id) => handleUpdateStatus(id, 'RESOLVED')}
-              onSolve={(id) => handleUpdateStatus(id, 'RESOLVED')}
+              onResolve={handleSolve}
+              onSolve={handleSolve}
             />
           ))}
         </div>
@@ -323,6 +331,40 @@ export const Alerts = () => {
           onClose={() => setSelectedAlert(null)}
           onResolve={(id) => handleUpdateStatus(id, 'RESOLVED')}
         />
+      )}
+
+      {/* HITL PPE - Solve Violation Popup */}
+      {solvingAlert && (
+        <>
+          <div className="modal-backdrop fade show" style={{ zIndex: 1040 }} onClick={() => setSolvingAlert(null)} />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ zIndex: 1050, overflowY: 'auto' }}>
+            <div className="modal-dialog modal-dialog-centered modal-lg">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-dark text-white border-0 py-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
+                  <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i className="bi bi-shield-fill-check text-success" />
+                    PPE Inspection - Solve Violation
+                  </h5>
+                  <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setSolvingAlert(null)} />
+                </div>
+                <div className="modal-body p-0">
+                  <SupervisorHITLPPEPage
+                    isModal={true}
+                    taskId={solvingAlert.id}
+                    initialSiteName={solvingAlert.siteCode || solvingAlert.siteName}
+                    initialChainage={solvingAlert.chainageLabel || solvingAlert.chainageId}
+                    onClose={() => setSolvingAlert(null)}
+                    onSubmitSuccess={() => {
+                      // Mark the AI alert as resolved after the HITL report is submitted
+                      handleUpdateStatus(solvingAlert.id, 'RESOLVED');
+                      setSolvingAlert(null);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
     </div>

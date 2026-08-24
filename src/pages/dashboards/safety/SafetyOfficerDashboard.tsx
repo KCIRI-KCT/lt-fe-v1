@@ -8,9 +8,10 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../hooks/useApp';
 import { MobilePageWrapper } from '../../../components/common/MobilePageWrapper';
+import SupervisorHITLPPEPage from '../../../HITL - PPE/pages/SupervisorHITLPPEPage';
+import { safetyService } from '../../../services/safetyService';
 import {
   getAllPPENotifications,
   updatePPENotificationStatus,
@@ -79,12 +80,12 @@ const getTimeAgo = (timestamp: string): string => {
 // Main Component
 // ============================================================================
 export const SafetyOfficerDashboard = () => {
-  const navigate = useNavigate();
   const { user, theme } = useApp();
   const isDark = theme === 'dark';
 
   const [notifications, setNotifications] = useState<PPENotification[]>(() => getAllPPENotifications());
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [solvingNotif, setSolvingNotif] = useState<PPENotification | null>(null);
 
   // Refresh notifications from API & storage
   const refreshNotifications = useCallback(async () => {
@@ -122,9 +123,9 @@ export const SafetyOfficerDashboard = () => {
     refreshNotifications();
   };
 
-  // Navigate to HITL for resolution
+  // Open the HITL PPE report modal for resolution
   const handleResolve = (notif: PPENotification) => {
-    navigate(`/ai-monitoring?resolveAlert=${notif.alertId}`);
+    setSolvingNotif(notif);
   };
 
   return (
@@ -303,7 +304,7 @@ export const SafetyOfficerDashboard = () => {
                       onClick={() => handleResolve(notif)}
                     >
                       <i className="bi bi-check2-circle me-1" />
-                      Resolve via HITL
+                      Solve
                     </button>
                   )}
                   {notif.status === 'resolved' && (
@@ -316,6 +317,51 @@ export const SafetyOfficerDashboard = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* PPE HITL - Solve Violation Modal */}
+      {solvingNotif && (
+        <>
+          <div className="modal-backdrop fade show" style={{ zIndex: 1040 }} onClick={() => setSolvingNotif(null)} />
+          <div className="modal fade show d-block" tabIndex={-1} role="dialog" aria-modal="true" style={{ zIndex: 1050, overflowY: 'auto' }}>
+            <div className="modal-dialog modal-dialog-centered modal-lg">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header bg-dark text-white border-0 py-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
+                  <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i className="bi bi-shield-fill-check text-success" />
+                    PPE Inspection - Solve Violation
+                  </h5>
+                  <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setSolvingNotif(null)} />
+                </div>
+                <div className="modal-body p-0">
+                  <SupervisorHITLPPEPage
+                    isModal={true}
+                    taskId={solvingNotif.id}
+                    initialSiteName={solvingNotif.siteName}
+                    initialChainage={solvingNotif.chainageName}
+                    onClose={() => setSolvingNotif(null)}
+                    onSubmitSuccess={() => {
+                      // Persist resolved status
+                      updatePPENotificationStatus(solvingNotif.id, 'resolved', user);
+                      // Sync the underlying AI alert status as resolved
+                      safetyService.updateAIAlertStatus(solvingNotif.alertId, 'resolved').catch(() => {});
+                      // Immediate UI update so the card shows as Resolved
+                      setNotifications((prev) =>
+                        prev.map((n) =>
+                          n.id === solvingNotif.id
+                            ? { ...n, status: 'resolved', safetyOfficerName: user?.name, resolvedAt: new Date().toISOString() }
+                            : n
+                        )
+                      );
+                      refreshNotifications();
+                      setSolvingNotif(null);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </MobilePageWrapper>
   );
