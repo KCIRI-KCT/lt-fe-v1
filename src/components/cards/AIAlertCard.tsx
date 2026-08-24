@@ -89,7 +89,7 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }
                 className="btn btn-sm btn-success d-flex align-items-center gap-1"
                 onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
               >
-                <i className="bi bi-check-circle-fill" /> Resolve Violation
+                <i className="bi bi-check-circle-fill" /> Solve
               </button>
             )}
 
