@@ -507,37 +507,70 @@ html[data-theme="dark"] .profile-button .avatar-sm {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .page-heading {
-  margin-bottom: 1.35rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .page-heading h1 {
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .eyebrow {
   color: var(--admin-primary);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
 }
 
 .heading-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.65rem;
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   border-radius: 8px;
-  font-weight: 700;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+  font-weight: 600;
+  line-height: 1.42857;
+  vertical-align: middle;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
   transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.btn i,
+.btn .bi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.84rem;
+  border-radius: 6px;
+}
+
+.btn-xs {
+  padding: 0.22rem 0.55rem;
+  font-size: 0.76rem;
+  border-radius: 4px;
 }
 
 .btn:hover,
@@ -736,19 +769,31 @@ html[data-theme="dark"] .profile-button .avatar-sm {
 
 .table {
   --bs-table-bg: transparent;
+  vertical-align: middle;
+}
+
+.table th,
+.table td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
 }
 
 .table thead th {
   color: var(--admin-muted);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   white-space: nowrap;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--admin-border);
 }
 
 .table tbody td {
   min-width: 120px;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
 }
 
 .table tbody tr {
@@ -756,18 +801,54 @@ html[data-theme="dark"] .profile-button .avatar-sm {
 }
 
 .table tbody tr:hover {
-  background: #f8fbff;
+  background: rgba(37, 99, 235, 0.03);
 }
 
 .badge {
-  border-radius: 8px;
-  padding: 0.45rem 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: 6px;
+  padding: 0.38rem 0.65rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .table-search {
-  width: min(260px, 100%);
+  width: min(280px, 100%);
   border-color: var(--admin-border);
   border-radius: 8px;
+  min-height: 38px;
+}
+
+.pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0;
+}
+
+.pagination .page-item .page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.55rem;
+  border-radius: 6px !important;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+  transition: all 0.15s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 61, 94, 0.25);
 }
 
 .table-media {

@@ -37,14 +37,14 @@ const mapRoleIdToUserRole = (roleId?: number | string, roleStr?: string): UserRo
 
 export const authService = {
   async login(usernameOrEmail: string, password: string): Promise<LoginResponse> {
-    let response: any;
+    let response: { data: unknown };
     try {
       // Primary backend login endpoint: POST /api/token/
       response = await api.post('token/', {
         username: usernameOrEmail,
         password,
       });
-    } catch (err) {
+    } catch {
       // Fallback endpoint: POST /api/auth/login/
       response = await api.post('auth/login/', {
         username: usernameOrEmail,
@@ -53,23 +53,26 @@ export const authService = {
       });
     }
 
-    const data = response.data?.data || response.data;
+    const resObj = response.data as Record<string, unknown> | undefined;
+    const data = (resObj?.data as Record<string, unknown> | undefined) || resObj || {};
     
     // Support nested token structure or flat structure
-    const access = data?.tokens?.access || data?.access || data?.access_token;
-    const refresh = data?.tokens?.refresh || data?.refresh || data?.refresh_token;
-    const rawUser = data?.user || data;
+    const tokens = data.tokens as Record<string, string> | undefined;
+    const access = String(tokens?.access || data.access || data.access_token || '');
+    const refresh = String(tokens?.refresh || data.refresh || data.refresh_token || '');
+    const rawUser = (data.user as Record<string, unknown> | undefined) || data;
 
-    const roleInput = rawUser?.role_name || rawUser?.role || rawUser?.username || usernameOrEmail;
-    const normalizedRole = mapRoleIdToUserRole(data?.role_id || rawUser?.role_id, roleInput);
+    const roleInput = String(rawUser.role_name || rawUser.role || rawUser.username || usernameOrEmail);
+    const roleIdVal = (data.role_id || rawUser.role_id) as string | number | undefined;
+    const normalizedRole = mapRoleIdToUserRole(roleIdVal, roleInput);
     const user: UserProfile = {
-      id: String(rawUser?.user_id || rawUser?.id || '1'),
-      name: rawUser?.employee_name || rawUser?.username || rawUser?.name || usernameOrEmail,
-      email: rawUser?.email || `${usernameOrEmail}@lt.com`,
+      id: String(rawUser.user_id || rawUser.id || '1'),
+      name: String(rawUser.employee_name || rawUser.username || rawUser.name || usernameOrEmail),
+      email: String(rawUser.email || `${usernameOrEmail}@lt.com`),
       role: normalizedRole,
-      avatar: rawUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(rawUser?.username || usernameOrEmail)}&background=2563eb&color=fff`,
-      workspace: rawUser?.workspace || 'L&T Operations',
-      employeeId: rawUser?.employee_code || rawUser?.employeeId || 'EMP-001',
+      avatar: String(rawUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(rawUser.username || usernameOrEmail))}&background=2563eb&color=fff`),
+      workspace: String(rawUser.workspace || 'L&T Operations'),
+      employeeId: String(rawUser.employee_code || rawUser.employeeId || 'EMP-001'),
     };
 
     if (access) {
@@ -81,11 +84,11 @@ export const authService = {
     if (user) {
       sessionStorage.setItem('user', JSON.stringify(user));
     }
-    if (data?.role_id || user.role) {
-      sessionStorage.setItem('role_id', String(data?.role_id || user.role));
+    if (roleIdVal || user.role) {
+      sessionStorage.setItem('role_id', String(roleIdVal || user.role));
     }
 
-    return { user, tokens: { access, refresh }, role_id: data?.role_id };
+    return { user, tokens: { access, refresh }, role_id: roleIdVal as string | number | undefined };
   },
 
   async register(data: Record<string, unknown>): Promise<UserProfile> {

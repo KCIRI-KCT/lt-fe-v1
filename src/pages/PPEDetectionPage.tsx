@@ -16,6 +16,10 @@ export const PPEDetectionPage = () => {
   const [ppeAlerts, setPpeAlerts] = useState<AIAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(5);
+
   useEffect(() => {
     let isMounted = true;
     Promise.all([
@@ -92,6 +96,27 @@ export const PPEDetectionPage = () => {
     no_ppe: 'No PPE',
   }[type] || type.replace('_', ' '));
 
+  const totalPages = Math.max(1, Math.ceil(ppeAlerts.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, ppeAlerts.length);
+  const paginatedPpeAlerts = ppeAlerts.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
       <div className="page-heading">
@@ -114,7 +139,7 @@ export const PPEDetectionPage = () => {
       ) : (
         <>
           {/* Overall Score */}
-          <section className="row g-3 mt-1">
+          <section className="row g-3 mt-1 mb-4">
             <div className="col-12 col-md-4">
               <div className="panel h-100 text-center py-4">
                 <div style={{ fontSize: '3rem', color: statusColor(avgCompliance), fontWeight: 700 }}>
@@ -171,8 +196,8 @@ export const PPEDetectionPage = () => {
             </div>
           </section>
 
-          {/* PPE Violation Alerts */}
-          <section className="panel mt-3">
+          {/* PPE Violation Alerts Table */}
+          <section className="panel mt-4">
             <div className="panel-header">
               <div>
                 <h2 className="h5 mb-1 section-title">
@@ -197,7 +222,7 @@ export const PPEDetectionPage = () => {
                 <tbody>
                   {ppeAlerts.length === 0 ? (
                     <tr><td colSpan={6} className="text-center text-muted py-4">No PPE violations detected</td></tr>
-                  ) : ppeAlerts.map(alert => {
+                  ) : paginatedPpeAlerts.map(alert => {
                     const sevLower = String(alert.severity || 'critical').toLowerCase();
                     return (
                       <tr key={alert.id}>
@@ -224,6 +249,63 @@ export const PPEDetectionPage = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls Bar */}
+            {ppeAlerts.length > 0 && (
+              <div className="p-3 border-top bg-light-subtle">
+                <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small text-muted">
+                      Showing <strong>{startIndex + 1}</strong> to <strong>{endIndex}</strong> of <strong>{ppeAlerts.length}</strong> violations
+                    </span>
+                    <span className="text-muted mx-1">|</span>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: 'auto' }}
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value={5}>5 / page</option>
+                      <option value={10}>10 / page</option>
+                      <option value={20}>20 / page</option>
+                    </select>
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav aria-label="PPE alerts pagination">
+                      <ul className="pagination pagination-sm mb-0">
+                        <li className={`page-item ${safeCurrentPage <= 1 ? 'disabled' : ''}`}>
+                          <button
+                            className="page-link"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeCurrentPage <= 1}
+                          >
+                            <i className="bi bi-chevron-left me-1" />Previous
+                          </button>
+                        </li>
+                        {getPageNumbers().map((p) => (
+                          <li key={p} className={`page-item ${p === safeCurrentPage ? 'active' : ''}`}>
+                            <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                          </li>
+                        ))}
+                        <li className={`page-item ${safeCurrentPage >= totalPages ? 'disabled' : ''}`}>
+                          <button
+                            className="page-link"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={safeCurrentPage >= totalPages}
+                          >
+                            Next<i className="bi bi-chevron-right ms-1" />
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         </>
       )}

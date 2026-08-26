@@ -95,6 +95,31 @@ export const Alerts = () => {
     return matchesSearch && matchesStatus && matchesSeverity && matchesType;
   });
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(5);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredAlerts.length);
+  const paginatedAlerts = filteredAlerts.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   // KPI Metrics
   const totalAlerts = alerts.length;
   const openCount = alerts.filter((a) => (a.status || 'open').toLowerCase() === 'open' || (a.status || '').toLowerCase() === 'new').length;
@@ -138,25 +163,11 @@ export const Alerts = () => {
           <div className="card border-0 shadow-sm p-3 bg-white border-start border-4 border-primary">
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <span className="small text-uppercase text-muted fw-bold" style={{ fontSize: '11px' }}>Total Detections</span>
-                <h3 className="fw-bold mb-0 text-dark mt-1">{totalAlerts}</h3>
+                <span className="text-muted small fw-semibold text-uppercase">Total Alerts</span>
+                <h3 className="fw-bold mb-0 mt-1">{totalAlerts}</h3>
               </div>
-              <div className="rounded-circle bg-primary bg-opacity-10 p-3 text-primary d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
-                <i className="bi bi-bell-fill fs-5" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm p-3 bg-white border-start border-4 border-danger">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <span className="small text-uppercase text-muted fw-bold" style={{ fontSize: '11px' }}>Open Violations</span>
-                <h3 className="fw-bold mb-0 text-danger mt-1">{openCount}</h3>
-              </div>
-              <div className="rounded-circle bg-danger bg-opacity-10 p-3 text-danger d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
-                <i className="bi bi-exclamation-octagon-fill fs-5" />
+              <div className="bg-primary bg-opacity-10 p-2.5 rounded-circle text-primary">
+                <i className="bi bi-bell-fill fs-4" />
               </div>
             </div>
           </div>
@@ -166,11 +177,25 @@ export const Alerts = () => {
           <div className="card border-0 shadow-sm p-3 bg-white border-start border-4 border-warning">
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <span className="small text-uppercase text-muted fw-bold" style={{ fontSize: '11px' }}>Critical Severity</span>
-                <h3 className="fw-bold mb-0 text-warning text-darken mt-1">{criticalCount}</h3>
+                <span className="text-muted small fw-semibold text-uppercase">Open Violations</span>
+                <h3 className="fw-bold mb-0 mt-1 text-warning">{openCount}</h3>
               </div>
-              <div className="rounded-circle bg-warning bg-opacity-10 p-3 text-warning text-darken d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
-                <i className="bi bi-shield-exclamation fs-5" />
+              <div className="bg-warning bg-opacity-10 p-2.5 rounded-circle text-warning">
+                <i className="bi bi-exclamation-triangle-fill fs-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm p-3 bg-white border-start border-4 border-danger">
+            <div className="d-flex align-items-center justify-content-between">
+              <div>
+                <span className="text-muted small fw-semibold text-uppercase">Critical Hazards</span>
+                <h3 className="fw-bold mb-0 mt-1 text-danger">{criticalCount}</h3>
+              </div>
+              <div className="bg-danger bg-opacity-10 p-2.5 rounded-circle text-danger">
+                <i className="bi bi-exclamation-octagon-fill fs-4" />
               </div>
             </div>
           </div>
@@ -180,93 +205,88 @@ export const Alerts = () => {
           <div className="card border-0 shadow-sm p-3 bg-white border-start border-4 border-success">
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <span className="small text-uppercase text-muted fw-bold" style={{ fontSize: '11px' }}>Resolved Alerts</span>
-                <h3 className="fw-bold mb-0 text-success mt-1">{resolvedCount}</h3>
+                <span className="text-muted small fw-semibold text-uppercase">Resolved Today</span>
+                <h3 className="fw-bold mb-0 mt-1 text-success">{resolvedCount}</h3>
               </div>
-              <div className="rounded-circle bg-success bg-opacity-10 p-3 text-success d-flex align-items-center justify-content-center" style={{ width: '48px', height: '48px' }}>
-                <i className="bi bi-check-circle-fill fs-5" />
+              <div className="bg-success bg-opacity-10 p-2.5 rounded-circle text-success">
+                <i className="bi bi-check-circle-fill fs-4" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar Panel */}
-      <div className="card border-0 shadow-sm mb-4 bg-white p-3">
-        <div className="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center justify-content-between gap-3">
+      {/* Search & Filter Toolbar */}
+      <div className="card border-0 shadow-sm p-3 mb-4 bg-white">
+        <div className="row g-2 align-items-center">
           
-          {/* Status Filter Tabs */}
-          <div className="btn-group btn-group-sm" role="group" aria-label="Status Filters">
-            <button 
-              type="button" 
-              className={`btn px-3 fw-semibold ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              All Alerts ({totalAlerts})
-            </button>
-            <button 
-              type="button" 
-              className={`btn px-3 fw-semibold ${statusFilter === 'open' ? 'btn-danger' : 'btn-outline-secondary'}`}
-              onClick={() => setStatusFilter('open')}
-            >
-              Open ({openCount})
-            </button>
-            <button 
-              type="button" 
-              className={`btn px-3 fw-semibold ${statusFilter === 'acknowledged' ? 'btn-warning text-dark' : 'btn-outline-secondary'}`}
-              onClick={() => setStatusFilter('acknowledged')}
-            >
-              Acknowledged
-            </button>
-            <button 
-              type="button" 
-              className={`btn px-3 fw-semibold ${statusFilter === 'resolved' ? 'btn-success' : 'btn-outline-secondary'}`}
-              onClick={() => setStatusFilter('resolved')}
-            >
-              Resolved ({resolvedCount})
-            </button>
-          </div>
-
-          {/* Search Input & Dropdowns */}
-          <div className="d-flex flex-wrap align-items-center gap-2">
-            
-            {/* Search Input */}
-            <div className="input-group input-group-sm" style={{ width: '220px' }}>
-              <span className="input-group-text bg-light border-end-0"><i className="bi bi-search text-muted" /></span>
-              <input 
+          {/* Search Box */}
+          <div className="col-12 col-md-4 col-lg-3">
+            <div className="input-group input-group-sm">
+              <span className="input-group-text bg-light border-end-0">
+                <i className="bi bi-search text-muted" />
+              </span>
+              <input
                 type="text"
-                className="form-select-sm form-control border-start-0 bg-light"
-                placeholder="Search alerts, cameras..."
+                className="form-select-sm form-control border-start-0 ps-0"
+                placeholder="Search alerts, cameras, sites..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
+          </div>
+
+          {/* Filters Group */}
+          <div className="col-12 col-md-8 col-lg-9 d-flex flex-wrap align-items-center justify-content-md-end gap-2">
+            
+            {/* Status Filter */}
+            <select
+              className="form-select form-select-sm w-auto"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as 'all' | 'open' | 'acknowledged' | 'resolved');
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">Status: All</option>
+              <option value="open">Open / New</option>
+              <option value="acknowledged">Acknowledged</option>
+              <option value="resolved">Resolved</option>
+            </select>
 
             {/* Severity Filter */}
-            <select 
-              className="form-select form-select-sm bg-light" 
-              style={{ width: '130px' }}
+            <select
+              className="form-select form-select-sm w-auto"
               value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
+              onChange={(e) => {
+                setSeverityFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
-              <option value="all">All Severities</option>
+              <option value="all">Severity: All</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
 
-            {/* Violation Type Filter */}
-            <select 
-              className="form-select form-select-sm bg-light" 
-              style={{ width: '160px' }}
+            {/* Event Type Filter */}
+            <select
+              className="form-select form-select-sm w-auto"
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
-              <option value="all">All Violation Types</option>
-              <option value="helmet_violation">Helmet Violation</option>
-              <option value="vest_violation">Vest Violation</option>
-              <option value="mask_violation">Mask Violation</option>
+              <option value="all">Type: All Violations</option>
+              <option value="no_ppe">PPE Violation</option>
+              <option value="no_helmet">No Helmet</option>
+              <option value="no_vest">No Safety Vest</option>
+              <option value="intrusion">Intrusion / Unauthorized Access</option>
               <option value="fall_detected">Fall Detection</option>
               <option value="restricted_zone">Restricted Zone</option>
               <option value="fire_detected">Fire Hazard</option>
@@ -281,6 +301,7 @@ export const Alerts = () => {
                 setStatusFilter('all');
                 setSeverityFilter('all');
                 setTypeFilter('all');
+                setCurrentPage(1);
               }}
               title="Reset All Filters"
             >
@@ -295,30 +316,97 @@ export const Alerts = () => {
       {loading ? (
         <div className="text-center py-5 bg-white rounded shadow-sm">
           <div className="spinner-border text-primary mb-3" role="status" />
-          <p className="text-muted small font-monospace mb-0">Loading live AI alert telemetry from 10.1.150.142:8000...</p>
+          <p className="text-muted small font-monospace mb-0">Loading live AI alert telemetry...</p>
         </div>
       ) : filteredAlerts.length > 0 ? (
-        <div className="d-flex flex-column gap-3">
-          {filteredAlerts.map((alert) => (
-            <AIAlertCard 
-              key={alert.id}
-              alert={alert}
-              onView={(id) => {
-                const found = alerts.find((a) => a.id === id);
-                if (found) setSelectedAlert(found);
-              }}
-              onAcknowledge={(id) => handleUpdateStatus(id, 'ACKNOWLEDGED')}
-              onResolve={handleSolve}
-              onSolve={handleSolve}
-            />
-          ))}
-        </div>
+        <>
+          <div className="d-flex flex-column gap-3 mb-4">
+            {paginatedAlerts.map((alert) => (
+              <AIAlertCard 
+                key={alert.id}
+                alert={alert}
+                onView={(id) => {
+                  const found = alerts.find((a) => a.id === id);
+                  if (found) setSelectedAlert(found);
+                }}
+                onAcknowledge={(id) => handleUpdateStatus(id, 'ACKNOWLEDGED')}
+                onResolve={handleSolve}
+                onSolve={handleSolve}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls Bar */}
+          <div className="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-2">
+                <span className="small text-muted">
+                  Showing <strong>{filteredAlerts.length > 0 ? startIndex + 1 : 0}</strong> to <strong>{endIndex}</strong> of <strong>{filteredAlerts.length}</strong> alerts
+                </span>
+                <span className="text-muted mx-1">|</span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={5}>5 / page</option>
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={50}>50 / page</option>
+                </select>
+              </div>
+
+              {totalPages > 1 && (
+                <nav aria-label="Alerts pagination">
+                  <ul className="pagination pagination-sm mb-0">
+                    <li className={`page-item ${safeCurrentPage <= 1 ? 'disabled' : ''}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={safeCurrentPage <= 1}
+                      >
+                        <i className="bi bi-chevron-left me-1" />Previous
+                      </button>
+                    </li>
+                    {getPageNumbers().map((p) => (
+                      <li key={p} className={`page-item ${p === safeCurrentPage ? 'active' : ''}`}>
+                        <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                      </li>
+                    ))}
+                    <li className={`page-item ${safeCurrentPage >= totalPages ? 'disabled' : ''}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={safeCurrentPage >= totalPages}
+                      >
+                        Next<i className="bi bi-chevron-right ms-1" />
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              )}
+            </div>
+          </div>
+        </>
       ) : (
         <div className="text-center py-5 bg-white rounded shadow-sm border">
           <i className="bi bi-shield-check fs-1 text-success d-block mb-2" />
           <h5 className="fw-bold text-dark mb-1">No Alerts Matching Filter</h5>
           <p className="text-muted small mb-3">There are currently no active AI safety alerts matching your filter criteria.</p>
-          <button className="btn btn-sm btn-outline-primary" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setSeverityFilter('all'); setTypeFilter('all'); }}>
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('all');
+              setSeverityFilter('all');
+              setTypeFilter('all');
+              setCurrentPage(1);
+            }}
+          >
             Clear All Filters
           </button>
         </div>

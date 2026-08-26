@@ -1,9 +1,12 @@
-// ============================================================================
-// Application Configuration
-// ============================================================================
+const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  return '/api/';
+};
 
 export const config = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://10.1.150.142:8000/api/',
+  apiBaseUrl: getApiBaseUrl(),
   appName: 'AI Progress Monitor',
   version: '1.0.0',
   enableMockData: false, // Set to false to use real Django API

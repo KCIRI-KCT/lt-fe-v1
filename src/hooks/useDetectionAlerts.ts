@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { AIAlert, AlertSeverity, AlertStatus } from '../types';
+import { config } from '../config';
 
 export type ConnectionStatus =
   | 'CONNECTING'
@@ -99,12 +100,22 @@ export function useDetectionAlerts(
     );
   }, [alerts]);
 
-  // Construct target WebSocket URL
+  // Construct target WebSocket URL (same-origin relative proxying or explicit URL)
   const getWebSocketUrl = useCallback(() => {
     if (wsUrl) return wsUrl;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host || 'localhost:8000';
-    return `${protocol}//${host}/ws/alerts/${encodeURIComponent(siteId)}/`;
+
+    let targetHost = typeof window !== 'undefined' ? window.location.host : '10.1.150.142:3000';
+    try {
+      if (config.apiBaseUrl && config.apiBaseUrl.startsWith('http')) {
+        const url = new URL(config.apiBaseUrl);
+        targetHost = url.host;
+      }
+    } catch {
+      // fallback to same origin
+    }
+
+    return `${protocol}//${targetHost}/ws/alerts/${encodeURIComponent(siteId)}/`;
   }, [wsUrl, siteId]);
 
   // Normalize raw incoming payload into structured AIAlert
