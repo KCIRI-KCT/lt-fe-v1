@@ -115,16 +115,17 @@ api.interceptors.response.use(
 
         try {
           // Primary endpoint: POST /api/token/refresh/
-          let data: Record<string, any>;
+          let data: Record<string, unknown> | undefined;
           try {
             const res = await axios.post(`${baseURL}token/refresh/`, { refresh: refreshToken });
-            data = res.data;
+            data = res.data as Record<string, unknown>;
           } catch {
             const res = await axios.post(`${baseURL}auth/token/refresh/`, { refresh: refreshToken });
-            data = res.data;
+            data = res.data as Record<string, unknown>;
           }
 
-          const newAccessToken = data?.access || data?.data?.access;
+          const tokenObj = data as { access?: string; data?: { access?: string } } | undefined;
+          const newAccessToken = tokenObj?.access || tokenObj?.data?.access;
           if (newAccessToken) {
             sessionStorage.setItem('access_token', newAccessToken);
             if (originalRequest.headers) {

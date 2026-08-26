@@ -133,6 +133,31 @@ export const CamerasPage = () => {
     return true;
   });
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(6);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filtered.length);
+  const paginatedCameras = filtered.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   const activeCamera = cameras.find((c) => c.id === activeCamId);
 
   const handleGenerateReport = () => {
@@ -388,7 +413,10 @@ export const CamerasPage = () => {
                     key={s}
                     type="button"
                     className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline-secondary'}`}
-                    onClick={() => setFilter(s)}
+                    onClick={() => {
+                      setFilter(s);
+                      setCurrentPage(1);
+                    }}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)} ({count})
                   </button>
@@ -404,7 +432,10 @@ export const CamerasPage = () => {
               id="siteFilter"
               className="form-select form-select-sm"
               value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
+              onChange={(e) => {
+                setSelectedSite(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option value="all">All Sites</option>
               {siteOptions.map(opt => (
@@ -420,7 +451,10 @@ export const CamerasPage = () => {
               id="chainageFilter"
               className="form-select form-select-sm"
               value={selectedChainage}
-              onChange={(e) => setSelectedChainage(e.target.value)}
+              onChange={(e) => {
+                setSelectedChainage(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option value="all">All Chainages</option>
               {chainageOptions.map(opt => (
@@ -438,10 +472,10 @@ export const CamerasPage = () => {
                 setFilter('all');
                 setSelectedSite('all');
                 setSelectedChainage('all');
+                setCurrentPage(1);
               }}
               disabled={filter === 'all' && selectedSite === 'all' && selectedChainage === 'all'}
             >
-              {/* <i className="bi bi-x-circle" /> */}
               Reset
             </button>
           </div>
@@ -458,11 +492,70 @@ export const CamerasPage = () => {
                 <p className="mt-2 text-muted">Loading camera feeds...</p>
               </div>
             ) : filtered.length > 0 ? (
-              filtered.map((cam) => (
-                <div key={cam.id} className="col-12 col-md-6">
-                  <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} />
+              <>
+                {paginatedCameras.map((cam) => (
+                  <div key={cam.id} className="col-12 col-md-6">
+                    <CameraCard camera={cam} onView={(id) => setActiveCamId(id)} />
+                  </div>
+                ))}
+
+                {/* Pagination Controls Bar */}
+                <div className="col-12 mt-4">
+                  <div className="card border-0 shadow-sm p-3 bg-white">
+                    <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="small text-muted">
+                          Showing <strong>{startIndex + 1}</strong> to <strong>{endIndex}</strong> of <strong>{filtered.length}</strong> cameras
+                        </span>
+                        <span className="text-muted mx-1">|</span>
+                        <select
+                          className="form-select form-select-sm"
+                          style={{ width: 'auto' }}
+                          value={pageSize}
+                          onChange={(e) => {
+                            setPageSize(Number(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <option value={4}>4 / page</option>
+                          <option value={6}>6 / page</option>
+                          <option value={10}>10 / page</option>
+                        </select>
+                      </div>
+
+                      {totalPages > 1 && (
+                        <nav aria-label="Cameras pagination">
+                          <ul className="pagination pagination-sm mb-0">
+                            <li className={`page-item ${safeCurrentPage <= 1 ? 'disabled' : ''}`}>
+                              <button
+                                className="page-link"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={safeCurrentPage <= 1}
+                              >
+                                <i className="bi bi-chevron-left me-1" />Previous
+                              </button>
+                            </li>
+                            {getPageNumbers().map((p) => (
+                              <li key={p} className={`page-item ${p === safeCurrentPage ? 'active' : ''}`}>
+                                <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                              </li>
+                            ))}
+                            <li className={`page-item ${safeCurrentPage >= totalPages ? 'disabled' : ''}`}>
+                              <button
+                                className="page-link"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={safeCurrentPage >= totalPages}
+                              >
+                                Next<i className="bi bi-chevron-right ms-1" />
+                              </button>
+                            </li>
+                          </ul>
+                        </nav>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              ))
+              </>
             ) : (
               <div className="col-12 text-center py-5 border rounded bg-body-secondary text-muted">
                 <i className="bi bi-camera-video-off fs-1 mb-2 d-block" />

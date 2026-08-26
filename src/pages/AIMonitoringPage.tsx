@@ -163,6 +163,31 @@ export const AIMonitoringPage = () => {
     return true;
   });
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filtered.length);
+  const paginatedAlerts = filtered.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, safeCurrentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   const selectedAlert = selectedAlertId ? alerts.find((a) => a.id === selectedAlertId) || null : null;
   const solvingAlert = solvingAlertId ? alerts.find((a) => a.id === solvingAlertId) || null : null;
 
@@ -251,6 +276,7 @@ export const AIMonitoringPage = () => {
                 setAppliedProject(filterProject);
                 setAppliedSite(filterSite);
                 setAppliedChainage(filterChainage);
+                setCurrentPage(1);
               }}
             >
               Apply Filter
@@ -264,6 +290,7 @@ export const AIMonitoringPage = () => {
                 setAppliedProject('');
                 setAppliedSite('');
                 setAppliedChainage('');
+                setCurrentPage(1);
               }}
             >
               Reset
@@ -286,7 +313,10 @@ export const AIMonitoringPage = () => {
                   isActive ? config.activeClass : 'bg-white border-light-subtle text-muted'
                 }`}
                 style={{ cursor: 'pointer', transition: 'all 0.15s ease', minHeight: '85px' }}
-                onClick={() => setFilter(s)}
+                onClick={() => {
+                  setFilter(s);
+                  setCurrentPage(1);
+                }}
               >
                 <i className={`bi ${config.icon} fs-5`} style={{ color: isActive ? 'inherit' : config.color }} />
                 <strong className="fs-5 lh-1 text-dark fw-bold">{count}</strong>
@@ -299,10 +329,21 @@ export const AIMonitoringPage = () => {
 
       {/* Type filter */}
       <div className="d-flex flex-wrap gap-2 mb-4">
-        <button className={`btn btn-sm ${typeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setTypeFilter('all')}>All Types</button>
+        <button
+          className={`btn btn-sm ${typeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => {
+            setTypeFilter('all');
+            setCurrentPage(1);
+          }}
+        >
+          All Types
+        </button>
         <button
           className={`btn btn-sm ${typeFilter === 'no_ppe' ? 'btn-primary' : 'btn-outline-secondary'}`}
-          onClick={() => setTypeFilter('no_ppe')}
+          onClick={() => {
+            setTypeFilter('no_ppe');
+            setCurrentPage(1);
+          }}
         >
           <i className="bi bi-person-check-fill me-1" />PPE Compliance
         </button>
@@ -312,7 +353,10 @@ export const AIMonitoringPage = () => {
           <button
             key={key}
             className={`btn btn-sm ${typeFilter === key ? 'btn-primary' : 'btn-outline-secondary'}`}
-            onClick={() => setTypeFilter(key)}
+            onClick={() => {
+              setTypeFilter(key);
+              setCurrentPage(1);
+            }}
           >
             <i className={`${config.icon} me-1`} />{config.label}
           </button>
@@ -334,17 +378,77 @@ export const AIMonitoringPage = () => {
           </div>
         </div>
       ) : (
-        filtered.map((alert) => (
-          <AIAlertCard
-            key={alert.id}
-            alert={alert}
-            userRole={user?.role}
-            onAcknowledge={handleAcknowledge}
-            onResolve={handleResolve}
-            onSolve={handleSolve}
-            onView={handleViewAlert}
-          />
-        ))
+        <>
+          <div className="d-flex flex-column gap-3 mb-4">
+            {paginatedAlerts.map((alert) => (
+              <AIAlertCard
+                key={alert.id}
+                alert={alert}
+                userRole={user?.role}
+                onAcknowledge={handleAcknowledge}
+                onResolve={handleResolve}
+                onSolve={handleSolve}
+                onView={handleViewAlert}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls Bar */}
+          <div className="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-2">
+                <span className="small text-muted">
+                  Showing <strong>{filtered.length > 0 ? startIndex + 1 : 0}</strong> to <strong>{endIndex}</strong> of <strong>{filtered.length}</strong> alerts
+                </span>
+                <span className="text-muted mx-1">|</span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={5}>5 / page</option>
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={50}>50 / page</option>
+                </select>
+              </div>
+
+              {totalPages > 1 && (
+                <nav aria-label="Alerts pagination">
+                  <ul className="pagination pagination-sm mb-0">
+                    <li className={`page-item ${safeCurrentPage <= 1 ? 'disabled' : ''}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={safeCurrentPage <= 1}
+                      >
+                        <i className="bi bi-chevron-left me-1" />Previous
+                      </button>
+                    </li>
+                    {getPageNumbers().map((p) => (
+                      <li key={p} className={`page-item ${p === safeCurrentPage ? 'active' : ''}`}>
+                        <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                      </li>
+                    ))}
+                    <li className={`page-item ${safeCurrentPage >= totalPages ? 'disabled' : ''}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={safeCurrentPage >= totalPages}
+                      >
+                        Next<i className="bi bi-chevron-right ms-1" />
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       <AlertDetailModal alert={selectedAlert} onClose={() => setSelectedAlertId(null)} />

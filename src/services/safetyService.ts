@@ -5,6 +5,7 @@
 import api from './api';
 import type { AIAlert, PPEAcknowledgement, PPENotification, Incident, AlertSeverity, AlertStatus, AIAlertType } from '../types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeAIAlert(raw: any): AIAlert {
   if (!raw) return {} as AIAlert;
   const alertId = String(raw.alert_id || raw.id || Date.now());
@@ -36,24 +37,24 @@ export function normalizeAIAlert(raw: any): AIAlert {
   return {
     id: alertId,
     cameraId: String(raw.camera_id || raw.cameraId || '1'),
-    cameraName: raw.camera_name || raw.cameraName || 'AI Corridor Camera',
+    cameraName: (raw.camera_name || raw.cameraName || 'AI Corridor Camera') as string,
     siteId: String(raw.site_id || raw.siteId || '1'),
-    siteName: raw.site_name || raw.siteName || 'Site Corridor',
-    siteCode: raw.site_code || raw.siteCode,
+    siteName: (raw.site_name || raw.siteName || 'Site Corridor') as string,
+    siteCode: (raw.site_code || raw.siteCode) as string | undefined,
     projectId: String(raw.project_id || raw.projectId || '1'),
     chainageId: String(raw.chainage_id || raw.chainageId || '1'),
-    chainageLabel: raw.chainage_label || raw.chainageLabel,
+    chainageLabel: (raw.chainage_label || raw.chainageLabel) as string | undefined,
     type: typeStr,
     severity: severityMap[rawSev] || 'high',
-    timestamp: raw.timestamp || new Date().toISOString(),
-    snapshot: raw.snapshot || raw.image || raw.image_url || raw.imageUrl || '',
-    description: raw.description || `${typeStr.replace(/_/g, ' ')} detected at ${raw.site_name || 'site'}`,
+    timestamp: String(raw.timestamp || new Date().toISOString()),
+    snapshot: String(raw.snapshot || raw.image || raw.image_url || raw.imageUrl || ''),
+    description: String(raw.description || `${typeStr.replace(/_/g, ' ')} detected at ${raw.site_name || 'site'}`),
     status: statusMap[rawStat] || 'open',
-    assignedTo: raw.assigned_to || raw.assignedTo,
-    acknowledgedBy: raw.acknowledged_by || raw.acknowledgedBy,
-    acknowledgedAt: raw.acknowledged_at || raw.acknowledgedAt,
-    resolvedAt: raw.resolved_at || raw.resolvedAt,
-    detailFields: raw.detail_fields || raw.detailFields,
+    assignedTo: (raw.assigned_to || raw.assignedTo) as string | undefined,
+    acknowledgedBy: (raw.acknowledged_by || raw.acknowledgedBy) as string | undefined,
+    acknowledgedAt: (raw.acknowledged_at || raw.acknowledgedAt) as string | undefined,
+    resolvedAt: (raw.resolved_at || raw.resolvedAt) as string | undefined,
+    detailFields: (raw.detail_fields || raw.detailFields) as { label: string; value: string }[] | undefined,
   };
 }
 

@@ -76,7 +76,7 @@ const mapIconName = (name: string): string => {
 
 const RenderIcon = ({ name, size = 18, className }: { name: string; size?: number; className?: string }) => {
   const mappedName = mapIconName(name);
-  const IconComponent = (Lucide as any)[mappedName];
+  const IconComponent = (Lucide as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[mappedName];
   if (IconComponent) {
     return <IconComponent size={size} className={className} />;
   }
