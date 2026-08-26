@@ -1,10 +1,10 @@
-# Stage 1: Build stage using Node 20 Alpine
+# Stage 1: Build static distribution using Node 20 Alpine
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Accept environment variable argument for Vite compilation
-ARG VITE_API_BASE_URL=http://10.1.150.142:8000/api/
+# Accept environment build arguments for Vite compilation
+ARG VITE_API_BASE_URL=http://localhost:8000/api/
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 # Copy package manifests & install dependencies
@@ -15,19 +15,20 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Production static server using Node 20 Alpine & 'serve' (No Nginx required)
-FROM node:20-alpine AS runner
+# Stage 2: Serve static production assets using Nginx Alpine
+FROM nginx:alpine AS runner
 
-WORKDIR /app
+# Remove default Nginx HTML static files
+RUN rm -rf /usr/share/nginx/html/*
 
-# Install lightweight 'serve' static web server globally
-RUN npm install -g serve
+# Copy static assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy compiled dist folder from Stage 1
-COPY --from=builder /app/dist ./dist
+# Copy custom production Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 3000 directly
-EXPOSE 3000
+# Expose HTTP port 80
+EXPOSE 80
 
-# Start static file server on port 3000 with SPA client routing (-s)
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Start Nginx in foreground
+CMD ["nginx", "-g", "daemon off;"]

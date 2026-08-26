@@ -292,6 +292,8 @@ export interface AIAlert {
   acknowledgedAt?: string;
   resolvedAt?: string;
   detailFields?: Array<{ label: string; value: string }>;
+  confidence?: number;
+  boundingBox?: { x1: number; y1: number; x2: number; y2: number };
 }
 
 export type AIAlertType =
