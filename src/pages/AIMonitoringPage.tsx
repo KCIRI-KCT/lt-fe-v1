@@ -451,7 +451,12 @@ export const AIMonitoringPage = () => {
         </>
       )}
 
-      <AlertDetailModal alert={selectedAlert} onClose={() => setSelectedAlertId(null)} />
+      <AlertDetailModal
+        alert={selectedAlert}
+        onClose={() => setSelectedAlertId(null)}
+        onResolve={handleResolve}
+        onSolve={handleSolve}
+      />
 
       {solvingAlert && (
         <>

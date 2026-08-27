@@ -5,9 +5,10 @@ interface AlertDetailModalProps {
   alert: AIAlert | null;
   onClose: () => void;
   onResolve?: (id: string) => void;
+  onSolve?: (id: string) => void;
 }
 
-export const AlertDetailModal = ({ alert, onClose, onResolve }: AlertDetailModalProps) => {
+export const AlertDetailModal = ({ alert, onClose, onResolve, onSolve }: AlertDetailModalProps) => {
   if (!alert) return null;
 
   const config = AI_ALERT_CONFIG[alert.type] || {
@@ -105,16 +106,20 @@ export const AlertDetailModal = ({ alert, onClose, onResolve }: AlertDetailModal
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onClose}>
                   Close
                 </button>
-                {onResolve && alert.status !== 'resolved' && (
+                {alert.status !== 'resolved' && (onSolve || onResolve) && (
                   <button 
                     type="button" 
                     className="btn btn-success btn-sm d-flex align-items-center gap-1"
                     onClick={() => {
-                      onResolve(alert.id);
                       onClose();
+                      if (onSolve) {
+                        onSolve(alert.id);
+                      } else if (onResolve) {
+                        onResolve(alert.id);
+                      }
                     }}
                   >
-                    <i className="bi bi-check-circle-fill" /> Resolve Alert
+                    <i className="bi bi-check-circle-fill" /> Solve
                   </button>
                 )}
               </div>

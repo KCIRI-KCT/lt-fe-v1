@@ -418,6 +418,7 @@ export const Alerts = () => {
           alert={selectedAlert} 
           onClose={() => setSelectedAlert(null)}
           onResolve={(id) => handleUpdateStatus(id, 'RESOLVED')}
+          onSolve={(id) => setSolvingAlert(alerts.find((a) => a.id === id) || null)}
         />
       )}
 
