@@ -7,7 +7,7 @@ import type { Site, Chainage, Country, State, City } from '../types';
 
 export const siteService = {
   async getSites(params?: Record<string, unknown>): Promise<Site[]> {
-    const response = await api.get('sites/', { params });
+    const response = await api.get('sites/', { params: { page_size: 10000, ...params } });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },
@@ -33,7 +33,7 @@ export const siteService = {
   },
 
   async getChainages(siteId?: string): Promise<Chainage[]> {
-    const response = await api.get('chainages/', { params: { siteId } });
+    const response = await api.get('chainages/', { params: { page_size: 10000, siteId } });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

@@ -67,7 +67,7 @@ export const normalizePPENotification = (item: Record<string, unknown>): PPENoti
 /** GET /api/ppe-notifications/ */
 export const fetchPPENotificationsFromAPI = async (): Promise<PPENotification[]> => {
   try {
-    const response = await api.get('ppe-notifications/');
+    const response = await api.get('ppe-notifications/', { params: { page_size: 10000 } });
     const data = response.data?.data || response.data;
     const items: Array<Record<string, unknown>> = Array.isArray(data) ? data : data?.results || [];
     return items.map(normalizePPENotification);
