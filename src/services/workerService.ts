@@ -7,7 +7,7 @@ import type { Worker, Attendance } from '../types';
 
 export const workerService = {
   async getWorkers(params?: Record<string, unknown>): Promise<Worker[]> {
-    const response = await api.get('workers/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('workers/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },
@@ -33,7 +33,7 @@ export const workerService = {
   },
 
   async getAttendances(params?: Record<string, unknown>): Promise<Attendance[]> {
-    const response = await api.get('attendances/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('attendances/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

@@ -60,8 +60,7 @@ export function normalizeAIAlert(raw: any): AIAlert {
 
 export const safetyService = {
   async getAIAlerts(params?: Record<string, unknown>): Promise<AIAlert[]> {
-    const queryParams = { page_size: 10000, ...params };
-    const response = await api.get('ai-alerts/', { params: queryParams });
+    const response = await api.get('ai-alerts/', { params });
     const data = response.data?.data || response.data;
     const list = Array.isArray(data) ? data : data?.results || [];
     return list.map(normalizeAIAlert);
@@ -78,15 +77,14 @@ export const safetyService = {
     return response.data?.data || response.data;
   },
 
-  async getPPENotifications(): Promise<PPENotification[]> {
-    const response = await api.get('ppe-notifications/', { params: { page_size: 10000 } });
+  async getPPENotifications(params?: Record<string, unknown>): Promise<PPENotification[]> {
+    const response = await api.get('ppe-notifications/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },
 
   async getIncidents(params?: Record<string, unknown>): Promise<Incident[]> {
-    const queryParams = { page_size: 10000, ...params };
-    const response = await api.get('incidents/', { params: queryParams });
+    const response = await api.get('incidents/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

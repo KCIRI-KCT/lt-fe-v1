@@ -149,8 +149,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
       // Status
       const statusSeed = (seed + i * 11) % 100;
       let status: 'present' | 'absent' | 'late' | 'leave' = 'present';
-      if (statusSeed < 4) status = 'absent';
-      else if (statusSeed < 8) status = 'leave';
+      if (statusSeed < 5) status = 'leave';
       else if (statusSeed < 15) status = 'late';
 
       const shift = (seed + i * 17) % 2 === 0 ? 'General' : 'Night';
@@ -284,7 +283,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
         {/* Stats Grid */}
         <div className="row g-2 mb-3">
           {/* Attendance Rate */}
-          <div className="col-6 col-sm-3">
+          <div className="col-12 col-sm-4">
             <div className="p-2 border rounded bg-light-subtle h-100">
               <div className="text-muted small" style={{ fontSize: '10.5px' }}>Attendance Rate</div>
               <div className="h5 fw-bold my-1 text-primary">{contextStats.attendanceRate.toFixed(1)}%</div>
@@ -295,23 +294,15 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
             </div>
           </div>
           {/* Present */}
-          <div className="col-6 col-sm-3">
+          <div className="col-12 col-sm-4">
             <div className="p-2 border rounded bg-light-subtle h-100">
               <div className="text-muted small" style={{ fontSize: '10.5px' }}>Active Present</div>
               <div className="h5 fw-bold my-1 text-success">{contextStats.present} <span className="text-muted small" style={{ fontSize: '11px' }}>/ {contextStats.totalWorkers}</span></div>
               <span className="text-muted small" style={{ fontSize: '10px' }}>Workers checked in</span>
             </div>
           </div>
-          {/* Absent */}
-          <div className="col-6 col-sm-3">
-            <div className="p-2 border rounded bg-light-subtle h-100">
-              <div className="text-muted small" style={{ fontSize: '10.5px' }}>Absent / Leave</div>
-              <div className="h5 fw-bold my-1 text-danger">{contextStats.absent}</div>
-              <span className="text-muted small" style={{ fontSize: '10px' }}>Not active today</span>
-            </div>
-          </div>
           {/* Overtime card */}
-          <div className="col-6 col-sm-3">
+          <div className="col-12 col-sm-4">
             <div className="p-2 border rounded bg-light-subtle h-100">
               <div className="text-muted small" style={{ fontSize: '10.5px' }}>Overtime Recorded</div>
               <div className="h5 fw-bold my-1 text-warning">+{contextStats.overtimeHours} hrs</div>
@@ -352,7 +343,6 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
                     <option value="all">All</option>
                     <option value="present">Present</option>
                     <option value="late">Late</option>
-                    <option value="absent">Absent</option>
                     <option value="leave">Leave</option>
                   </select>
                   <div className="d-flex align-items-center gap-1.5 col-12 col-sm-auto">

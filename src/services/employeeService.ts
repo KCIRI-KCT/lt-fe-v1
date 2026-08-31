@@ -31,7 +31,7 @@ const mapRole = (designation?: string, dept?: string): UserRole => {
 
 export const employeeService = {
   async getEmployees(params?: Record<string, unknown>): Promise<UserProfile[]> {
-    const response = await api.get('employees/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('employees/', { params });
     const rawData = response.data?.data || response.data;
     const items: EmployeeData[] = Array.isArray(rawData) ? rawData : rawData?.results || [];
 

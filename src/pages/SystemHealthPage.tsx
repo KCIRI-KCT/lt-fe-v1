@@ -3,6 +3,7 @@ import { projectService } from '../services/projectService';
 import { siteService } from '../services/siteService';
 import { cameraService } from '../services/cameraService';
 import { dashboardService } from '../services/dashboardService';
+import { config } from '../config';
 import type { Project, Site, Chainage } from '../types';
 
 type HealthTab = 'cameras' | 'edge' | 'server' | 'network';
@@ -148,7 +149,7 @@ export const SystemHealthPage = () => {
   const [cameraDetails, setCameraDetails] = useState<CameraDetail[]>([]);
   const [edgeDetails, setEdgeDetails] = useState<EdgeDetail[]>([]);
   const [serverStats, setServerStats] = useState({
-    apiUrl: 'http://10.1.150.142:8000/api/',
+    apiUrl: config.apiBaseUrl || 'http://siteaense.kct.ac.in/api/',
     status: 'Healthy',
     database: 'PostgreSQL Connected',
     totalCameras: 0,
@@ -202,7 +203,7 @@ export const SystemHealthPage = () => {
           const isWorking = c.status === 'online';
           const siteObj = sitesData.find((s) => String(s.id) === String(c.siteId)) || { name: c.siteName || c.location || 'Site Sector 4B' };
           const ipMatch = c.rtspUrl ? c.rtspUrl.match(/\d+\.\d+\.\d+\.\d+/) : null;
-          const ipAddr = ipMatch ? ipMatch[0] : '10.1.150.142';
+          const ipAddr = ipMatch ? ipMatch[0] : 'siteaense.kct.ac.in';
           return {
             name: `Jetson NX Unit ${String(idx + 1).padStart(2, '0')}`,
             id: `EDGE-${String(idx + 1).padStart(2, '0')}`,
@@ -226,7 +227,7 @@ export const SystemHealthPage = () => {
       // Populate Server Details
       if (metricsData || healthData) {
         setServerStats({
-          apiUrl: 'http://10.1.150.142:8000/api/',
+          apiUrl: config.apiBaseUrl || 'http://siteaense.kct.ac.in/api/',
           status: String((healthData as Record<string, unknown>)?.status || 'Healthy (Django REST API)'),
           database: (healthData as Record<string, unknown>)?.database === 'error' ? 'Disconnected' : 'PostgreSQL Connected (Port 5432)',
           totalCameras: metricsData?.total_cameras || camerasData.length || 0,

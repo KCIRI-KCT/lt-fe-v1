@@ -2,12 +2,12 @@ const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  return '/api/';
+  return 'http://siteaense.kct.ac.in/api/';
 };
 
 export const config = {
   apiBaseUrl: getApiBaseUrl(),
-  appName: 'AI Progress Monitor',
+  appName: 'Siteaense',
   version: '1.0.0',
   enableMockData: false, // Set to false to use real Django API
   auth: {

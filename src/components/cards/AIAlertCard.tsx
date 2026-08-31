@@ -1,5 +1,6 @@
 import type { AIAlert } from '../../types';
 import { SEVERITY_BADGES, AI_ALERT_CONFIG } from '../../constants';
+import { useApp } from '../../hooks/useApp';
 
 interface AIAlertCardProps {
   alert: AIAlert;
@@ -10,7 +11,11 @@ interface AIAlertCardProps {
   userRole?: string;
 }
 
-export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }: AIAlertCardProps) => {
+export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, userRole }: AIAlertCardProps) => {
+  const { user } = useApp();
+  const currentRole = userRole || user?.role;
+  const isSafetyEngineer = currentRole === 'safety_officer';
+
   const config = AI_ALERT_CONFIG[alert.type] || { label: alert.type, icon: 'bi bi-exclamation-triangle', color: '#6b7280' };
   const timeAgo = getTimeAgo(alert.timestamp);
   const severityKey = (alert.severity || 'critical').toLowerCase();
@@ -33,40 +38,49 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }
             >
               <img 
                 src={alert.snapshot} 
-                alt={config.label}
-                className="w-100 h-100 object-fit-cover opacity-90 hover-opacity-100 transition-all"
+                alt="Alert snapshot" 
+                className="w-100 h-100 object-fit-cover group-hover:scale-105 transition-transform" 
               />
-              <div className="position-absolute bottom-0 start-0 w-100 p-1 text-center bg-dark bg-opacity-75 text-white fw-semibold" style={{ fontSize: '9px' }}>
-                <i className="bi bi-camera-fill me-1" />Preview
-              </div>
             </div>
           ) : (
             <div 
-              className="flex-shrink-0 rounded d-flex align-items-center justify-content-center"
-              style={{ width: '48px', height: '48px', background: `${config.color}18`, color: config.color }}
+              className="d-flex align-items-center justify-content-center rounded flex-shrink-0 text-white shadow-xs" 
+              style={{ width: '42px', height: '42px', backgroundColor: config.color }}
             >
-              <i className={config.icon} aria-hidden="true" style={{ fontSize: '22px' }} />
+              <i className={`${config.icon} fs-5`} />
             </div>
           )}
 
-          {/* Alert Telemetry Details */}
+          {/* Card Content */}
           <div className="flex-grow-1 min-width-0">
             <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-              <h6 className="fw-bold mb-0 text-dark" style={{ fontSize: '15px' }}>{config.label}</h6>
-              <span className="badge bg-light text-secondary border font-monospace" style={{ fontSize: '10px' }}>#{alert.id}</span>
-              <span className={`badge text-uppercase ${severityBadge}`} style={{ fontSize: '10px' }}>{severityKey}</span>
-              <span className={`badge ${statusNormalized === 'open' ? 'text-bg-danger' : statusNormalized === 'acknowledged' ? 'text-bg-warning text-dark' : 'text-bg-success'}`} style={{ fontSize: '10px' }}>
-                {statusNormalized}
+              <span className={`badge ${severityBadge} text-uppercase font-monospace`} style={{ fontSize: '10px' }}>
+                {alert.severity || 'critical'}
+              </span>
+              <span className="badge text-bg-light text-secondary border font-monospace" style={{ fontSize: '10px' }}>
+                {config.label}
+              </span>
+              <span className="small text-muted ms-auto">
+                <i className="bi bi-clock me-1" />
+                {timeAgo}
               </span>
             </div>
 
-            <p className="text-muted small mb-2 text-truncate-2" style={{ fontSize: '13px' }}>{alert.description}</p>
+            <h6 className="fw-bold mb-1 text-dark text-truncate" style={{ fontSize: '14px' }}>
+              {alert.description}
+            </h6>
 
-            <div className="d-flex flex-wrap align-items-center gap-3 text-muted" style={{ fontSize: '12px' }}>
-              {alert.cameraName && <span className="fw-medium text-dark"><i className="bi bi-camera-video me-1 text-primary" />{alert.cameraName}</span>}
-              <span><i className="bi bi-geo-alt me-1 text-danger" />{locationLabel}</span>
-              {chainageLabel && <span><i className="bi bi-signpost-split me-1 text-info" />{chainageLabel}</span>}
-              <span><i className="bi bi-clock me-1 text-secondary" />{timeAgo}</span>
+            <div className="d-flex flex-wrap align-items-center gap-3 small text-muted">
+              <span>
+                <i className="bi bi-geo-alt me-1 text-danger" />
+                {locationLabel}
+              </span>
+              {chainageLabel && (
+                <span>
+                  <i className="bi bi-signpost-split me-1 text-primary" />
+                  {chainageLabel}
+                </span>
+              )}
             </div>
           </div>
 
@@ -84,7 +98,7 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve }
               </button>
             )}
 
-            {(statusNormalized === 'acknowledged' || statusNormalized === 'open' || statusNormalized === 'new') && (
+            {(statusNormalized === 'acknowledged' || statusNormalized === 'open' || statusNormalized === 'new') && isSafetyEngineer && (
               <button
                 className="btn btn-sm btn-success d-flex align-items-center gap-1"
                 onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}

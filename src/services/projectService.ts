@@ -7,7 +7,7 @@ import type { Project } from '../types';
 
 export const projectService = {
   async getProjects(params?: Record<string, unknown>): Promise<Project[]> {
-    const response = await api.get('projects/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('projects/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

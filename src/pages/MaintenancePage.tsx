@@ -12,7 +12,7 @@ export const MaintenancePage: React.FC = () => {
   //     titlePrefix: "L&T - KCIRI",
   //     titleMain: "Maintenance",
   //     titleAccent: "Service",
-  //     description: "Our intranet application (10.1.150.142) is undergoing scheduled system maintenance to upgrade AI vision models and enhance overall performance."
+  //     description: "Our intranet application (siteaense.kct.ac.in) is undergoing scheduled system maintenance to upgrade AI vision models and enhance overall performance."
   //   },
   //   {
   //     titlePrefix: "System Upgrade",
@@ -23,7 +23,7 @@ export const MaintenancePage: React.FC = () => {
   //   {
   //     titlePrefix: "Intranet Node",
   //     titleMain: "Server Host",
-  //     titleAccent: "10.1.150.142:3000",
+  //     titleAccent: "siteaense.kct.ac.in",
   //     description: "If you need immediate emergency access or technical assistance during this window, please reach out to the KCIRI IT Infrastructure Helpdesk."
   //   }
   // ];
@@ -446,7 +446,7 @@ export const MaintenancePage: React.FC = () => {
       {/* 4. FOOTER */}
       <footer className="m-footer">
         <div>© 2026 KCIRI Application. All Rights Reserved.</div>
-        {/* <div style={{ fontFamily: 'monospace' }}>Host: 10.1.150.142:3000</div> */}
+        {/* <div style={{ fontFamily: 'monospace' }}>Host: siteaense.kct.ac.in</div> */}
       </footer>
 
     </div>

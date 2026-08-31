@@ -117,12 +117,6 @@ export const SafetyOfficerDashboard = () => {
   const inProgressCount = notifications.filter((n) => n.status === 'in_progress').length;
   const resolvedCount = notifications.filter((n) => n.status === 'resolved').length;
 
-  // Mark as in-progress
-  const handleMarkInProgress = (notif: PPENotification) => {
-    updatePPENotificationStatus(notif.id, 'in_progress', user || undefined);
-    refreshNotifications();
-  };
-
   // Open the HITL PPE report modal for resolution
   const handleResolve = (notif: PPENotification) => {
     setSolvingNotif(notif);
@@ -289,22 +283,13 @@ export const SafetyOfficerDashboard = () => {
 
                 {/* Action buttons */}
                 <div className="d-flex gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
-                  {notif.status === 'pending_review' && (
-                    <button
-                      className="btn btn-sm btn-info text-white"
-                      onClick={() => handleMarkInProgress(notif)}
-                    >
-                      <i className="bi bi-arrow-repeat me-1" />
-                      Start Review
-                    </button>
-                  )}
                   {notif.status !== 'resolved' && (
                     <button
-                      className="btn btn-sm btn-success"
+                      className="btn btn-sm btn-success fw-semibold px-3"
                       onClick={() => handleResolve(notif)}
                     >
-                      <i className="bi bi-check2-circle me-1" />
-                      Solve
+                      <i className="bi bi-shield-check me-1" />
+                      Solve HITL
                     </button>
                   )}
                   {notif.status === 'resolved' && (

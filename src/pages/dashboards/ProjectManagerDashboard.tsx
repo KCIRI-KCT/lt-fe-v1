@@ -190,9 +190,6 @@ export const ProjectManagerDashboard = () => {
     return `${dynamicPpe}%`;
   })();
 
-  // Quality Audits
-  const qualityAuditsVal = (activeChainages.length > 0 ? activeChainages.length * 4 : projectsList.length * 10 || 22).toString();
-
   // Productivity
   const productivityScore = Math.min(100, Math.max(60, Math.round(80 + (avgSafetyScore - 70) * 0.5 + (avgProgress - 20) * 0.15)));
   const productivityVal = `${productivityScore}%`;
@@ -230,7 +227,6 @@ export const ProjectManagerDashboard = () => {
   const dynamicKpiCards = [
     { id: 'overall-progress', title: 'Overall Progress', value: progressVal, subtitle: 'Target variance', trend: '-1.5%', isPositive: false, icon: 'bi-bar-chart-fill', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
     { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, subtitle: 'Active on site today', trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
-    { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, subtitle: 'Compaction / Cube logs', trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, subtitle: 'Average compliance', trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
     { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: 'Helmet 94%', isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
@@ -831,7 +827,7 @@ export const ProjectManagerDashboard = () => {
 
         {/* Budget Burn Card */}
         <div className="col-12 col-md-6 col-xl-3">
-          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '350px' }}>
+          <div className="card border-0 shadow-sm p-3 p-md-3.5 bg-white h-100 d-flex flex-column" style={{ minHeight: '350px' }}>
             {/* Header Tabs */}
             <div className="d-flex align-items-center justify-content-between mb-2 border-bottom pb-2">
               <div className="d-flex align-items-center gap-2">
