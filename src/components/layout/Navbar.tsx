@@ -107,7 +107,7 @@ export const Navbar = () => {
     setContrast('default');
   };
 
-  // Fetch real notifications from camera and AI alerts (10.1.150.142:8000/api/ai-alerts)
+  // Fetch real notifications from camera and AI alerts (siteaense.kct.ac.in/api/ai-alerts)
   const fetchLiveNotifications = useCallback(async () => {
     try {
       const [alerts, cameras] = await Promise.allSettled([

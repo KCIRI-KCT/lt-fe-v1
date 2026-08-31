@@ -239,22 +239,16 @@ export const SiteEngineerDashboard = () => {
     return `${dynamicPpe}%`;
   }, [activeChainages]);
 
-  // Quality Audits
-  const qualityAuditsVal = useMemo(() => {
-    return (activeChainages.length > 0 ? activeChainages.length * 4 : projectsToUse.length * 10 || 22).toString();
-  }, [activeChainages, projectsToUse]);
-
   const dynamicKpiCards = useMemo(() => {
     return [
       { id: 'overall-progress', title: 'Overall Progress', value: progressVal, trend: '-1.5%', isPositive: false, icon: 'bi-bar-chart-fill', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
       { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'equipment', title: 'Machinery', value: machineryVal, trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
-      { id: 'quality-inspections', title: 'Quality Audits', value: qualityAuditsVal, trend: 'Passed', isPositive: true, icon: 'bi-clipboard-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
       { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
       { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
       { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Compliance ${ppeComplianceVal}`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     ];
-  }, [progressVal, totalWorkersVal, machineryVal, qualityAuditsVal, safetyScoreVal, aiAlertsVal, ppeComplianceVal]);
+  }, [progressVal, totalWorkersVal, machineryVal, safetyScoreVal, aiAlertsVal, ppeComplianceVal]);
 
 
   // 2. Dynamic Safety Leaderboard logic

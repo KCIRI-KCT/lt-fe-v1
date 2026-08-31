@@ -1,5 +1,6 @@
 import type { AIAlert } from '../../types';
 import { AI_ALERT_CONFIG, SEVERITY_BADGES } from '../../constants';
+import { useApp } from '../../hooks/useApp';
 
 interface AlertDetailModalProps {
   alert: AIAlert | null;
@@ -9,6 +10,9 @@ interface AlertDetailModalProps {
 }
 
 export const AlertDetailModal = ({ alert, onClose, onResolve, onSolve }: AlertDetailModalProps) => {
+  const { user } = useApp();
+  const isSafetyEngineer = user?.role === 'safety_officer';
+
   if (!alert) return null;
 
   const config = AI_ALERT_CONFIG[alert.type] || {
@@ -106,7 +110,7 @@ export const AlertDetailModal = ({ alert, onClose, onResolve, onSolve }: AlertDe
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onClose}>
                   Close
                 </button>
-                {alert.status !== 'resolved' && (onSolve || onResolve) && (
+                {alert.status !== 'resolved' && (onSolve || onResolve) && isSafetyEngineer && (
                   <button 
                     type="button" 
                     className="btn btn-success btn-sm d-flex align-items-center gap-1"

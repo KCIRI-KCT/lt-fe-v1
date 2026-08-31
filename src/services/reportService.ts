@@ -69,7 +69,7 @@ export const triggerBrowserDownload = (blob: Blob, filename: string) => {
 
 export const reportService = {
   async getReports(params?: Record<string, unknown>): Promise<Report[]> {
-    const response = await api.get('reports/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('reports/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

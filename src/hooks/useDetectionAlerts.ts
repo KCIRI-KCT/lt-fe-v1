@@ -68,7 +68,7 @@ export function useDetectionAlerts(
   } = options;
 
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('DISCONNECTED');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(autoConnect ? 'CONNECTING' : 'DISCONNECTED');
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectCount, setReconnectCount] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
@@ -105,7 +105,7 @@ export function useDetectionAlerts(
     if (wsUrl) return wsUrl;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-    let targetHost = typeof window !== 'undefined' ? window.location.host : '10.1.150.142:3000';
+    let targetHost = typeof window !== 'undefined' ? window.location.host : 'siteaense.kct.ac.in';
     try {
       if (config.apiBaseUrl && config.apiBaseUrl.startsWith('http')) {
         const url = new URL(config.apiBaseUrl);
@@ -204,7 +204,9 @@ export function useDetectionAlerts(
     }
 
     isIntentionalDisconnectRef.current = false;
-    setConnectionStatus((prev) => (prev === 'DISCONNECTED' ? 'CONNECTING' : 'RECONNECTING'));
+    queueMicrotask(() => {
+      setConnectionStatus((prev) => (prev === 'DISCONNECTED' ? 'CONNECTING' : 'RECONNECTING'));
+    });
 
     const url = getWebSocketUrl();
 
@@ -322,18 +324,14 @@ export function useDetectionAlerts(
   }, [connect]);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
     if (autoConnect) {
-      timer = setTimeout(() => {
-        connect();
-      }, 0);
+      connectRef.current();
     }
 
     return () => {
-      if (timer) clearTimeout(timer);
       disconnect();
     };
-  }, [autoConnect, connect, disconnect]);
+  }, [autoConnect, disconnect]);
 
   return {
     alerts,

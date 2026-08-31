@@ -7,7 +7,7 @@ import type { Message } from '../types';
 
 export const messageService = {
   async getMessages(params?: Record<string, unknown>): Promise<Message[]> {
-    const response = await api.get('messages/', { params: { page_size: 10000, ...params } });
+    const response = await api.get('messages/', { params });
     const data = response.data?.data || response.data;
     return Array.isArray(data) ? data : data?.results || [];
   },

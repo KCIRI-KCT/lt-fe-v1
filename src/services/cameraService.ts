@@ -107,7 +107,7 @@ export async function checkAllCamerasHealth(cameras: Camera[]): Promise<Camera[]
 export const cameraService = {
   async getCameras(params?: Record<string, unknown>): Promise<Camera[]> {
     try {
-      const response = await api.get('cameras/', { params: { page_size: 10000, ...params } });
+      const response = await api.get('cameras/', { params });
       const rawData = response.data?.data || response.data;
       const apiItems: Array<Record<string, unknown>> = Array.isArray(rawData) ? rawData : rawData?.results || [];
 
