@@ -161,9 +161,9 @@ export const ProjectManagerDashboard = () => {
   const camerasVal = `${onlineCams} / ${totalCams}`;
 
   // Machinery
-  // const machineryVal = activeChainages.length > 0
-  //   ? activeChainages.reduce((sum, ch) => sum + ch.equipment, 0).toString()
-  //   : String(camerasList.length * 2 || sitesList.length * 3 || 8);
+  const machineryVal = activeChainages.length > 0
+    ? activeChainages.reduce((sum, ch) => sum + (Number(ch.equipment) || 0), 0).toString()
+    : String(sitesList.length * 3 || 8);
 
   // // AI Alerts
   // const activeAlertsList = alertsList.filter((alert) => {
@@ -227,6 +227,7 @@ export const ProjectManagerDashboard = () => {
   const dynamicKpiCards = [
     { id: 'overall-progress', title: 'Overall Progress', value: progressVal, subtitle: 'Target variance', trend: '-1.5%', isPositive: false, icon: 'bi-bar-chart-fill', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
     { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, subtitle: 'Active on site today', trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
+    { id: 'equipment', title: 'Machinery', value: machineryVal, subtitle: 'Active fleet monitoring', trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
     { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, subtitle: 'Average compliance', trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
     { id: 'schedule-delay', title: 'Schedule Delay', value: scheduleDelayVal, subtitle: scheduleDelaySubtitle, trend: scheduleDelayTrend, isPositive: scheduleDelayIsPositive, icon: 'bi-clock-history', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
     { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: 'Helmet 94%', isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
