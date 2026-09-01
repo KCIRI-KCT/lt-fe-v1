@@ -282,14 +282,18 @@ export const SafetyOfficerDashboard = () => {
                 </div>
 
                 {/* Action buttons */}
-                <div className="d-flex gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
+                <div className="d-flex flex-column align-items-end gap-2 mt-2 mt-md-0 ms-md-auto align-self-start align-self-md-center">
+                  <span className="small text-muted">
+                    <i className="bi bi-clock me-1" />
+                    {getTimeAgo(notif.acknowledgedAt)}
+                  </span>
                   {notif.status !== 'resolved' && (
                     <button
                       className="btn btn-sm btn-success fw-semibold px-3"
                       onClick={() => handleResolve(notif)}
                     >
                       <i className="bi bi-shield-check me-1" />
-                      Solve HITL
+                      Resolve
                     </button>
                   )}
                   {notif.status === 'resolved' && (
@@ -314,7 +318,7 @@ export const SafetyOfficerDashboard = () => {
                 <div className="modal-header bg-dark text-white border-0 py-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
                   <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
                     <i className="bi bi-shield-fill-check text-success" />
-                    PPE Inspection - Solve Violation
+                    PPE Inspection - Resolve Violation
                   </h5>
                   <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={() => setSolvingNotif(null)} />
                 </div>

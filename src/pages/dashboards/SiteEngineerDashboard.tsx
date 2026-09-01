@@ -243,7 +243,7 @@ export const SiteEngineerDashboard = () => {
     return [
       { id: 'overall-progress', title: 'Overall Progress', value: progressVal, trend: '-1.5%', isPositive: false, icon: 'bi-bar-chart-fill', badgeClass: 'bg-danger-subtle text-danger border border-danger-subtle' },
       { id: 'total-workers', title: 'Total Workers', value: totalWorkersVal, trend: '+3.1%', isPositive: true, icon: 'bi-people-fill', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
-      { id: 'equipment', title: 'Machinery', value: machineryVal, trend: '100% active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
+      { id: 'equipment', title: 'Machinery Status', value: machineryVal, trend: '2 vehicle active', isPositive: true, icon: 'bi-gear-wide-connected', badgeClass: 'bg-primary-subtle text-primary border border-primary-subtle' },
       { id: 'safety-compliance', title: 'Safety Score', value: safetyScoreVal, trend: '+0.8%', isPositive: true, icon: 'bi-shield-fill-check', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
       { id: 'ai-alerts', title: 'AI Alerts', value: aiAlertsVal, trend: '-3 cases', isPositive: true, icon: 'bi-robot', badgeClass: 'bg-warning-subtle text-warning border border-warning-subtle' },
       { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: `Compliance ${ppeComplianceVal}`, isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
@@ -575,9 +575,10 @@ export const SiteEngineerDashboard = () => {
         {dynamicKpiCards.map((card) => (
           <div key={card.id} className="col-6 col-sm-4 col-md-3 col-xl-2">
             <div
-              className="card border-0 shadow-sm p-3 h-100 cursor-pointer text-start bg-white"
+              className="card border-0 shadow-sm h-100 cursor-pointer text-start bg-white"
               style={{
                 borderRadius: '8px',
+                padding: '10px 10px 8px',
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
               }}
               onClick={() => setActiveKpiCardId(card.id)}
@@ -591,16 +592,16 @@ export const SiteEngineerDashboard = () => {
               }}
             >
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="small text-muted fw-bold text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.3px', lineHeight: '1.2' }}>
+                <span className="small text-muted fw-bold text-uppercase" style={{ fontSize: '9px', letterSpacing: '0.3px', lineHeight: '1.2' }}>
                   {card.title}
                 </span>
-                <span className={`badge ${card.badgeClass} rounded-circle p-1.5 d-flex align-items-center justify-content-center`} style={{ width: 22, height: 22 }}>
+                <span className={`badge ${card.badgeClass} rounded-circle p-1.5 d-flex align-items-center justify-content-center`} style={{ width: 20, height: 20, fontSize: '10px' }}>
                   <i className={`bi ${card.icon}`} />
                 </span>
               </div>
-              <h3 className="h4 fw-bold text-body mb-1" style={{ letterSpacing: '-0.5px' }}>{card.value}</h3>
+              <h3 className="fw-bold text-body mb-1" style={{ fontSize: '1.2rem', letterSpacing: '-0.5px', lineHeight: 1.2 }}>{card.value}</h3>
               <div className="d-flex align-items-center justify-content-between">
-                <span className={`fw-semibold ${card.isPositive ? 'text-success' : 'text-danger'}`} style={{ fontSize: '12px' }}>
+                <span className={`fw-semibold ${card.isPositive ? 'text-success' : 'text-danger'}`} style={{ fontSize: '11px' }}>
                   {card.trend}
                 </span>
               </div>
@@ -915,20 +916,6 @@ export const SiteEngineerDashboard = () => {
                               <div
                                 className="progress-bar bg-success"
                                 style={{ width: `${activeSiteDetail.details.ppe}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Speed Limit */}
-                          <div>
-                            <div className="d-flex justify-content-between mb-0.5">
-                              <span className="text-muted">Machinery Speed Compliance:</span>
-                              <strong className="text-dark">{activeSiteDetail.details.speed}%</strong>
-                            </div>
-                            <div className="progress" style={{ height: '5px' }}>
-                              <div
-                                className="progress-bar bg-primary"
-                                style={{ width: `${activeSiteDetail.details.speed}%` }}
                               />
                             </div>
                           </div>

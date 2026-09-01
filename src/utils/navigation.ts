@@ -72,7 +72,6 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
     case 'safety_manager':
       return [
         { label: 'Safety Compliance', path: '/safety-officer', icon: 'bi bi-shield-fill-check' },
-        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-shield-fill-check' },
         { label: 'Intrusion Detection', path: '/intrusion-detection', icon: 'bi bi-shield-exclamation' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Camera', path: '/cameras', icon: 'bi bi-camera-video-fill' },
@@ -83,7 +82,6 @@ export const getNavItemsForRole = (role: string): NavItem[] => {
     case 'safety_officer':
       return [
         { label: 'Safety Compliance', path: '/safety-officer', icon: 'bi bi-shield-fill-check' },
-        { label: 'PPE Detection', path: '/ppe-detection', icon: 'bi bi-person-check-fill' },
         { label: 'Intrusion Detection', path: '/intrusion-detection', icon: 'bi bi-shield-exclamation' },
         { label: 'Alerts', path: '/ai-monitoring', icon: 'bi bi-bell-fill' },
         { label: 'Message', path: '/messages', icon: 'bi bi-chat-left-text-fill' }

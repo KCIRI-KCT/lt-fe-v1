@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../hooks/useApp';
 import { getFirstSidebarRoute } from '../../utils/navigation';
 
-const DEMO_ACCOUNTS = [
-  { username: 'admin', label: 'System Administrator', role: 'admin' },
-  { username: 'projectmanager', label: 'Project Manager', role: 'project_manager' },
-  { username: 'sitesupervisor', label: 'Site Supervisor', role: 'site_supervisor' },
-  { username: 'siteengineer', label: 'Site Engineer', role: 'site_engineer' },
-  { username: 'safetymanager', label: 'Safety Manager', role: 'safety_manager' },
-  { username: 'safetyengineer', label: 'Safety Engineer', role: 'safety_officer' },
-];
+// const DEMO_ACCOUNTS = [
+//   { username: 'admin', label: 'System Administrator', role: 'admin' },
+//   { username: 'projectmanager', label: 'Project Manager', role: 'project_manager' },
+//   { username: 'sitesupervisor', label: 'Site Supervisor', role: 'site_supervisor' },
+//   { username: 'siteengineer', label: 'Site Engineer', role: 'site_engineer' },
+//   { username: 'safetymanager', label: 'Safety Manager', role: 'safety_manager' },
+//   { username: 'safetyengineer', label: 'Safety Engineer', role: 'safety_officer' },
+// ];
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -51,8 +51,9 @@ export const LoginPage = () => {
         <div className="auth-card">
           <div className="text-center mb-4">
             <img src="/images/lt-logo.png" alt="LT" style={{ height: '60px' }} />
-            <h2 className="h4 mt-3 fw-bold">L&T CONSTRUCTION MONITORING</h2>
-            <p className="text-muted small">Enterprise Construction Monitoring Platform</p>
+            <h2 className="h4 mt-3 fw-bold">SITEAENSE</h2>
+            <h4 className="h4 mt-3 fw-bold">AI CONSTRUCTION PLATFORM</h4>
+            <p className="text-muted small">Your all-in-one solution for construction project management</p>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -61,12 +62,12 @@ export const LoginPage = () => {
             )}
 
             <div className="mb-3">
-              <label htmlFor="email" className="form-label fw-semibold">Username / Email</label>
+              <label htmlFor="email" className="form-label fw-semibold">Username</label>
               <input
                 type="text"
                 className="form-control"
                 id="email"
-                placeholder="Enter Username (e.g. admin, pm_user)"
+                placeholder="Enter your username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -79,7 +80,7 @@ export const LoginPage = () => {
                 type="password"
                 className="form-control"
                 id="password"
-                placeholder="Enter Password (e.g. Admin@123)"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -95,7 +96,7 @@ export const LoginPage = () => {
             </button>
           </form>
 
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <p className="text-muted small mb-2 text-center">Quick Select Backend Account (Password: <code>Admin@123</code>):</p>
             <div className="d-grid gap-1">
               {DEMO_ACCOUNTS.map((u) => (
@@ -110,7 +111,7 @@ export const LoginPage = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </div> */}
 
           <p className="auth-footer mt-3">
             &copy; 2026 KCIRI. All rights reserved.

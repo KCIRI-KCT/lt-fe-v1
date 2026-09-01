@@ -100,10 +100,11 @@ export const MobileModal = ({
                   <div style={{ minWidth: 0 }}>
                     {title && (
                       <h3
-                        className="fw-bold text-white mb-0"
+                        className="fw-bold mb-0"
                         style={{
                           fontSize: 'clamp(16px, 4vw, 21px)',
                           lineHeight: 1.2,
+                          color: '#ffffff',
                         }}
                       >
                         {title}
@@ -113,8 +114,9 @@ export const MobileModal = ({
                       <small
                         style={{
                           fontSize: 'clamp(11px, 2.5vw, 13.5px)',
-                          color: '#94a3b8',
+                          color: '#ffffff',
                           fontWeight: 500,
+                          opacity: 0.9,
                         }}
                       >
                         {subtitle}

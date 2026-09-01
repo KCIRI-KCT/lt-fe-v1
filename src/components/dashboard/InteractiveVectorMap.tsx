@@ -242,17 +242,21 @@ export const InteractiveVectorMap = ({
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = L.map(mapContainerRef.current, {
         center: [21.8, 78.9],
-        zoom: 4.5,
+        zoom: 13,
         zoomControl: false,
         attributionControl: false,
+        style:{height: '100vh', width: '100%' }
       });
       L.control.zoom({ position: 'topright' }).addTo(mapInstanceRef.current);
     }
 
+    // const map = L.map('map').setView([51.505, -0.09], 13);
+    // Project Location Map
     // Add tile layer only once
     if (!tileLayerAddedRef.current) {
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:'&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        maxZoom:19,
       }).addTo(mapInstanceRef.current);
       tileLayerAddedRef.current = true;
     }

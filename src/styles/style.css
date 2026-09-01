@@ -1496,7 +1496,48 @@ html[data-theme="dark"] .btn-close {
   filter: invert(1) grayscale(100%) brightness(180%);
 }
 
-html[data-theme="dark"] .text-body {
+html[data-theme="dark"] .text-body,
+html[data-theme="dark"] .text-dark,
+html[data-theme="dark"] .text-body-emphasis,
+html[data-theme="dark"] .text-body-secondary,
+html[data-theme="dark"] .text-white,
+html[data-theme="dark"] .text-secondary,
+html[data-theme="dark"] .text-muted,
+html[data-theme="dark"] .text-light {
+  color: var(--admin-text) !important;
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-light,
+html[data-theme="dark"] .bg-light-subtle,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .dropdown-menu {
+  background-color: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+}
+
+html[data-theme="dark"] .border,
+html[data-theme="dark"] .border-top,
+html[data-theme="dark"] .border-bottom,
+html[data-theme="dark"] .border-start,
+html[data-theme="dark"] .border-end,
+html[data-theme="dark"] .border-light,
+html[data-theme="dark"] .border-light-subtle,
+html[data-theme="dark"] .border-secondary {
+  border-color: var(--admin-border) !important;
+}
+
+html[data-theme="dark"] .btn-white,
+html[data-theme="dark"] .btn-outline-secondary {
+  background-color: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  border-color: var(--admin-border) !important;
+}
+
+html[data-theme="dark"] .text-bg-light {
+  background-color: var(--admin-surface-soft) !important;
   color: var(--admin-text) !important;
 }
 
@@ -1572,6 +1613,15 @@ html[data-theme="dark"] .text-body {
 
 html[data-theme="light"] {
   color-scheme: light;
+}
+
+html[data-theme="light"] .bg-light .text-white,
+html[data-theme="light"] .bg-white .text-white,
+html[data-theme="light"] .bg-light-subtle .text-white,
+html[data-theme="light"] .card .text-white,
+html[data-theme="light"] .modal-content .text-white,
+html[data-theme="light"] .dropdown-menu .text-white {
+  color: var(--admin-text) !important;
 }
 
 html[data-theme="dark"] {

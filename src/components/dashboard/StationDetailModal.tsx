@@ -11,6 +11,26 @@ interface StationDetailModalProps {
   onClose: () => void;
 }
 
+const fallbackStationNames = [
+  'Thiruvonmure Station',
+  'Kanjikode Station',
+  'Kochi Harbour Station',
+  'Palakkad Junction',
+  'Munnar Valley Station',
+  'Perumbavoor Station',
+  'Kannur Coastal Station',
+  'Aluva Metro Station',
+];
+
+const getFallbackStationName = (value?: string) => {
+  if (typeof value === 'string' && value.trim() && value.toLowerCase() !== 'undefined') {
+    return value;
+  }
+
+  const index = Math.abs((value || '').length) % fallbackStationNames.length;
+  return fallbackStationNames[index];
+};
+
 export const StationDetailModal = ({ stationId, chainagesList, sitesList = [], onClose }: StationDetailModalProps) => {
   const navigate = useNavigate();
   const [fetchedChainages, setFetchedChainages] = useState<ChainageData[]>([]);
@@ -78,8 +98,8 @@ export const StationDetailModal = ({ stationId, chainagesList, sitesList = [], o
     cameras: Number(sAny.cameraCount) || 8,
     lastUpdate: 'Live Telemetry Active',
   } : {
-    id: stationId,
-    name: stationId,
+    id: stationId || 'fallback-station',
+    name: getFallbackStationName(stationId),
     site: 'Site Segment',
     project: 'L&T Operations Project',
     lat: 19.076,
@@ -235,24 +255,26 @@ export const StationDetailModal = ({ stationId, chainagesList, sitesList = [], o
                 <div className="fw-bold fs-3 text-dark">{station.workers}</div>
               </div>
             </div>
-            <div
-              className="p-3 border-0 rounded-3 text-center"
-              style={{
-                background: station.aiAlerts > 5 ? '#fef2f2' : '#f0fdf4',
-                border: `1px solid ${station.aiAlerts > 5 ? '#fee2e2' : '#dcfce7'}`
-              }}
-            >
+            <div className="col-6">
               <div
-                className="fw-semibold mb-1"
-                style={{ fontSize: '12px', color: station.aiAlerts > 5 ? '#dc2626' : '#16a34a' }}
+                className="p-3 border-0 rounded-3 text-center h-100"
+                style={{
+                  background: station.aiAlerts > 5 ? '#fef2f2' : '#f0fdf4',
+                  border: `1px solid ${station.aiAlerts > 5 ? '#fee2e2' : '#dcfce7'}`
+                }}
               >
-                Active AI Alerts
-              </div>
-              <div
-                className="fw-bold fs-3"
-                style={{ color: station.aiAlerts > 5 ? '#dc2626' : '#16a34a' }}
-              >
-                {station.aiAlerts}
+                <div
+                  className="fw-semibold mb-1"
+                  style={{ fontSize: '12px', color: station.aiAlerts > 5 ? '#dc2626' : '#16a34a' }}
+                >
+                  Active AI Alerts
+                </div>
+                <div
+                  className="fw-bold fs-3"
+                  style={{ color: station.aiAlerts > 5 ? '#dc2626' : '#16a34a' }}
+                >
+                  {station.aiAlerts}
+                </div>
               </div>
             </div>
           </div>
