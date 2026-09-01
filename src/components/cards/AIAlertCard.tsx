@@ -60,10 +60,6 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, 
               <span className="badge text-bg-light text-secondary border font-monospace" style={{ fontSize: '10px' }}>
                 {config.label}
               </span>
-              <span className="small text-muted ms-auto">
-                <i className="bi bi-clock me-1" />
-                {timeAgo}
-              </span>
             </div>
 
             <h6 className="fw-bold mb-1 text-dark text-truncate" style={{ fontSize: '14px' }}>
@@ -85,33 +81,40 @@ export const AIAlertCard = ({ alert, onAcknowledge, onResolve, onView, onSolve, 
           </div>
 
           {/* Action Buttons */}
-          <div className="d-flex flex-wrap gap-2 mt-2 mt-md-0 ms-md-auto align-self-stretch align-self-md-center justify-content-end">
-            {onView && (
-              <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" onClick={() => onView(alert.id)}>
-                <i className="bi bi-eye-fill" /> View Detail
-              </button>
-            )}
+          <div className="d-flex flex-column gap-2 mt-2 mt-md-0 ms-md-auto align-self-stretch align-self-md-center justify-content-end">
+            <span className="small text-muted align-self-end">
+              <i className="bi bi-clock me-1" />
+              {timeAgo}
+            </span>
 
-            {(statusNormalized === 'open' || statusNormalized === 'new') && onAcknowledge && (
-              <button className="btn btn-sm btn-outline-warning text-dark d-flex align-items-center gap-1" onClick={() => onAcknowledge(alert.id, alert)}>
-                <i className="bi bi-shield-check" /> Acknowledge
-              </button>
-            )}
+            <div className="d-flex flex-wrap gap-2 justify-content-end">
+              {onView && (
+                <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" onClick={() => onView(alert.id)}>
+                  <i className="bi bi-eye-fill" /> View Detail
+                </button>
+              )}
 
-            {(statusNormalized === 'acknowledged' || statusNormalized === 'open' || statusNormalized === 'new') && isSafetyEngineer && (
-              <button
-                className="btn btn-sm btn-success d-flex align-items-center gap-1"
-                onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
-              >
-                <i className="bi bi-check-circle-fill" /> Solve
-              </button>
-            )}
+              {(statusNormalized === 'open' || statusNormalized === 'new') && onAcknowledge && (
+                <button className="btn btn-sm btn-outline-warning text-dark d-flex align-items-center gap-1" onClick={() => onAcknowledge(alert.id, alert)}>
+                  <i className="bi bi-shield-check" /> Acknowledge
+                </button>
+              )}
 
-            {statusNormalized === 'resolved' && (
-              <span className="badge text-bg-success-subtle text-success border border-success d-flex align-items-center gap-1 py-1.5 px-3">
-                <i className="bi bi-check-all fs-6" /> Resolved
-              </span>
-            )}
+              {(statusNormalized === 'acknowledged' || statusNormalized === 'open' || statusNormalized === 'new') && isSafetyEngineer && (
+                <button
+                  className="btn btn-sm btn-success d-flex align-items-center gap-1"
+                  onClick={() => (onSolve ? onSolve(alert.id) : onResolve?.(alert.id))}
+                >
+                  <i className="bi bi-check-circle-fill" /> Resolve
+                </button>
+              )}
+
+              {statusNormalized === 'resolved' && (
+                <span className="badge text-bg-success-subtle text-success border border-success d-flex align-items-center gap-1 py-1.5 px-3">
+                  <i className="bi bi-check-all fs-6" /> Resolved
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

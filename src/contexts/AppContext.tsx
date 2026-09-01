@@ -20,7 +20,8 @@ const setSavedItem = (key: string, value: string): void => {
 };
 
 const getPreferredTheme = (): Theme => {
-  return 'light';
+  const saved = getSavedItem(STORAGE_KEYS.THEME);
+  return saved === 'dark' || saved === 'light' ? saved : 'light';
 };
 
 const isDesktop = (): boolean => window.matchMedia(BREAKPOINTS.DESKTOP).matches;
@@ -126,9 +127,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.documentElement.setAttribute('data-bs-theme', 'light');
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
 
   const toggleSidebarTheme = useCallback(() => {
     setSidebarThemeState((prev) => {

@@ -265,10 +265,12 @@ export const Navbar = () => {
         <div className="d-flex align-items-center gap-2 border-end pe-3 me-3" style={{ height: '32px' }}>
           <img src="/images/tidco-logo.png" alt="TIDCO" style={{ height: '24px', objectFit: 'contain' }} />
           <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
+          <img src="/images/lt-logo.png" alt="L&T" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
+          <span className="text-muted opacity-25" style={{ fontSize: '1.2rem', userSelect: 'none' }}>|</span>
           <img src="/images/kciri_logo.png" alt="KCIRI" style={{ height: '24px', borderRadius: '4px', objectFit: 'contain' }} />
         </div>
         <span className="fw-bold d-none d-sm-inline text-uppercase tracking-wider text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-          L&T Construction Monitoring
+          SITEAENSE AI CONSTRUCTION PLATFORM
         </span>
 
         <div className="navbar-actions ms-auto d-flex align-items-center gap-2">

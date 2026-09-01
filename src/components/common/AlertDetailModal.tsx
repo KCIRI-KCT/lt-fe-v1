@@ -123,7 +123,7 @@ export const AlertDetailModal = ({ alert, onClose, onResolve, onSolve }: AlertDe
                       }
                     }}
                   >
-                    <i className="bi bi-check-circle-fill" /> Solve
+                    <i className="bi bi-check-circle-fill" /> Resolve
                   </button>
                 )}
               </div>

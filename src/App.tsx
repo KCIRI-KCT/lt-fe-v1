@@ -68,7 +68,7 @@ const SafetyRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 
 const SiteRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
 const WorkforceRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer'];
 const ProgressRoles: UserRole[] = ['admin', 'project_manager', 'site_supervisor', 'site_engineer', 'safety_manager', 'safety_officer'];
-// PPE Detection & Intrusion: Safety Manager and Safety Officer only
+// Intrusion Detection: Safety Manager and Safety Officer only
 const SafetyDetectionRoles: UserRole[] = ['admin', 'safety_manager', 'safety_officer'];
 
 function App() {
@@ -138,11 +138,6 @@ function App() {
                   {/* Progress Measurement — all roles except admin-only */}
                   <Route element={<ProtectedRoute requiredRoles={ProgressRoles} />}>
                     <Route path="/progress" element={<ProgressPage />} />
-                  </Route>
-
-                  {/* PPE Detection — Safety Manager & Safety Officer */}
-                  <Route element={<ProtectedRoute requiredRoles={SafetyDetectionRoles} />}>
-                    <Route path="/ppe-detection" element={<PPEDetectionPage />} />
                   </Route>
 
                   {/* Intrusion Detection — Safety Manager & Safety Officer */}

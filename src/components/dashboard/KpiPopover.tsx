@@ -128,7 +128,7 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
         };
       case 'equipment':
         return {
-          title: 'Heavy Machinery Status',
+          title: 'Machinery Status',
           icon: 'bi-gear-wide-connected',
           desc: 'Operational efficiency and fuel sensor data.',
           stats: [
@@ -321,86 +321,58 @@ export const KpiPopover = ({ cardId, onClose, selectedProject, selectedSite }: K
     >
       <div
         className="card shadow-lg p-0"
-        style={{ width: '1000px', maxWidth: '95vw', border: '1px solid var(--admin-border)', background: 'var(--admin-surface)' }}
+        style={{ width: '760px', maxWidth: '92vw', border: '1px solid var(--admin-border)', background: 'var(--admin-surface)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="card-header bg-light d-flex align-items-center justify-content-between p-3 border-bottom">
+        <div className="card-header bg-light d-flex align-items-center justify-content-between p-2.5 border-bottom">
           <div className="d-flex align-items-center gap-2">
-            <span className="badge bg-primary-subtle text-primary border p-1.5 rounded">
+            <span className="badge bg-primary-subtle text-primary border p-1 rounded">
               <i className={`bi ${details.icon} fs-5`} />
             </span>
             <div>
               <h3 className="h6 mb-0 fw-bold">{details.title}</h3>
-              {/* <small className="text-muted">KPI Executive Analysis</small> */}
             </div>
           </div>
           <button className="btn-close" onClick={onClose} aria-label="Close" />
         </div>
 
         {/* Content Body */}
-        <div className="card-body p-3">
-          <p className="text-muted small mb-3">{details.desc}</p>
+        <div className="card-body p-2.5">
+          <p className="text-muted small mb-2">{details.desc}</p>
 
-          <div className="row g-3">
-            {/* Left Column: KPI Grid breakdown */}
-            <div className="col-12 col-md-6 border-end">
-              <div className="small fw-bold text-muted text-uppercase mb-2" style={{ letterSpacing: '0.5px' }}>
-                Key Metric Performance
-              </div>
-              <div className="row g-2 mb-3">
-                {details.stats.map((st, i) => (
-                  <div key={i} className="col-6">
-                    <div className="p-2 border rounded bg-light-subtle">
-                      <div className="small text-muted">{st.label}</div>
-                      <div className="fw-bold my-0.5">{st.value}</div>
-                      {st.trend && (
-                        <div
-                          className={`small fw-semibold d-flex align-items-center gap-1 ${st.isPositive ? 'text-success' : 'text-danger'
-                            }`}
-                        >
-                          <i className={`bi ${st.isPositive ? 'bi-caret-up-fill' : 'bi-caret-down-fill'}`} />
-                          {st.trend}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="col-12">
+            <div className="small fw-bold text-muted text-uppercase mb-2" style={{ letterSpacing: '0.5px' }}>
+              {details.breakdownTitle || 'Station / Contractor Breakdown'}
             </div>
-
-            {/* Right Column: List of active sub-components/contractors */}
-            <div className="col-12 col-md-6">
-              <div className="small fw-bold text-muted text-uppercase mb-2" style={{ letterSpacing: '0.5px' }}>
-                {details.breakdownTitle || 'Station / Contractor Breakdown'}
-              </div>
-              <div className="d-grid gap-1.5">
-                {filteredContractors.map((c, i) => (
-                  <div
-                    key={i}
-                    className="d-flex align-items-center justify-content-between p-2 rounded border bg-light-subtle"
-                  >
-                    <span className="fw-semibold text-body text-truncate flex-grow-1 me-2">{c.name}</span>
-                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                      <span className="text-muted">{c.value}</span>
-                      <span
-                        className={`badge ${c.status === 'Optimal' || c.status === 'Excellent' || c.status === 'Approved' || c.status === 'Online' || c.status === 'Healthy'
-                          ? 'bg-success-subtle text-success border border-success-subtle'
-                          : 'bg-warning-subtle text-warning border border-warning-subtle'
-                          }`}
-                      >
-                        {c.status}
-                      </span>
-                    </div>
+            <div className="d-grid gap-1.5">
+              {filteredContractors.map((c, i) => (
+                <div
+                  key={i}
+                  className="d-flex align-items-center justify-content-between p-2 rounded border bg-light-subtle"
+                  style={{ minHeight: '40px' }}
+                >
+                  <span className="fw-semibold text-body text-truncate flex-grow-1 me-2" style={{ fontSize: '12px' }}>{c.name}</span>
+                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                    <span className="text-muted" style={{ fontSize: '11px' }}>{c.value}</span>
+                    <span
+                      className={`badge ${c.status === 'Optimal' || c.status === 'Excellent' || c.status === 'Approved' || c.status === 'Online' || c.status === 'Healthy'
+                        ? 'bg-success-subtle text-success border border-success-subtle'
+                        : 'bg-warning-subtle text-warning border border-warning-subtle'
+                        }`}
+                      style={{ fontSize: '10px' }}
+                    >
+                      {c.status}
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="card-footer bg-light p-2.5 d-flex gap-2 justify-content-end border-top">
+        <div className="card-footer bg-light p-2 d-flex gap-2 justify-content-end border-top">
           <button className="btn btn-xs btn-outline-secondary py-1 px-2.5" onClick={onClose}>
             Dismiss
           </button>

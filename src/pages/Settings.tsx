@@ -354,19 +354,19 @@ export const Settings = () => {
             <div className="d-grid gap-2 small text-muted pt-2 border-top border-secondary border-opacity-20">
               <div className="d-flex justify-content-between py-1">
                 <span>Account Username:</span>
-                <span className="fw-bold text-white">{user.name}</span>
+                <span className="fw-bold text-dark">{user.name}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>Primary Email:</span>
-                <span className="fw-bold text-white">{user.email}</span>
+                <span className="fw-bold text-dark">{user.email}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>Account Role:</span>
-                <span className="fw-bold text-white text-uppercase" style={{ fontSize: '0.75rem' }}>{user.role.replace(/_/g, ' ')}</span>
+                <span className="fw-bold text-dark text-uppercase" style={{ fontSize: '0.75rem' }}>{user.role.replace(/_/g, ' ')}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>SMS Mobile Phone:</span>
-                <span className="fw-bold text-white">{user.phone || '+91 98765 43210'}</span>
+                <span className="fw-bold text-dark">{user.phone || '+91 98765 43210'}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>2FA Status:</span>
@@ -382,15 +382,15 @@ export const Settings = () => {
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>Active Workspace:</span>
-                <span className="fw-bold text-white">{user.workspace}</span>
+                <span className="fw-bold text-dark">{user.workspace}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>Active Location:</span>
-                <span className="fw-bold text-white">{user.location || 'Chennai, TN'}</span>
+                <span className="fw-bold text-dark">{user.location || 'Chennai, TN'}</span>
               </div>
               <div className="d-flex justify-content-between py-1">
                 <span>Client Version:</span>
-                <span className="font-monospace text-white">v1.0.0</span>
+                <span className="font-monospace text-dark">v1.0.0</span>
               </div>
             </div>
           </div>
