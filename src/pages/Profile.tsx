@@ -1,12 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../hooks/useApp';
-import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
+import { UpdateUserModal } from '../components/modals/UpdateUserModal';
+import type { UserProfile } from '../types';
 import { ROLE_LABELS, ROLE_COLORS } from '../constants';
 
 export const Profile = () => {
-  const { user } = useApp();
-  const navigate = useNavigate();
+  const { user: appUser } = useApp();
   const [activityOpen, setActivityOpen] = useState<boolean>(true);
+  const [profileData, setProfileData] = useState<Partial<UserProfile> | null>(null);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+
+  const loadProfile = () => {
+    authService.getProfile()
+      .then((data) => setProfileData(data as Partial<UserProfile>))
+      .catch(() => setProfileData(null));
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const user = {
+    ...appUser,
+    ...(profileData || {}),
+  };
+
+  const empCode = String(
+    user.employee_code || (user.employee as Record<string, unknown> | undefined)?.employee_code || user.emp_id || user.empId || user.employeeId || 'LT-2024-001'
+  );
+  const empIdVal = String(
+    user.employee_id || (user.employee as Record<string, unknown> | undefined)?.employee_id || user.id || '1'
+  );
 
   // Role description block
   const roleDescriptions: Record<string, string> = {
@@ -44,9 +69,9 @@ export const Profile = () => {
           <button
             className="btn btn-primary btn-sm"
             type="button"
-            onClick={() => navigate('/settings')}
+            onClick={() => setShowEditModal(true)}
           >
-            <i className="bi bi-gear-fill me-1" /> Configure Profile
+            <i className="bi bi-pencil-square me-1" /> Update Profile
           </button>
         </div>
       </div>
@@ -65,8 +90,8 @@ export const Profile = () => {
               <img
                 className="avatar-img avatar-xl rounded-circle border border-4 border-dark shadow"
                 style={{ width: '120px', height: '120px', objectFit: 'cover' }}
-                src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563eb&color=fff`}
-                alt={user.name}
+                src={(user.avatar as string) || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(user.name))}&background=2563eb&color=fff`}
+                alt={String(user.name)}
               />
               <div className="text-center text-md-start flex-grow-1">
                 <span className={`badge ${ROLE_COLORS[user.role] || 'text-bg-secondary'} px-2 py-1 mb-1`}>
@@ -96,7 +121,7 @@ export const Profile = () => {
                 <div className="col-12 col-md-6">
                   <div className="p-3 bg-body-secondary border rounded">
                     <div className="text-muted small">Mobile Number</div>
-                    <strong className="text-body-emphasis">{user.phone || '+91 98765 43210'}</strong>
+                    <strong className="text-body-emphasis">{user.phone || user.mobile_number || '+91 98765 43210'}</strong>
                   </div>
                 </div>
                 <div className="col-12 col-md-6">
@@ -119,14 +144,14 @@ export const Profile = () => {
                 </div>
                 <div className="col-12 col-md-6">
                   <div className="p-3 bg-body-secondary border rounded">
-                    <div className="text-muted small">Employee ID</div>
-                    <strong className="text-body-emphasis font-monospace">EMP-2026-9043</strong>
+                    <div className="text-muted small">Employee Code (employee.employee_code)</div>
+                    <strong className="text-body-emphasis font-monospace text-primary">{empCode}</strong>
                   </div>
                 </div>
                 <div className="col-12 col-md-6">
                   <div className="p-3 bg-body-secondary border rounded">
-                    <div className="text-muted small">Joined Date</div>
-                    <strong className="text-body-emphasis">January 14, 2024</strong>
+                    <div className="text-muted small">Employee ID (employee.employee_id)</div>
+                    <strong className="text-body-emphasis font-monospace text-primary">#{empIdVal}</strong>
                   </div>
                 </div>
               </div>
@@ -184,6 +209,14 @@ export const Profile = () => {
           </div>
         )}
       </div>
+
+      {/* Update User Profile Modal */}
+      <UpdateUserModal
+        show={showEditModal}
+        userId="profile"
+        onClose={() => setShowEditModal(false)}
+        onSuccess={loadProfile}
+      />
     </div>
   );
 };

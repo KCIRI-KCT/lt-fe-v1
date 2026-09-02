@@ -77,14 +77,26 @@ export const ProjectFormPage = () => {
         .then((proj) => {
           if (proj) {
             setProjectData(proj);
-            setName(proj.name || '');
-            setDescription(proj.description || '');
-            setCityId(proj.cityId || '');
-            const cObj = DEFAULT_CITIES.find(c => c.id === proj.cityId);
-            if (cObj) setStateId(cObj.stateId);
-            setStartDate(proj.startDate || today);
-            setEndDate(proj.endDate || defaultEndDate);
-            if (proj.sites) setSites(proj.sites);
+            setName(proj.name || (proj as unknown as Record<string, unknown>).project_name as string || '');
+            setDescription(proj.description || (proj as unknown as Record<string, unknown>).desc as string || '');
+
+            const rawCityId = proj.cityId || (proj as unknown as Record<string, unknown>).city_id as string || (proj as unknown as Record<string, unknown>).city as string || '';
+            const rawCityName = proj.cityName || (proj as unknown as Record<string, unknown>).city_name as string || '';
+
+            const foundCity = DEFAULT_CITIES.find(
+              c => c.id === rawCityId || c.name.toLowerCase() === rawCityName.toLowerCase()
+            );
+
+            if (foundCity) {
+              setCityId(foundCity.id);
+              setStateId(foundCity.stateId);
+            } else if (rawCityId) {
+              setCityId(rawCityId);
+            }
+
+            if (proj.startDate && proj.startDate !== 'N/A') setStartDate(proj.startDate);
+            if (proj.endDate && proj.endDate !== 'N/A') setEndDate(proj.endDate);
+            if (proj.sites && proj.sites.length > 0) setSites(proj.sites);
 
             if (proj.roleAssignments && proj.roleAssignments.length > 0) {
               const mgrs = proj.roleAssignments.filter(ra => ra.role === 'project_manager').map(ra => ({ userId: ra.userId, siteId: ra.siteId }));
@@ -104,7 +116,9 @@ export const ProjectFormPage = () => {
             }
           }
         })
-        .catch(() => null);
+        .catch(() => {
+          setErrorMsg('Unable to fetch project details from server.');
+        });
     }
   }, [isEdit, id, today, defaultEndDate]);
 

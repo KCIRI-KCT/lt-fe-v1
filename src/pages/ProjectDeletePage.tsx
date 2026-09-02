@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { projectService } from '../services/projectService';
 import type { Project } from '../types';
 
 export const ProjectDeletePage = () => {
   const [activeTab, setActiveTab] = useState<'request' | 'approve'>('request');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [toastMsg, setToastMsg] = useState<string>('');
   const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const masterCheckboxRef = useRef<HTMLInputElement>(null);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -34,64 +35,82 @@ export const ProjectDeletePage = () => {
 
   const currentList = activeTab === 'request' ? activeProjects : pendingRequests;
 
-  const handleSelectAll = (checked: boolean) => {
+  const getProjId = (proj: Project): string => {
+    return String(proj.id || proj.project_id || proj.code || '');
+  };
+
+  const toggleAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(currentList.map((p) => p.id));
+      setSelectedProjectIds(new Set(currentList.map(getProjId)));
     } else {
-      setSelectedIds([]);
+      setSelectedProjectIds(new Set());
     }
   };
 
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-    }
+  const toggleRow = (id: string) => {
+    setSelectedProjectIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   // Tab 1 Action: Submit Request
   const handleSubmitRequests = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedProjectIds.size === 0) return;
+    const ids = Array.from(selectedProjectIds);
     
     await Promise.allSettled(
-      selectedIds.map((id) => projectService.requestDeleteProject(id, 'User requested deletion via console'))
+      ids.map((id) => projectService.requestDeleteProject(id, 'User requested deletion via console'))
     );
 
-    showToast(`Successfully submitted delete requests for ${selectedIds.length} project(s).`);
-    setSelectedIds([]);
+    showToast(`Successfully submitted delete requests for ${ids.length} project(s).`);
+    setSelectedProjectIds(new Set());
     fetchProjects();
   };
 
   // Tab 2 Action: Approve Request (Permanent Delete)
   const handleApproveRequests = async () => {
-    if (selectedIds.length === 0) return;
-    const count = selectedIds.length;
+    if (selectedProjectIds.size === 0) return;
+    const ids = Array.from(selectedProjectIds);
+    const count = ids.length;
 
     await Promise.allSettled(
-      selectedIds.map((id) => projectService.confirmDeleteProject(id))
+      ids.map((id) => projectService.confirmDeleteProject(id))
     );
 
     showToast(`Approved deletion. Permanently removed ${count} project(s).`);
-    setSelectedIds([]);
+    setSelectedProjectIds(new Set());
     fetchProjects();
   };
 
   // Tab 2 Action: Reject Request (Restore Status)
   const handleRejectRequests = async () => {
-    if (selectedIds.length === 0) return;
-    const count = selectedIds.length;
+    if (selectedProjectIds.size === 0) return;
+    const ids = Array.from(selectedProjectIds);
+    const count = ids.length;
 
     await Promise.allSettled(
-      selectedIds.map((id) => projectService.updateProject(id, { deleteRequested: false }))
+      ids.map((id) => projectService.updateProject(id, { deleteRequested: false }))
     );
 
     showToast(`Rejected delete requests. Restored ${count} project(s) to active status.`);
-    setSelectedIds([]);
+    setSelectedProjectIds(new Set());
     fetchProjects();
   };
 
-  const isAllSelected = currentList.length > 0 && selectedIds.length === currentList.length;
+  const isAllSelected = currentList.length > 0 && selectedProjectIds.size === currentList.length;
+  const isIndeterminate = selectedProjectIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (masterCheckboxRef.current) {
+      masterCheckboxRef.current.indeterminate = isIndeterminate;
+    }
+  }, [isIndeterminate]);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -118,14 +137,14 @@ export const ProjectDeletePage = () => {
       <div className="d-flex border-bottom mt-4 mb-3">
         <button
           className={`btn btn-link py-2 px-3 text-decoration-none border-bottom border-2 rounded-0 small fw-semibold ${activeTab === 'request' ? 'border-primary text-primary fw-bold' : 'border-transparent text-muted'}`}
-          onClick={() => { setActiveTab('request'); setSelectedIds([]); }}
+          onClick={() => { setActiveTab('request'); setSelectedProjectIds(new Set()); }}
         >
           <i className="bi bi-file-earmark-arrow-up me-1" />
           1. Submit Delete Request ({activeProjects.length})
         </button>
         <button
           className={`btn btn-link py-2 px-3 text-decoration-none border-bottom border-2 rounded-0 small fw-semibold ${activeTab === 'approve' ? 'border-danger text-danger fw-bold' : 'border-transparent text-muted'}`}
-          onClick={() => { setActiveTab('approve'); setSelectedIds([]); }}
+          onClick={() => { setActiveTab('approve'); setSelectedProjectIds(new Set()); }}
         >
           <i className="bi bi-shield-check me-1" />
           2. Pending Approvals (Project Manager Panel) ({pendingRequests.length})
@@ -146,32 +165,32 @@ export const ProjectDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
               <span className="text-muted small">
-                {selectedIds.length} of {currentList.length} project(s) selected
+                {selectedProjectIds.size} of {currentList.length} project(s) selected
               </span>
 
               <div className="d-flex gap-2">
                 {activeTab === 'request' ? (
                   <button
                     className="btn btn-primary btn-sm"
-                    disabled={selectedIds.length === 0}
+                    disabled={selectedProjectIds.size === 0}
                     onClick={handleSubmitRequests}
                   >
                     <i className="bi bi-send me-1.5" />
-                    Submit Delete Request ({selectedIds.length})
+                    Submit Delete Request ({selectedProjectIds.size})
                   </button>
                 ) : (
                   <>
                     <button
                       className="btn btn-danger btn-sm"
-                      disabled={selectedIds.length === 0}
+                      disabled={selectedProjectIds.size === 0}
                       onClick={handleApproveRequests}
                     >
                       <i className="bi bi-check-circle me-1.5" />
-                      Approve Deletion ({selectedIds.length})
+                      Approve Deletion ({selectedProjectIds.size})
                     </button>
                     <button
                       className="btn btn-outline-secondary btn-sm"
-                      disabled={selectedIds.length === 0}
+                      disabled={selectedProjectIds.size === 0}
                       onClick={handleRejectRequests}
                     >
                       <i className="bi bi-x-circle me-1.5" />
@@ -188,10 +207,11 @@ export const ProjectDeletePage = () => {
                   <tr>
                     <th style={{ width: '40px' }}>
                       <input
+                        ref={masterCheckboxRef}
                         type="checkbox"
                         className="form-check-input"
                         checked={isAllSelected}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        onChange={(e) => toggleAll(e.target.checked)}
                       />
                     </th>
                     <th>Project</th>
@@ -203,15 +223,16 @@ export const ProjectDeletePage = () => {
                 </thead>
                 <tbody>
                   {currentList.map((proj) => {
-                    const isChecked = selectedIds.includes(proj.id);
+                    const pId = getProjId(proj);
+                    const isChecked = selectedProjectIds.has(pId);
                     return (
-                      <tr key={proj.id} className={isChecked ? (activeTab === 'request' ? 'table-primary-subtle' : 'table-danger-subtle') : ''}>
+                      <tr key={pId} className={isChecked ? (activeTab === 'request' ? 'table-primary-subtle' : 'table-danger-subtle') : ''}>
                         <td>
                           <input
                             type="checkbox"
                             className="form-check-input"
                             checked={isChecked}
-                            onChange={(e) => handleSelectOne(proj.id, e.target.checked)}
+                            onChange={() => toggleRow(pId)}
                           />
                         </td>
                         <td>

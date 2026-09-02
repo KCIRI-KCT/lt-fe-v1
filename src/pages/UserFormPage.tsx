@@ -12,16 +12,14 @@ export const UserFormPage = () => {
   const navigate = useNavigate();
   const isEdit = !!id && id !== 'add';
 
-  const today = new Date().toISOString().split('T')[0];
-
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [department, setDepartment] = useState('');
   const [avatar, setAvatar] = useState('');
-  const [joiningDate, setJoiningDate] = useState(today);
-  const [createdAt, setCreatedAt] = useState(today);
-  const [employeeId, setEmployeeId] = useState(() => `EMP-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [joiningDate, setJoiningDate] = useState('');
+  const [createdAt, setCreatedAt] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [role, setRole] = useState('');
   const [address, setAddress] = useState('');
 
@@ -35,6 +33,9 @@ export const UserFormPage = () => {
           setRole(emp.designation || 'site_engineer');
           setDepartment(emp.department || '');
           setPhone(emp.mobile_number || '');
+          if (emp.created_at) {
+            setCreatedAt(emp.created_at.split('T')[0] || '');
+          }
         }
       }).catch(() => null);
     }
@@ -94,14 +95,18 @@ export const UserFormPage = () => {
       return;
     }
 
-    const employeePayload = {
+    const employeePayload: Record<string, unknown> = {
       employee_code: employeeId.trim(),
       employee_name: name.trim(),
       email: email.trim(),
       designation: role,
-      department: department || address || 'L&T Operations',
+      department: department || 'L&T Operations',
+      address: address.trim() || undefined,
+      location: address.trim() || undefined,
       mobile_number: phone || '9000000000',
       status: 'ACTIVE',
+      ...(joiningDate ? { joining_date: joiningDate } : {}),
+      ...(createdAt ? { created_at: createdAt } : {}),
     };
 
     try {
@@ -185,13 +190,12 @@ export const UserFormPage = () => {
 
           {/* Joining Date */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-bold small">Joining Date *</label>
+            <label className="form-label fw-bold small">Joining Date</label>
             <input
               type="date"
               className="form-control"
               value={joiningDate}
               onChange={(e) => handleJoiningDateChange(e.target.value)}
-              required
             />
           </div>
 
@@ -201,23 +205,22 @@ export const UserFormPage = () => {
             <input
               type="text"
               className="form-control"
-              placeholder="LT-YYYY-XXX"
+              placeholder="e.g. LT-2024-001 or EMP-101"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
               required
             />
-            <small className="text-muted small">Auto-generated format: LT-[Joining Year]-[Sequence]</small>
+            <small className="text-muted small">Specify employee code / ID</small>
           </div>
 
           {/* Created Date */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-bold small">Created Date *</label>
+            <label className="form-label fw-bold small">Created Date</label>
             <input
               type="date"
               className="form-control"
               value={createdAt}
               onChange={(e) => setCreatedAt(e.target.value)}
-              required
             />
           </div>
 

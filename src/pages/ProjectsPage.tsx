@@ -5,22 +5,19 @@ import { projectService } from '../services/projectService';
 import { STATUS_BADGES } from '../constants';
 import type { Project } from '../types';
 
-interface ProjectSiteRow {
+interface ProjectRow {
   id: string;
-  projectId: string;
   projectName: string;
+  code: string;
   cityName: string;
   stateName: string;
-  siteName: string;
-  siteNumber: string;
-  chainageName: string;
-  chainageKm: number;
+  siteCount: number;
+  sitesSummary: string;
   managerName: string;
-  managerId: string;
   supervisorName: string;
-  supervisorId: string;
   engineerName: string;
-  engineerId: string;
+  status: string;
+  progress: number;
 }
 
 export const ProjectsPage = () => {
@@ -59,86 +56,89 @@ export const ProjectsPage = () => {
     return () => { isMounted = false; };
   }, []);
 
-  const columns: Column<ProjectSiteRow>[] = [
+  const columns: Column<ProjectRow>[] = [
     {
       key: 'projectName',
       header: 'Project Name',
       sortable: true,
       render: (r) => (
-        <div className="d-flex align-items-center gap-1">
+        <div className="d-flex align-items-center gap-2">
           <button
             type="button"
             className="btn btn-link p-0 text-start fw-semibold text-primary text-decoration-none"
             onClick={() => {
-              setSelectedProjectId(r.projectId);
+              setSelectedProjectId(r.id);
               setShowDetails(true);
             }}
           >
             {r.projectName}
           </button>
-          <button
-            type="button"
-            className="btn btn-link p-0 text-muted"
-            onClick={() => {
-              setSelectedProjectId(r.projectId);
-              setShowDetails(true);
-            }}
-            title="Quick Details"
-          >
-            <i className="bi bi-info-circle small" />
-          </button>
+          <span className="badge bg-secondary-subtle text-secondary-emphasis border" style={{ fontSize: '0.7rem' }}>{r.code}</span>
         </div>
       )
     },
     { key: 'cityName', header: 'City', sortable: true },
     { key: 'stateName', header: 'State', sortable: true },
-    { key: 'siteName', header: 'Site Name', sortable: true },
-    { key: 'siteNumber', header: 'Site Number', sortable: true },
-    { key: 'chainageName', header: 'Chainage Name', sortable: true, render: (r) => r.chainageName === 'N/A' ? 'N/A' : `${r.chainageName} (CH 0+${r.chainageKm})` },
+    {
+      key: 'sitesSummary',
+      header: 'Configured Sites',
+      sortable: true,
+      render: (r) => (
+        <span className="badge text-bg-light border text-dark">
+          <i className="bi bi-geo-alt me-1" />
+          {r.siteCount} {r.siteCount === 1 ? 'Site' : 'Sites'}
+        </span>
+      )
+    },
     { key: 'managerName', header: 'Project Manager', sortable: true },
     { key: 'supervisorName', header: 'Site Supervisor', sortable: true },
     { key: 'engineerName', header: 'Site Engineer', sortable: true },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (r) => (
+        <span className={`badge ${STATUS_BADGES[r.status] || 'text-bg-secondary'} text-capitalize`}>
+          {r.status}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      render: (r) => (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => {
+            setSelectedProjectId(r.id);
+            setShowDetails(true);
+          }}
+        >
+          <i className="bi bi-eye me-1" />
+          View Details
+        </button>
+      )
+    }
   ];
 
-  // Flat-map projects to get a list of all project-site items
-  const rows: ProjectSiteRow[] = projectsList.flatMap((p) => {
+  // Map 1 row per project to eliminate duplicate rows
+  const rows: ProjectRow[] = projectsList.map((p) => {
     const sites = p.sites || [];
-    if (sites.length === 0) {
-      return [{
-        id: `${p.id}-no-site`,
-        projectId: p.id,
-        projectName: p.name,
-        cityName: p.cityName || 'N/A',
-        stateName: p.stateName || 'N/A',
-        siteName: 'N/A',
-        siteNumber: 'N/A',
-        chainageName: 'N/A',
-        chainageKm: 0,
-        managerName: p.managerName || 'N/A',
-        managerId: p.managerId || '',
-        supervisorName: p.supervisorName || 'N/A',
-        supervisorId: p.supervisorId || '',
-        engineerName: p.engineerName || 'N/A',
-        engineerId: p.engineerId || '',
-      }];
-    }
-    return sites.map((s) => ({
-      id: `${p.id}-${s.id}`,
-      projectId: p.id,
+    return {
+      id: p.id,
       projectName: p.name,
+      code: p.code || 'PRJ',
       cityName: p.cityName || 'N/A',
       stateName: p.stateName || 'N/A',
-      siteName: s.siteName,
-      siteNumber: s.siteNumber,
-      chainageName: s.chainageName,
-      chainageKm: s.chainageKm,
+      siteCount: sites.length || p.siteCount || 0,
+      sitesSummary: `${sites.length || p.siteCount || 0} Sites`,
       managerName: p.managerName || 'N/A',
-      managerId: p.managerId || '',
       supervisorName: p.supervisorName || 'N/A',
-      supervisorId: p.supervisorId || '',
       engineerName: p.engineerName || 'N/A',
-      engineerId: p.engineerId || '',
-    }));
+      status: p.status || 'active',
+      progress: p.progress || 0,
+    };
   });
 
   const handleFilterChange = (key: string, value: string) => {
@@ -180,9 +180,9 @@ export const ProjectsPage = () => {
   const filtered = rows.filter((r) => {
     const matchesSearch = !search ||
       r.projectName.toLowerCase().includes(search.toLowerCase()) ||
-      r.siteName.toLowerCase().includes(search.toLowerCase()) ||
-      r.siteNumber.toLowerCase().includes(search.toLowerCase()) ||
-      r.chainageName.toLowerCase().includes(search.toLowerCase());
+      r.code.toLowerCase().includes(search.toLowerCase()) ||
+      r.cityName.toLowerCase().includes(search.toLowerCase()) ||
+      r.stateName.toLowerCase().includes(search.toLowerCase());
 
     const matchesState = !filterValues.stateName || r.stateName === filterValues.stateName;
     const matchesCity = !filterValues.cityName || r.cityName === filterValues.cityName;
@@ -194,8 +194,8 @@ export const ProjectsPage = () => {
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    let valA = a[sortBy as keyof ProjectSiteRow] || '';
-    let valB = b[sortBy as keyof ProjectSiteRow] || '';
+    let valA = a[sortBy as keyof ProjectRow] || '';
+    let valB = b[sortBy as keyof ProjectRow] || '';
 
     if (typeof valA === 'string') valA = valA.toLowerCase();
     if (typeof valB === 'string') valB = valB.toLowerCase();
@@ -238,7 +238,7 @@ export const ProjectsPage = () => {
         keyExtractor={(r) => r.id}
         searchQuery={search}
         onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search by project, site, chainage..."
+        searchPlaceholder="Search by project name, code, city..."
         total={sorted.length}
         filters={filters}
         filterValues={filterValues}
@@ -253,7 +253,7 @@ export const ProjectsPage = () => {
         onPageSizeChange={setPageSize}
         showPagination={true}
         rowClassName={(r) => {
-          const parentProj = projectsList.find(p => p.id === r.projectId);
+          const parentProj = projectsList.find(p => p.id === r.id);
           return parentProj?.status === 'completed' ? 'project-row-finished' : '';
         }}
       />

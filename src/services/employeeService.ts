@@ -3,7 +3,8 @@
 // ============================================================================
 
 import api from './api';
-import type { UserProfile, UserRole } from '../types';
+import type { UserProfile } from '../types';
+import { normalizeRole } from '../utils/roleUtils';
 
 export interface EmployeeData {
   employee_id: number;
@@ -16,18 +17,10 @@ export interface EmployeeData {
   status: string;
   created_at?: string;
   role?: string;
+  address?: string;
+  location?: string;
+  phone?: string;
 }
-
-const mapRole = (designation?: string, dept?: string): UserRole => {
-  const text = `${designation || ''} ${dept || ''}`.toLowerCase();
-  if (text.includes('admin')) return 'admin';
-  if (text.includes('project manager')) return 'project_manager';
-  if (text.includes('site supervisor')) return 'site_supervisor';
-  if (text.includes('site engineer')) return 'site_engineer';
-  if (text.includes('safety manager')) return 'safety_manager';
-  if (text.includes('safety officer') || text.includes('safety engineer')) return 'safety_officer';
-  return 'site_engineer';
-};
 
 export const employeeService = {
   async getEmployees(params?: Record<string, unknown>): Promise<UserProfile[]> {
@@ -35,17 +28,25 @@ export const employeeService = {
     const rawData = response.data?.data || response.data;
     const items: EmployeeData[] = Array.isArray(rawData) ? rawData : rawData?.results || [];
 
-    return items.map((emp) => ({
-      id: String(emp.employee_id || emp.employee_code),
-      name: emp.employee_name,
-      email: emp.email,
-      role: mapRole(emp.designation, emp.department),
-      employeeId: emp.employee_code,
-      joiningDate: emp.created_at ? new Date(emp.created_at).toISOString().split('T')[0] : '2024-01-15',
-      address: emp.department || 'L&T Operations',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.employee_name)}&background=2563eb&color=fff`,
-      workspace: 'L&T Main Site',
-    }));
+    return items.map((emp) => {
+      const phoneVal = String(emp.mobile_number || emp.phone || '');
+      const locationVal = String(emp.location || emp.address || '');
+      return {
+        id: String(emp.employee_id || emp.employee_code),
+        name: emp.employee_name,
+        email: emp.email,
+        role: normalizeRole(emp.designation, emp.department),
+        employeeId: emp.employee_code,
+        joiningDate: emp.created_at ? new Date(emp.created_at).toISOString().split('T')[0] : '2024-01-15',
+        phone: phoneVal,
+        mobile_number: phoneVal,
+        location: locationVal,
+        address: locationVal || 'N/A',
+        department: emp.department || 'N/A',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.employee_name)}&background=2563eb&color=fff`,
+        workspace: 'L&T Main Site',
+      };
+    });
   },
 
   async getEmployee(id: string): Promise<EmployeeData> {
@@ -59,7 +60,28 @@ export const employeeService = {
   },
 
   async updateEmployee(id: string, data: Partial<EmployeeData>): Promise<EmployeeData> {
-    const response = await api.put(`employees/${id}/`, data);
+    const rawData = data as Record<string, unknown>;
+    const employee_code = String(
+      data.employee_code ||
+      rawData.emp_id ||
+      rawData.empId ||
+      rawData.employeeId ||
+      `EMP-${id}`
+    );
+
+    const payload = {
+      ...data,
+      employee_code,
+      mobile_number: data.mobile_number || data.phone || rawData.mobile_number || rawData.phone,
+      location: data.location || data.address || rawData.location || rawData.address,
+    };
+
+    let response;
+    try {
+      response = await api.put(`employees/${id}/`, payload);
+    } catch {
+      response = await api.patch(`employees/${id}/`, payload);
+    }
     return response.data?.data || response.data;
   },
 
