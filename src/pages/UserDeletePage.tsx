@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { employeeService } from '../services/employeeService';
 import { ROLE_LABELS, ROLE_COLORS } from '../constants';
@@ -7,35 +7,41 @@ import type { UserProfile } from '../types';
 export const UserDeletePage = () => {
   const navigate = useNavigate();
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [successMsg, setSuccessMsg] = useState<string>('');
+  const masterCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     employeeService.getEmployees().then(setUsersList).catch(() => setUsersList([]));
   }, []);
 
-  const handleSelectAll = (checked: boolean) => {
+  const toggleAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(usersList.map((u) => u.id));
+      setSelectedUserIds(new Set(usersList.map((u) => u.id)));
     } else {
-      setSelectedIds([]);
+      setSelectedUserIds(new Set());
     }
   };
 
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-    }
+  const toggleRow = (id: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedIds.length === 0) return;
-    const count = selectedIds.length;
+    if (selectedUserIds.size === 0) return;
+    const ids = Array.from(selectedUserIds);
+    const count = ids.length;
     try {
-      await Promise.all(selectedIds.map((id) => employeeService.deleteEmployee(id)));
-      setSelectedIds([]);
+      await Promise.all(ids.map((id) => employeeService.deleteEmployee(id)));
+      setSelectedUserIds(new Set());
       setSuccessMsg(`Successfully deleted ${count} selected user(s).`);
       setTimeout(() => {
         setSuccessMsg('');
@@ -46,7 +52,14 @@ export const UserDeletePage = () => {
     }
   };
 
-  const isAllSelected = usersList.length > 0 && selectedIds.length === usersList.length;
+  const isAllSelected = usersList.length > 0 && selectedUserIds.size === usersList.length;
+  const isIndeterminate = selectedUserIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (masterCheckboxRef.current) {
+      masterCheckboxRef.current.indeterminate = isIndeterminate;
+    }
+  }, [isIndeterminate]);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -78,15 +91,15 @@ export const UserDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
-                {selectedIds.length} of {usersList.length} user(s) selected
+                {selectedUserIds.size} of {usersList.length} user(s) selected
               </span>
               <button
                 className="btn btn-danger"
-                disabled={selectedIds.length === 0}
+                disabled={selectedUserIds.size === 0}
                 onClick={handleDeleteSelected}
               >
                 <i className="bi bi-trash-fill me-2" />
-                Delete Selected ({selectedIds.length})
+                Delete Selected ({selectedUserIds.size})
               </button>
             </div>
 
@@ -96,10 +109,11 @@ export const UserDeletePage = () => {
                   <tr>
                     <th style={{ width: '40px' }}>
                       <input
+                        ref={masterCheckboxRef}
                         type="checkbox"
                         className="form-check-input"
                         checked={isAllSelected}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        onChange={(e) => toggleAll(e.target.checked)}
                       />
                     </th>
                     <th>Full Name</th>
@@ -114,7 +128,7 @@ export const UserDeletePage = () => {
                 </thead>
                 <tbody>
                   {usersList.map((user) => {
-                    const isChecked = selectedIds.includes(user.id);
+                    const isChecked = selectedUserIds.has(user.id);
                     return (
                       <tr key={user.id} className={isChecked ? 'table-danger-subtle' : ''}>
                         <td>
@@ -122,7 +136,7 @@ export const UserDeletePage = () => {
                             type="checkbox"
                             className="form-check-input"
                             checked={isChecked}
-                            onChange={(e) => handleSelectOne(user.id, e.target.checked)}
+                            onChange={() => toggleRow(user.id)}
                           />
                         </td>
                         <td>

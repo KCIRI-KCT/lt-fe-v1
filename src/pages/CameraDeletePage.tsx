@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cameraService } from '../services/cameraService';
 import type { Camera } from '../types';
@@ -8,9 +8,10 @@ export const CameraDeletePage = () => {
   const navigate = useNavigate();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedCameraIds, setSelectedCameraIds] = useState<Set<string>>(new Set());
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [deleting, setDeleting] = useState<boolean>(false);
+  const masterCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -27,31 +28,36 @@ export const CameraDeletePage = () => {
     return () => { isMounted = false; };
   }, []);
 
-  const handleSelectAll = (checked: boolean) => {
+  const toggleAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(cameras.map((c) => c.id));
+      setSelectedCameraIds(new Set(cameras.map((c) => c.id)));
     } else {
-      setSelectedIds([]);
+      setSelectedCameraIds(new Set());
     }
   };
 
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-    }
+  const toggleRow = (id: string) => {
+    setSelectedCameraIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedCameraIds.size === 0) return;
     setDeleting(true);
-    const count = selectedIds.length;
+    const ids = Array.from(selectedCameraIds);
+    const count = ids.length;
 
     try {
-      await Promise.all(selectedIds.map((id) => cameraService.deleteCamera(id)));
-      setCameras((prev) => prev.filter((c) => !selectedIds.includes(c.id)));
-      setSelectedIds([]);
+      await Promise.all(ids.map((id) => cameraService.deleteCamera(id)));
+      setCameras((prev) => prev.filter((c) => !selectedCameraIds.has(c.id)));
+      setSelectedCameraIds(new Set());
       setSuccessMsg(`Successfully deleted ${count} selected camera(s).`);
       setTimeout(() => {
         setSuccessMsg('');
@@ -64,7 +70,14 @@ export const CameraDeletePage = () => {
     }
   };
 
-  const isAllSelected = cameras.length > 0 && selectedIds.length === cameras.length;
+  const isAllSelected = cameras.length > 0 && selectedCameraIds.size === cameras.length;
+  const isIndeterminate = selectedCameraIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (masterCheckboxRef.current) {
+      masterCheckboxRef.current.indeterminate = isIndeterminate;
+    }
+  }, [isIndeterminate]);
 
   return (
     <div className="container-fluid px-3 px-lg-4 py-4">
@@ -101,15 +114,15 @@ export const CameraDeletePage = () => {
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
-                {selectedIds.length} of {cameras.length} camera(s) selected
+                {selectedCameraIds.size} of {cameras.length} camera(s) selected
               </span>
               <button
                 className="btn btn-danger"
-                disabled={selectedIds.length === 0 || deleting}
+                disabled={selectedCameraIds.size === 0 || deleting}
                 onClick={handleDeleteSelected}
               >
                 <i className="bi bi-trash-fill me-2" />
-                {deleting ? 'Deleting...' : `Delete Selected (${selectedIds.length})`}
+                {deleting ? 'Deleting...' : `Delete Selected (${selectedCameraIds.size})`}
               </button>
             </div>
 
@@ -119,10 +132,11 @@ export const CameraDeletePage = () => {
                   <tr>
                     <th style={{ width: '40px' }}>
                       <input
+                        ref={masterCheckboxRef}
                         type="checkbox"
                         className="form-check-input"
                         checked={isAllSelected}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        onChange={(e) => toggleAll(e.target.checked)}
                       />
                     </th>
                     <th>Camera Name</th>
@@ -135,7 +149,7 @@ export const CameraDeletePage = () => {
                 </thead>
                 <tbody>
                   {cameras.map((cam) => {
-                    const isChecked = selectedIds.includes(cam.id);
+                    const isChecked = selectedCameraIds.has(cam.id);
                     return (
                       <tr key={cam.id} className={isChecked ? 'table-danger-subtle' : ''}>
                         <td>
@@ -143,7 +157,7 @@ export const CameraDeletePage = () => {
                             type="checkbox"
                             className="form-check-input"
                             checked={isChecked}
-                            onChange={(e) => handleSelectOne(cam.id, e.target.checked)}
+                            onChange={() => toggleRow(cam.id)}
                           />
                         </td>
                         <td>

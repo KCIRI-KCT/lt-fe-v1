@@ -22,10 +22,20 @@ export const UserEditPage = () => {
   const handleSubmit = async (data: Record<string, string | boolean>) => {
     if (!selectedUserId) return;
     try {
+      const empCode =
+        (data.employee_code as string) ||
+        selectedUser?.employeeId ||
+        ((selectedUser as unknown as Record<string, unknown> | undefined)?.employee_code as string) ||
+        `EMP-${selectedUserId}`;
+
       await employeeService.updateEmployee(selectedUserId, {
+        employee_code: empCode,
         employee_name: data.name as string,
         email: data.email as string,
-        mobile_number: (data.phone as string) || '9000000000',
+        mobile_number: (data.phone as string) || '',
+        phone: (data.phone as string) || '',
+        location: (data.location as string) || '',
+        address: (data.location as string) || '',
         designation: data.role as string,
         department: (data.department as string) || 'L&T Operations',
       });
@@ -40,22 +50,24 @@ export const UserEditPage = () => {
   };
 
   const fields: FieldConfig[] = [
+    { name: 'employee_code', label: 'Employee Code (employee_code)', type: 'text', placeholder: 'EMP-001', disabled: true, helpText: 'Read-only string identifier', colSpan: 6 },
     { name: 'name', label: 'Full Name', type: 'text', placeholder: 'Enter full name', required: true, colSpan: 6 },
     { name: 'email', label: 'Email Address', type: 'email', placeholder: 'user@example.com', required: true, colSpan: 6 },
     { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: '+91-9876543210', colSpan: 6 },
     { name: 'role', label: 'Role', type: 'select', options: ROLE_OPTIONS, required: true, colSpan: 6 },
     { name: 'department', label: 'Department', type: 'text', placeholder: 'Department name', colSpan: 6 },
-    { name: 'location', label: 'Location', type: 'text', placeholder: 'City, State', colSpan: 6 },
+    { name: 'location', label: 'Location / City', type: 'text', placeholder: 'City, State', colSpan: 6 },
     { name: 'workspace', label: 'Workspace', type: 'text', placeholder: 'Project/Organization', colSpan: 6 },
   ];
 
   const initialValues: Record<string, string> = selectedUser ? {
-    name: selectedUser.name,
-    email: selectedUser.email,
-    phone: selectedUser.phone || '',
+    employee_code: selectedUser.employeeId || ((selectedUser as unknown as Record<string, unknown>).employee_code as string) || `EMP-${selectedUser.id}`,
+    name: selectedUser.name || '',
+    email: selectedUser.email || '',
+    phone: selectedUser.phone || selectedUser.mobile_number || '',
     role: selectedUser.role,
     department: selectedUser.department || '',
-    location: selectedUser.location || '',
+    location: selectedUser.location || selectedUser.address || '',
     workspace: selectedUser.workspace || '',
   } : {};
 

@@ -23,10 +23,16 @@ export interface UserProfile {
   avatar: string;
   workspace: string;
   phone?: string;
+  mobile_number?: string;
   location?: string;
   department?: string;
   joinedAt?: string;
   employeeId?: string;
+  emp_id?: string;
+  empId?: string;
+  employee_id?: number | string;
+  employee_code?: string;
+  employee?: Record<string, unknown>;
   siteId?: string;
   siteName?: string;
   projectId?: string;
@@ -117,6 +123,7 @@ export interface ProjectRoleAssignment {
 
 export interface Project {
   id: string;
+  project_id?: string | number;
   name: string;
   code: string;
   description?: string;
