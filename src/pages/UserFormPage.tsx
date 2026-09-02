@@ -224,28 +224,33 @@ export const UserFormPage = () => {
           {/* Role Dropdown Selector */}
           <div className="col-12 col-md-6">
             <label className="form-label fw-bold small">Role *</label>
-            <div className="d-flex gap-2">
-              <select
-                className="form-select text-capitalize"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                required
-              >
-                <option value="">Select Role</option>
-                {allRolesList.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-outline-primary text-nowrap"
-                style={{ fontSize: '0.85rem' }}
-                onClick={() => setShowAddRoleInput(!showAddRoleInput)}
-              >
-                <i className="bi bi-plus-lg me-1" /> Add Role
-              </button>
+            <div className="d-flex align-items-start gap-2">
+              <div className="d-flex gap-2 mb-2">
+                <select
+                  className="form-select text-capitalize"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  required
+                >
+                  <option value="">Select Role</option>
+                  {allRolesList.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary text-nowrap"
+                  style={{ fontSize: '0.85rem' }}
+                  onClick={() => setShowAddRoleInput(!showAddRoleInput)}
+                >
+                  <i className="bi bi-plus-lg me-1" /> Add Role
+                </button>
+              </div>
+              <div className="card bg-light border-0 p-2" style={{ minWidth: '150px' }}>
+                <small className="text-muted">Phone: {phone || 'Not provided'}</small>
+              </div>
             </div>
 
             {showAddRoleInput && (
