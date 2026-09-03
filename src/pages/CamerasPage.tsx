@@ -296,7 +296,7 @@ export const CamerasPage = () => {
   }, [activeCamId, camOffset, handlePtz]);
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       {/* Dynamic Modal CSS */}
        {/* Dynamic Modal CSS */}
       <style dangerouslySetInnerHTML={{

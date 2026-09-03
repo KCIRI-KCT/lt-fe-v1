@@ -7,6 +7,7 @@ import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
+import { SafetyLeaderboard, type LeaderboardEntry } from '../../components/dashboard/SafetyLeaderboard';
 import { useNotifications, InlineAlertBanner } from '../../components/common/NotificationToast';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
 import { projectService } from '../../services/projectService';
@@ -86,9 +87,6 @@ export const ProjectManagerDashboard = () => {
   const [budgetTab] = useState<'summary' | 'simulator'>('summary');
   const [simProgress, setSimProgress] = useState<number>(32.5);
   const [prevSpentPct, setPrevSpentPct] = useState<number>(32.5);
-
-  // Active leaderboard details index
-  const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
 
 
 
@@ -218,146 +216,46 @@ export const ProjectManagerDashboard = () => {
     { id: 'ppe-compliance', title: 'PPE Compliance', value: ppeComplianceVal, subtitle: 'Helmet · Vest · Mask · Boots · Gloves', trend: 'Helmet 94%', isPositive: true, icon: 'bi-person-check-fill', badgeClass: 'bg-success-subtle text-success border border-success-subtle' },
   ];
 
-  // 2. Dynamic Safety Leaderboard logic
-  let leaderboardTitle: string;
-  let leaderboardItems: Array<{
-    rank: number;
-    name: string;
-    score: number;
-    icon: string;
-    color: string;
-    medal: string;
-    isSelected?: boolean;
-    details: { ppe: number; barricade: string; days: number; speed: number; violation: string; }
-  }>;
+  // 2. Safety Leaderboard items — ranked from real site/chainage safety scores.
+  // Entries without a backend score are excluded (no fabricated values).
+  const leaderboardTitle = appliedChainage
+    ? `Safety Leaderboard - ${chainagesList.find((c) => c.id === appliedChainage)?.site || 'Site'}`
+    : appliedSite
+      ? `Safety Leaderboard - ${appliedSite}`
+      : appliedProject
+        ? `Safety Leaderboard - ${appliedProject}`
+        : 'Safety Leaderboard - All Sites';
 
-  if (appliedChainage) {
-    const selectedCh = chainagesList.find(c => c.id === appliedChainage);
-    leaderboardTitle = `Safety Leaderboard - ${selectedCh?.site || 'Site'}`;
-    const siteChainages = chainagesList.filter(c => c.site === selectedCh?.site)
-      .sort((a, b) => b.safetyScore - a.safetyScore);
+  const leaderboardItems: LeaderboardEntry[] = (() => {
+    const toEntry = (id: string, name: string, score: unknown): LeaderboardEntry | null => {
+      const s = Number(score);
+      if (!name || !Number.isFinite(s)) return null;
+      return { id, name, score: s };
+    };
 
-    leaderboardItems = siteChainages.map((ch, idx) => {
-      const colors = ch.safetyScore >= 90 ? '#16a34a' : ch.safetyScore >= 80 ? '#d97706' : '#dc2626';
-      const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
-      const vls = ['Helmet Missing', 'Vest Missing', 'Perimeter Breach', 'Excavation Barricade missing', 'No Violation'];
-      const safetyDetail = {
-        ppe: Math.round(ch.safetyScore * 1.02),
-        barricade: ch.safetyScore >= 90 ? 'Optimal' : ch.safetyScore >= 80 ? 'Minor Gaps' : 'Critical Missing',
-        days: Math.round(ch.safetyScore * 2.2),
-        speed: Math.round(ch.safetyScore * 1.03),
-        violation: ch.safetyScore >= 90 ? 'No Violation' : vls[idx % vls.length]
-      };
-      if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
-      if (safetyDetail.speed > 100) safetyDetail.speed = 100;
-
-      return {
-        rank: idx + 1,
-        name: ch.name,
-        score: ch.safetyScore,
-        icon: 'bi-geo-alt-fill',
-        color: colors,
-        medal: medals[idx] || String(idx + 1),
-        isSelected: ch.id === appliedChainage,
-        details: safetyDetail
-      };
-    });
-  } else if (appliedSite) {
-    leaderboardTitle = `Safety Leaderboard - ${appliedSite}`;
-    const siteChainages = chainagesList.filter(c => c.site === appliedSite)
-      .sort((a, b) => (b.safetyScore || 90) - (a.safetyScore || 90));
-
-    leaderboardItems = siteChainages.map((ch, idx) => {
-      const score = ch.safetyScore || 90;
-      const colors = score >= 90 ? '#16a34a' : score >= 80 ? '#d97706' : '#dc2626';
-      const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
-      const vls = ['Helmet Missing', 'Vest Missing', 'Perimeter Breach', 'Excavation Barricade missing', 'No Violation'];
-      const safetyDetail = {
-        ppe: Math.round(score * 1.02),
-        barricade: score >= 90 ? 'Optimal' : score >= 80 ? 'Minor Gaps' : 'Critical Missing',
-        days: Math.round(score * 2.2),
-        speed: Math.round(score * 1.03),
-        violation: score >= 90 ? 'No Violation' : vls[idx % vls.length]
-      };
-      if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
-      if (safetyDetail.speed > 100) safetyDetail.speed = 100;
-
-      return {
-        rank: idx + 1,
-        name: ch.name,
-        score: score,
-        icon: 'bi-geo-alt-fill',
-        color: colors,
-        medal: medals[idx] || String(idx + 1),
-        details: safetyDetail
-      };
-    });
-  } else if (appliedProject) {
-    leaderboardTitle = `Safety Leaderboard - ${appliedProject}`;
-    const projSites = sitesList.filter(s => s.projectName === appliedProject || s.name === appliedProject)
-      .sort((a, b) => (b.safetyScore || 90) - (a.safetyScore || 90));
-
-    leaderboardItems = projSites.map((site, idx) => {
-      const colors = site.safetyScore >= 90 ? '#16a34a' : site.safetyScore >= 80 ? '#d97706' : '#dc2626';
-      const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
-      const vls = ['Perimeter Breach', 'PPE Deficiencies', 'Barricade Gaps', 'No Violation'];
-      const safetyDetail = {
-        ppe: Math.round(site.safetyScore * 1.01),
-        barricade: site.safetyScore >= 92 ? 'Optimal' : 'Needs Barricades',
-        days: Math.round(site.safetyScore * 2.5),
-        speed: Math.round(site.safetyScore * 1.02),
-        violation: site.safetyScore >= 92 ? 'No Violation' : vls[idx % vls.length]
-      };
-      if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
-      if (safetyDetail.speed > 100) safetyDetail.speed = 100;
-
-      return {
-        rank: idx + 1,
-        name: site.name,
-        score: site.safetyScore,
-        icon: 'bi-shield-fill',
-        color: colors,
-        medal: medals[idx] || String(idx + 1),
-        details: safetyDetail
-      };
-    });
-  } else {
-    leaderboardTitle = 'Safety Leaderboard - Projects';
-    const projectScores = [
-      { name: 'Coimbatore Bypass', score: 96, icon: 'bi-cone-striped' },
-      { name: 'Kochi Port Connectivity', score: 93, icon: 'bi-ship' },
-      { name: 'Chennai-Bangalore Expressway', score: 91.6, icon: 'bi-signpost-fill' },
-      { name: 'Hyderabad Metro Phase II', score: 89, icon: 'bi-train-front' },
-      { name: 'Mumbai Ring Road', score: 87.5, icon: 'bi-shield-fill' }
-    ].sort((a, b) => b.score - a.score);
-
-    leaderboardItems = projectScores.map((proj, idx) => {
-      const colors = proj.score >= 90 ? '#16a34a' : proj.score >= 80 ? '#d97706' : '#dc2626';
-      const medals = ['🥇', '🥈', '🥉', '4', '5', '6'];
-      const vls = ['No Violation', 'PPE Compliance Rate Gaps', 'Unsafe Excavation Barricades', 'Machinery Over-speeding'];
-      const safetyDetail = {
-        ppe: Math.round(proj.score * 1.01),
-        barricade: proj.score >= 92 ? 'Optimal' : 'Caution',
-        days: Math.round(proj.score * 2.8),
-        speed: Math.round(proj.score * 1.02),
-        violation: proj.score >= 92 ? 'No Violation' : vls[idx % vls.length]
-      };
-      if (safetyDetail.ppe > 100) safetyDetail.ppe = 100;
-      if (safetyDetail.speed > 100) safetyDetail.speed = 100;
-
-      return {
-        rank: idx + 1,
-        name: proj.name,
-        score: Math.round(proj.score),
-        icon: proj.icon,
-        color: colors,
-        medal: medals[idx] || String(idx + 1),
-        details: safetyDetail
-      };
-    });
-  }
-
-  const activeSiteDetail = leaderboardItems[activeLeaderboardIdx] || leaderboardItems[0] || null;
+    if (appliedChainage) {
+      const selectedCh = chainagesList.find((c) => c.id === appliedChainage);
+      return chainagesList
+        .filter((c) => c.site === selectedCh?.site)
+        .map((ch) => toEntry(ch.id, ch.name, ch.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
+    }
+    if (appliedSite) {
+      return chainagesList
+        .filter((c) => c.site === appliedSite)
+        .map((ch) => toEntry(ch.id, ch.name, ch.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
+    }
+    if (appliedProject) {
+      return sitesList
+        .filter((s) => s.projectName === appliedProject || s.name === appliedProject)
+        .map((site) => toEntry(site.id, site.name, site.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
+    }
+    return sitesList
+      .map((site) => toEntry(site.id, site.name, site.safetyScore))
+      .filter((e): e is LeaderboardEntry => e !== null);
+  })();
 
   // 3. Concrete & Structural step-wise progress
   const concreteSectionProgress = [
@@ -589,7 +487,7 @@ export const ProjectManagerDashboard = () => {
       </section>
 
       {/* ── 2. Horizontal Search Filters Panel ── */}
-      <section className="card border-0 shadow-sm p-3 bg-white">
+      <section className="card border-0 shadow-sm p-3 p-md-4 bg-white mt-3">
         <div className="row g-2 align-items-center">
           <div className="col-auto">
             <span className="small text-muted fw-bold text-uppercase">
@@ -680,7 +578,7 @@ export const ProjectManagerDashboard = () => {
       </section>
 
       {/* ── 3. KPI Section: Grid of 12 Square-like cards── */}
-      <section className="row g-3">
+      <section className="row g-3 mt-3">
         {dynamicKpiCards.map((card) => (
           <div key={card.id} className="col-6 col-sm-4 col-md-3 col-xl-2">
             <div
@@ -720,7 +618,7 @@ export const ProjectManagerDashboard = () => {
       </section>
 
       {/* ── 4. Mid Section: Plan vs Actual combo chart + Linear schematic map ── */}
-      <section className="row g-3">
+      <section className="row g-3 mt-3">
 
         {/* Dynamic Linear Schematic Map (Velzon location box style next to the graph) */}
         <div className="col-12 col-md-6 col-xl-4">
@@ -805,7 +703,7 @@ export const ProjectManagerDashboard = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100 p-1">
+            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100 p-2">
               <PlanVsActualChart data={getChartData()} />
             </div>
           </div>
@@ -967,120 +865,11 @@ export const ProjectManagerDashboard = () => {
 
       </section>
 
-      {/* ── 5. Bottom Section: Safety Cause & Operations Console ── */}
-      <section className="row g-3">
-        {/* Box 1: Safety Leaderboard & Analysis */}
+      {/* ── 5. Bottom Section: Safety Leaderboard & Operations Console ── */}
+      <section className="row g-3 mt-3">
+        {/* Box 1: Safety Leaderboard */}
         <div className="col-12 col-lg-6">
-          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '380px' }}>
-            <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-              <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-shield-check text-success fs-5" />
-                <h3 className="h6 mb-0 fw-bold">{leaderboardTitle}</h3>
-              </div>
-              <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '10px' }}>Root-Cause Analysis</span>
-            </div>
-
-            {leaderboardItems.length > 0 ? (
-              <div className="row g-3 flex-grow-1 align-items-stretch">
-                {/* Left split: leaderboard list */}
-                <div className="col-5 border-end pe-3 d-flex flex-column gap-2" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {leaderboardItems.map((site, idx) => (
-                    <div
-                      key={site.name}
-                      className={`d-flex align-items-center justify-content-between p-2 rounded cursor-pointer border ${activeLeaderboardIdx === idx
-                        ? 'bg-primary-subtle border-primary-subtle fw-semibold text-primary'
-                        : 'bg-light-subtle border-light-subtle text-body'
-                        }`}
-                      style={{ fontSize: '12px', transition: 'all 0.15s ease' }}
-                      onClick={() => setActiveLeaderboardIdx(idx)}
-                    >
-                      <div className="d-flex align-items-center gap-1.5 min-width-0">
-                        <span className="fw-bold" style={{ width: '22px' }}>{site.rank <= 3 ? site.medal : site.rank}</span>
-                        <span className="text-truncate fw-semibold" style={{ maxWidth: '200px' }}>{site.name}</span>
-                      </div>
-                      <span className="fw-bold" style={{ color: site.color }}>{site.score}%</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Right split: detailed factors why it has this percentage */}
-                <div className="col-7 ps-3 d-flex flex-column justify-content-between">
-                  {activeSiteDetail ? (
-                    <div className="d-flex flex-column h-100 justify-content-between">
-                      <div>
-                        <div className="d-flex align-items-center justify-content-between mb-2">
-                          <span className="fw-bold text-dark text-truncate" style={{ fontSize: '14px', maxWidth: '180px' }}>
-                            {activeSiteDetail.name}
-                          </span>
-                          <span className="badge p-1.5" style={{ backgroundColor: activeSiteDetail.color + '22', color: activeSiteDetail.color, border: `1px solid ${activeSiteDetail.color}` }}>
-                            Score: {activeSiteDetail.score}%
-                          </span>
-                        </div>
-                        <p className="text-muted small mb-2.5">
-                          Root cause factors contributing to the safety scorecard ranking:
-                        </p>
-
-                        <div className="d-grid gap-2" style={{ fontSize: '12.5px' }}>
-                          {/* PPE */}
-                          <div>
-                            <div className="d-flex justify-content-between mb-0.5">
-                              <span className="text-muted">PPE Compliance Rate:</span>
-                              <strong className="text-dark">{activeSiteDetail.details.ppe}%</strong>
-                            </div>
-                            <div className="progress" style={{ height: '5px' }}>
-                              <div
-                                className="progress-bar bg-success"
-                                style={{ width: `${activeSiteDetail.details.ppe}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Barricades */}
-                          <div className="d-flex align-items-center justify-content-between py-1 border-bottom">
-                            <span className="text-muted">Safety Perimeter Barricades:</span>
-                            <span className={`badge ${activeSiteDetail.details.barricade === 'Optimal'
-                              ? 'bg-success-subtle text-success border border-success-subtle'
-                              : 'bg-warning-subtle text-warning border border-warning-subtle'
-                              }`}>
-                              {activeSiteDetail.details.barricade}
-                            </span>
-                          </div>
-
-                          {/* Primary Hazard */}
-                          <div className="d-flex align-items-center justify-content-between py-1 border-bottom">
-                            <span className="text-muted">Key Hazard / Violation:</span>
-                            <span className={`badge ${activeSiteDetail.details.violation === 'No Violation'
-                              ? 'bg-success-subtle text-success border'
-                              : 'bg-danger-subtle text-danger border border-danger-subtle'
-                              }`}>
-                              {activeSiteDetail.details.violation}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Incident Free Days Banner */}
-                      <div className="bg-light p-2.5 rounded border border-light-subtle d-flex align-items-center gap-2 mt-2">
-                        <i className="bi bi-shield-fill-plus text-success fs-5" />
-                        <div>
-                          <div className="fw-bold text-success" style={{ fontSize: '13px' }}>
-                            {activeSiteDetail.details.days} Days Incident-Free
-                          </div>
-                          <div className="text-muted" style={{ fontSize: '11px' }}>
-                            Zero severe casualties or site stop notices recorded.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="text-muted text-center py-5 my-auto">
-                No safety records match the active filters.
-              </div>
-            )}
-          </div>
+          <SafetyLeaderboard title={leaderboardTitle} items={leaderboardItems} />
         </div>
 
         {/* Box 2: Worker Attendance Console */}
@@ -1089,6 +878,7 @@ export const ProjectManagerDashboard = () => {
           selectedSite={appliedSite}
           selectedChainage={appliedChainage}
           userRole={user?.role}
+          siteId={sitesList.find((s) => s.name === appliedSite || s.id === appliedSite)?.id}
         />
 
       </section>

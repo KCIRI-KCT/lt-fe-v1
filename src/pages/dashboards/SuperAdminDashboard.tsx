@@ -161,7 +161,7 @@ export const SuperAdminDashboard = () => {
       </div>
 
       {/* Metric Cards */}
-      <section className="row g-3 mt-1" aria-label="Enterprise metrics">
+      <section className="row g-3 mt-3" aria-label="Enterprise metrics">
         {dynamicMetrics.map((card, i) => (
           <div key={i} className="col-12 col-sm-6 col-xl-4">
             <MetricCard card={card} />

@@ -59,7 +59,8 @@ export const CameraFormPage = () => {
         location: data.location as string,
         type: data.type as Camera['type'],
         status: isEdit ? camera?.status || 'online' : 'online',
-        healthScore: Number(data.healthScore) || 100,
+        // healthScore omitted: backend calculates initial score via automated ping telemetry.
+        resolution: data.resolution as string | undefined,
       };
 
       if (isEdit && id) {
@@ -83,7 +84,6 @@ export const CameraFormPage = () => {
     { name: 'siteId', label: 'Site', type: 'select', options: sites.map((s) => ({ value: s.id, label: s.name })), required: true, colSpan: 6 },
     { name: 'location', label: 'Location', type: 'text', placeholder: 'Specific location description', required: true, colSpan: 6 },
     { name: 'type', label: 'Camera Type', type: 'select', options: CAMERA_TYPE_OPTIONS, required: true, colSpan: 6 },
-    { name: 'healthScore', label: 'Health Score', type: 'number', placeholder: '0-100', colSpan: 6 },
   ];
 
   const initialValues: Record<string, string> = camera ? {
@@ -92,11 +92,10 @@ export const CameraFormPage = () => {
     siteId: camera.siteId,
     location: camera.location,
     type: camera.type,
-    healthScore: String(camera.healthScore),
   } : {};
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-camera-video" aria-hidden="true" /></span>
@@ -122,15 +121,26 @@ export const CameraFormPage = () => {
             <p className="mt-2 text-muted">Loading form details...</p>
           </div>
         ) : (
-          <fieldset disabled={submitting}>
-            <DynamicForm
-              fields={fields}
-              initialValues={initialValues}
-              onSubmit={handleSubmit}
-              submitLabel={submitting ? 'Saving Camera...' : isEdit ? 'Update Camera' : 'Create Camera'}
-              onCancel={handleCancel}
-            />
-          </fieldset>
+          <>
+            {isEdit && camera?.healthScore !== undefined && (
+              <div className="alert alert-info d-flex align-items-center gap-2" role="status">
+                <i className="bi bi-heart-pulse-fill" aria-hidden="true" />
+                <span>
+                  Connection Health: <strong>{camera.healthScore}%</strong>
+                  <small className="text-muted ms-2">(auto-calculated by backend ping telemetry)</small>
+                </span>
+              </div>
+            )}
+            <fieldset disabled={submitting}>
+              <DynamicForm
+                fields={fields}
+                initialValues={initialValues}
+                onSubmit={handleSubmit}
+                submitLabel={submitting ? 'Saving Camera...' : isEdit ? 'Update Camera' : 'Create Camera'}
+                onCancel={handleCancel}
+              />
+            </fieldset>
+          </>
         )}
       </div>
     </div>

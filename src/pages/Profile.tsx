@@ -46,7 +46,7 @@ export const Profile = () => {
   const currentDesc = roleDescriptions[user.role] || 'Member of the monitoring and diagnostics division.';
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4" style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Page Header */}
       <div className="page-heading align-items-center">
         <div className="page-heading-copy">

@@ -20,7 +20,7 @@ export const UserDetails = () => {
 
   if (loading) {
     return (
-      <div className="container-fluid px-3 px-lg-4 py-4 text-center">
+      <div className="container-fluid px-3 px-md-4 py-3 py-lg-4 text-center">
         <div className="spinner-border text-primary" role="status" />
       </div>
     );
@@ -28,7 +28,7 @@ export const UserDetails = () => {
 
   if (!user) {
     return (
-      <div className="container-fluid px-3 px-lg-4 py-4">
+      <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
         <div className="panel blank-panel">
           <div className="blank-state">
             <i className="bi bi-person-x fs-1 text-muted mb-3 d-block" />
@@ -41,7 +41,7 @@ export const UserDetails = () => {
   }
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-person-badge" aria-hidden="true" /></span>

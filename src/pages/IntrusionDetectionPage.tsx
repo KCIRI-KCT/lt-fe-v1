@@ -70,7 +70,7 @@ export const IntrusionDetectionPage = () => {
   };
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-shield-exclamation" aria-hidden="true" /></span>

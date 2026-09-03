@@ -222,7 +222,7 @@ export const MessagesPage = () => {
   };
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-3 d-flex flex-column" style={{ height: 'calc(100vh - 90px)', overflow: 'hidden' }}>
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4 d-flex flex-column" style={{ height: 'calc(100vh - 90px)', overflow: 'hidden' }}>
       <style dangerouslySetInnerHTML={{
         __html: `
         .whatsapp-chat-shell {

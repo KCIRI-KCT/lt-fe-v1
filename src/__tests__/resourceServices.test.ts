@@ -138,16 +138,15 @@ describe('RESTful Model Resource ViewSets (DRF standard CRUD)', () => {
     expect(createdAtt.status).toBe('present');
   });
 
-  // 4. Safety & Incidents
+  // 4. Safety & Incidents (PPE notification endpoints deprecated — bell uses
+  // Camera/System streams via notificationService)
   it('should handle all safetyService endpoints', async () => {
     (api.get as unknown as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ data: { success: true, data: [{ id: 'alt-1', description: 'No Helmet' }] } })
-      .mockResolvedValueOnce({ data: { success: true, data: [{ id: 'ppe-1', alertId: 'alt-1' }] } })
       .mockResolvedValueOnce({ data: { success: true, data: [{ id: 'inc-1', title: 'Leak' }] } });
 
     (api.patch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { success: true, data: { id: 'alt-1', status: 'resolved' } } });
     (api.post as unknown as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ data: { success: true, data: { id: 'ack-1' } } })
       .mockResolvedValueOnce({ data: { success: true, data: { id: 'inc-2', title: 'Fire Hazard' } } });
 
     (api.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { success: true, data: { id: 'inc-1', title: 'Updated Leak' } } });
@@ -158,11 +157,8 @@ describe('RESTful Model Resource ViewSets (DRF standard CRUD)', () => {
     const updatedAlert = await safetyService.updateAIAlertStatus('alt-1', 'resolved');
     expect(updatedAlert.status).toBe('resolved');
 
-    const ack = await safetyService.acknowledgePPE({ alertId: 'alt-1' });
-    expect(ack.id).toBe('ack-1');
-
-    const ppeNotifs = await safetyService.getPPENotifications();
-    expect(ppeNotifs[0].id).toBe('ppe-1');
+    expect((safetyService as unknown as Record<string, unknown>).acknowledgePPE).toBeUndefined();
+    expect((safetyService as unknown as Record<string, unknown>).getPPENotifications).toBeUndefined();
 
     const incidents = await safetyService.getIncidents();
     expect(incidents[0].title).toBe('Leak');
