@@ -34,8 +34,12 @@ export const UserEditPage = () => {
         email: data.email as string,
         mobile_number: (data.phone as string) || '',
         phone: (data.phone as string) || '',
+        address: (data.address as string) || (data.location as string) || '',
+        city: (data.city as string) || '',
+        state: (data.state as string) || '',
+        country: (data.country as string) || '',
+        pincode: (data.pincode as string) || '',
         location: (data.location as string) || '',
-        address: (data.location as string) || '',
         designation: data.role as string,
         department: (data.department as string) || 'L&T Operations',
       });
@@ -56,7 +60,11 @@ export const UserEditPage = () => {
     { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: '+91-9876543210', colSpan: 6 },
     { name: 'role', label: 'Role', type: 'select', options: ROLE_OPTIONS, required: true, colSpan: 6 },
     { name: 'department', label: 'Department', type: 'text', placeholder: 'Department name', colSpan: 6 },
-    { name: 'location', label: 'Location / City', type: 'text', placeholder: 'City, State', colSpan: 6 },
+    { name: 'address', label: 'Street Address', type: 'text', placeholder: 'Street address', colSpan: 12 },
+    { name: 'city', label: 'City', type: 'text', placeholder: 'City', colSpan: 6 },
+    { name: 'state', label: 'State', type: 'text', placeholder: 'State', colSpan: 6 },
+    { name: 'country', label: 'Country', type: 'text', placeholder: 'Country', colSpan: 6 },
+    { name: 'pincode', label: 'Pincode / Postal Code', type: 'text', placeholder: 'Pincode', colSpan: 6 },
     { name: 'workspace', label: 'Workspace', type: 'text', placeholder: 'Project/Organization', colSpan: 6 },
   ];
 
@@ -67,6 +75,11 @@ export const UserEditPage = () => {
     phone: selectedUser.phone || selectedUser.mobile_number || '',
     role: selectedUser.role,
     department: selectedUser.department || '',
+    address: selectedUser.address || '',
+    city: selectedUser.city || '',
+    state: selectedUser.state || '',
+    country: selectedUser.country || '',
+    pincode: selectedUser.pincode || '',
     location: selectedUser.location || selectedUser.address || '',
     workspace: selectedUser.workspace || '',
   } : {};

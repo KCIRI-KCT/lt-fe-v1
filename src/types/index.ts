@@ -40,6 +40,10 @@ export interface UserProfile {
   createdAt?: string;
   joiningDate?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
 }
 
 /** Authentication state */

@@ -156,6 +156,44 @@ export const Profile = () => {
                 </div>
               </div>
 
+              {/* Address Details Section */}
+              <h5 className="fw-bold mt-4 mb-3 border-bottom pb-2 text-body-emphasis">
+                <i className="bi bi-geo-alt me-2 text-primary" />
+                Address Details
+              </h5>
+              <div className="row g-3">
+                <div className="col-12">
+                  <div className="p-3 bg-body-secondary border rounded">
+                    <div className="text-muted small">Street Address</div>
+                    <strong className="text-body-emphasis">{user.address || 'N/A'}</strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 bg-body-secondary border rounded">
+                    <div className="text-muted small">City</div>
+                    <strong className="text-body-emphasis">{user.city || 'N/A'}</strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 bg-body-secondary border rounded">
+                    <div className="text-muted small">State</div>
+                    <strong className="text-body-emphasis">{user.state || 'N/A'}</strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 bg-body-secondary border rounded">
+                    <div className="text-muted small">Country</div>
+                    <strong className="text-body-emphasis">{user.country || 'N/A'}</strong>
+                  </div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="p-3 bg-body-secondary border rounded">
+                    <div className="text-muted small">Pincode</div>
+                    <strong className="text-body-emphasis">{user.pincode || 'N/A'}</strong>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4 p-3 bg-primary-bg-subtle text-primary rounded border border-primary border-opacity-10">
                 <h6 className="fw-bold mb-1">Authority Description</h6>
                 <p className="mb-0 small">{currentDesc}</p>

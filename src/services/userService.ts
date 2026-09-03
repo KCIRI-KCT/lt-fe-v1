@@ -121,6 +121,11 @@ export const userService = {
       department: payload.department,
       email: payload.email,
       mobile_number: payload.phone || payload.mobile_number,
+      address: payload.address || payload.location,
+      city: payload.city,
+      state: payload.state,
+      country: payload.country,
+      pincode: payload.pincode,
     };
     if (employee_id) {
       patchedEmployeePayload.employee_id = employee_id;
@@ -210,6 +215,10 @@ export const userService = {
         employee_code: u.employee_code || empIdVal,
         joiningDate: u.joiningDate || (u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '2024-01-15'),
         address: String(u.address || u.location || 'N/A'),
+        city: String(u.city || ''),
+        state: String(u.state || ''),
+        country: String(u.country || ''),
+        pincode: String(u.pincode || ''),
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent((u.name || u.employee_name || 'User') as string)}&background=2563eb&color=fff`,
         workspace: (u.workspace || 'L&T Main Site') as string,
         phone: (u.phone || u.mobile_number || '') as string,

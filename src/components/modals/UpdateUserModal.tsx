@@ -96,7 +96,12 @@ export const UpdateUserModal = ({ show, userId, onClose, onSuccess }: UpdateUser
         role: selectedRole,
         designation: selectedRole,
         department: (values.department as string) || '',
-        location: (values.location as string) || '',
+        address: (values.address as string) || '',
+        city: (values.city as string) || '',
+        state: (values.state as string) || '',
+        country: (values.country as string) || '',
+        pincode: (values.pincode as string) || '',
+        location: (values.location as string) || (values.address as string) || '',
         workspace: (values.workspace as string) || '',
       };
 
@@ -217,6 +222,11 @@ export const UpdateUserModal = ({ show, userId, onClose, onSuccess }: UpdateUser
     phone: (userData.phone || userData.mobile_number || empObject.mobile_number || '') as string,
     role: normalizeRole(String(userData.role || userData.designation || empObject.designation || '')),
     department: (userData.department || empObject.department || '') as string,
+    address: (userData.address || empObject.address || '') as string,
+    city: (userData.city || empObject.city || '') as string,
+    state: (userData.state || empObject.state || '') as string,
+    country: (userData.country || empObject.country || '') as string,
+    pincode: (userData.pincode || empObject.pincode || '') as string,
     location: (userData.location || userData.address || empObject.location || empObject.address || '') as string,
     workspace: (userData.workspace || '') as string,
   } : {};

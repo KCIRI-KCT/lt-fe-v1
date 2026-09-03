@@ -22,6 +22,10 @@ export const UserFormPage = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [role, setRole] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [country, setCountry] = useState('');
+  const [pincode, setPincode] = useState('');
 
   useEffect(() => {
     if (isEdit && id) {
@@ -33,6 +37,11 @@ export const UserFormPage = () => {
           setRole(emp.designation || 'site_engineer');
           setDepartment(emp.department || '');
           setPhone(emp.mobile_number || '');
+          setAddress(emp.address || '');
+          setCity(emp.city || '');
+          setState(emp.state || '');
+          setCountry(emp.country || '');
+          setPincode(emp.pincode || '');
           if (emp.created_at) {
             setCreatedAt(emp.created_at.split('T')[0] || '');
           }
@@ -102,6 +111,10 @@ export const UserFormPage = () => {
       designation: role,
       department: department || 'L&T Operations',
       address: address.trim() || undefined,
+      city: city.trim() || undefined,
+      state: state.trim() || undefined,
+      country: country.trim() || undefined,
+      pincode: pincode.trim() || undefined,
       location: address.trim() || undefined,
       mobile_number: phone || '9000000000',
       status: 'ACTIVE',
@@ -286,15 +299,66 @@ export const UserFormPage = () => {
             )}
           </div>
 
-          {/* Address Textarea */}
+          {/* Address Section */}
+          <div className="col-12 mt-4">
+            <h6 className="fw-bold mb-3 border-bottom pb-2 text-body-emphasis">
+              <i className="bi bi-geo-alt me-2 text-primary" />
+              Address Details
+            </h6>
+          </div>
+
           <div className="col-12">
-            <label className="form-label fw-bold small">Address</label>
+            <label className="form-label fw-bold small">Street Address / Landmark</label>
             <textarea
               className="form-control"
-              rows={3}
-              placeholder="Enter complete address details"
+              rows={2}
+              placeholder="Enter street address, building, or landmark"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <label className="form-label fw-bold small">City</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. Chennai"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <label className="form-label fw-bold small">State</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. Tamil Nadu"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+            />
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <label className="form-label fw-bold small">Country</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. India"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            />
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <label className="form-label fw-bold small">Pincode / Postal Code</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. 600001"
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value)}
             />
           </div>
 

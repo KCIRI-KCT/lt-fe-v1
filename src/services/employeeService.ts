@@ -18,6 +18,10 @@ export interface EmployeeData {
   created_at?: string;
   role?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
   location?: string;
   phone?: string;
 }
@@ -41,7 +45,11 @@ export const employeeService = {
         phone: phoneVal,
         mobile_number: phoneVal,
         location: locationVal,
-        address: locationVal || 'N/A',
+        address: emp.address || locationVal || 'N/A',
+        city: emp.city || '',
+        state: emp.state || '',
+        country: emp.country || '',
+        pincode: emp.pincode || '',
         department: emp.department || 'N/A',
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.employee_name)}&background=2563eb&color=fff`,
         workspace: 'L&T Main Site',
@@ -73,6 +81,11 @@ export const employeeService = {
       ...data,
       employee_code,
       mobile_number: data.mobile_number || data.phone || rawData.mobile_number || rawData.phone,
+      address: data.address || data.location || rawData.address || rawData.location,
+      city: data.city || rawData.city,
+      state: data.state || rawData.state,
+      country: data.country || rawData.country,
+      pincode: data.pincode || rawData.pincode,
       location: data.location || data.address || rawData.location || rawData.address,
     };
 
