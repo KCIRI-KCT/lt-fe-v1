@@ -113,7 +113,7 @@ export const ProjectDeletePage = () => {
   }, [isIndeterminate]);
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       {/* Top Banner Message */}
       {toastMsg && (
         <div className="position-fixed bottom-0 end-0 m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex align-items-center gap-2 animate-fade-in" style={{ zIndex: 1050 }}>

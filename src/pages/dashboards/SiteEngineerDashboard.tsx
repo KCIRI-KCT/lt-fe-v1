@@ -5,44 +5,14 @@ import { KpiPopover } from '../../components/dashboard/KpiPopover';
 import { RightDrawer } from '../../components/dashboard/RightDrawer';
 import { StationDetailModal } from '../../components/dashboard/StationDetailModal';
 import { WorkerAttendanceConsole } from '../../components/dashboard/WorkerAttendanceConsole';
+import { SafetyLeaderboard, type LeaderboardEntry } from '../../components/dashboard/SafetyLeaderboard';
 import { useNotifications, InlineAlertBanner } from '../../components/common/NotificationToast';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
 import { projectService } from '../../services/projectService';
 import { siteService } from '../../services/siteService';
 import { safetyService } from '../../services/safetyService';
+import { dashboardService, type ProgressPoint } from '../../services/dashboardService';
 import type { Project, Site, ChainageData, AIAlert } from '../../types';
-
-// Week-wise, Month-wise, Year-wise Plan vs Actual data
-const PLAN_VS_ACTUAL_WEEKLY = [
-  { month: 'W1', planned: 2, actual: 1 },
-  { month: 'W2', planned: 5, actual: 4 },
-  { month: 'W3', planned: 8, actual: 7 },
-  { month: 'W4', planned: 12, actual: 11 },
-  { month: 'W5', planned: 15, actual: 14 },
-];
-
-const PLAN_VS_ACTUAL_MONTHLY = [
-  { month: 'Jan', planned: 8, actual: 7 },
-  { month: 'Feb', planned: 16, actual: 14 },
-  { month: 'Mar', planned: 24, actual: 22 },
-  { month: 'Apr', planned: 32, actual: 31 },
-  { month: 'May', planned: 40, actual: 37 },
-  { month: 'Jun', planned: 48, actual: 45 },
-  { month: 'Jul', planned: 56, actual: 52 },
-  { month: 'Aug', planned: 64, actual: 60 },
-  { month: 'Sep', planned: 72, actual: 68 },
-  { month: 'Oct', planned: 80, actual: 76 },
-  { month: 'Nov', planned: 88, actual: 84 },
-  { month: 'Dec', planned: 100, actual: 95 },
-];
-
-const PLAN_VS_ACTUAL_YEARLY = [
-  { month: '2022', planned: 10, actual: 10 },
-  { month: '2023', planned: 28, actual: 27 },
-  { month: '2024', planned: 56, actual: 52 },
-  { month: '2025', planned: 85, actual: 80 },
-  { month: '2026', planned: 100, actual: 95 },
-];
 
 export const SiteEngineerDashboard = () => {
   const { user } = useApp();
@@ -98,9 +68,6 @@ export const SiteEngineerDashboard = () => {
 
   // Right Drawer Notifications Center toggle state
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Active leaderboard details index
-  const [activeLeaderboardIdx, setActiveLeaderboardIdx] = useState<number>(0);
 
   // ── DYNAMIC ALLOCATION COMPUTATIONS ──
   const allocatedProjects = useMemo(() => {
@@ -251,107 +218,50 @@ export const SiteEngineerDashboard = () => {
   }, [progressVal, totalWorkersVal, machineryVal, safetyScoreVal, aiAlertsVal, ppeComplianceVal]);
 
 
-  // 2. Dynamic Safety Leaderboard logic
+  // 2. Safety Leaderboard items — ranked from real site/chainage safety scores.
+  // Entries without a backend score are excluded (no fabricated values).
   const leaderboardTitle = useMemo(() => {
     if (appliedChainage) {
-      const selectedCh = chainagesToUse.find(c => c.id === appliedChainage);
-      return `Safety Status - ${selectedCh?.name || 'Chainage'}`;
+      const selectedCh = chainagesToUse.find((c) => c.id === appliedChainage);
+      return `Safety Leaderboard - ${selectedCh?.site || 'Site'}`;
     } else if (appliedSite) {
-      return `Safety Status - ${appliedSite}`;
+      return `Safety Leaderboard - ${appliedSite}`;
     } else if (appliedProject) {
       return `Safety Leaderboard - ${appliedProject}`;
     }
-    return 'Safety Leaderboard - My Projects';
+    return 'Safety Leaderboard - All Sites';
   }, [appliedChainage, appliedSite, appliedProject, chainagesToUse]);
 
-  const leaderboardItems = useMemo(() => {
+  const leaderboardItems: LeaderboardEntry[] = useMemo(() => {
+    const toEntry = (id: string, name: string, score: unknown): LeaderboardEntry | null => {
+      const s = Number(score);
+      if (!id || !name || !Number.isFinite(s)) return null;
+      return { id, name, score: s };
+    };
+
     if (appliedChainage) {
-      const selectedCh = chainagesToUse.find(c => c.id === appliedChainage);
-      const siteChainages = chainagesToUse.filter(c => c.site === selectedCh?.site)
-        .sort((a, b) => b.safetyScore - a.safetyScore);
-
-      return siteChainages.map((ch, idx) => ({
-        rank: idx + 1,
-        name: ch.name,
-        score: ch.safetyScore,
-        icon: 'bi-geo-alt-fill',
-        color: ch.safetyScore >= 90 ? '#16a34a' : ch.safetyScore >= 80 ? '#d97706' : '#dc2626',
-        medal: ['🥇', '🥈', '🥉'][idx] || String(idx + 1),
-        isSelected: ch.id === appliedChainage,
-        details: {
-          ppe: Math.min(100, Math.round(ch.safetyScore * 1.02)),
-          barricade: ch.safetyScore >= 90 ? 'Optimal' : ch.safetyScore >= 80 ? 'Minor Gaps' : 'Critical Missing',
-          days: Math.round(ch.safetyScore * 2.2),
-          speed: Math.min(100, Math.round(ch.safetyScore * 1.03)),
-          violation: ch.safetyScore >= 90 ? 'No Violation' : ['Helmet Missing', 'Vest Missing', 'Perimeter Breach'][idx % 3]
-        }
-      }));
-    } else if (appliedSite) {
-      const siteChainages = chainagesToUse.filter(c => c.site === appliedSite)
-        .sort((a, b) => b.safetyScore - a.safetyScore);
-
-      return siteChainages.map((ch, idx) => ({
-        rank: idx + 1,
-        name: ch.name,
-        score: ch.safetyScore,
-        icon: 'bi-geo-alt-fill',
-        color: ch.safetyScore >= 90 ? '#16a34a' : ch.safetyScore >= 80 ? '#d97706' : '#dc2626',
-        medal: ['🥇', '🥈', '🥉'][idx] || String(idx + 1),
-        details: {
-          ppe: Math.min(100, Math.round(ch.safetyScore * 1.02)),
-          barricade: ch.safetyScore >= 90 ? 'Optimal' : ch.safetyScore >= 80 ? 'Minor Gaps' : 'Critical Missing',
-          days: Math.round(ch.safetyScore * 2.2),
-          speed: Math.min(100, Math.round(ch.safetyScore * 1.03)),
-          violation: ch.safetyScore >= 90 ? 'No Violation' : ['Helmet Missing', 'Vest Missing', 'Perimeter Breach'][idx % 3]
-        }
-      }));
-    } else if (appliedProject) {
-      const projSites = sitesToUse.filter(s => s.projectName === appliedProject)
-        .sort((a, b) => b.safetyScore - a.safetyScore);
-
-      return projSites.map((site, idx) => ({
-        rank: idx + 1,
-        name: site.name,
-        score: site.safetyScore,
-        icon: 'bi-shield-fill',
-        color: site.safetyScore >= 90 ? '#16a34a' : site.safetyScore >= 80 ? '#d97706' : '#dc2626',
-        medal: ['🥇', '🥈', '🥉'][idx] || String(idx + 1),
-        details: {
-          ppe: Math.min(100, Math.round(site.safetyScore * 1.01)),
-          barricade: site.safetyScore >= 92 ? 'Optimal' : 'Needs Barricades',
-          days: Math.round(site.safetyScore * 2.5),
-          speed: Math.min(100, Math.round(site.safetyScore * 1.02)),
-          violation: site.safetyScore >= 92 ? 'No Violation' : ['Perimeter Breach', 'PPE Deficiencies', 'Barricade Gaps'][idx % 3]
-        }
-      }));
-    } else {
-      const projectsList = projectsToUse.map((p) => {
-        const pSites = sitesToUse.filter(s => s.projectId === p.id);
-        const score = pSites.length > 0
-          ? pSites.reduce((acc, s) => acc + s.safetyScore, 0) / pSites.length
-          : 90;
-        return { name: p.name, score };
-      }).sort((a, b) => b.score - a.score);
-
-      return projectsList.map((proj, idx) => ({
-        rank: idx + 1,
-        name: proj.name,
-        score: Math.round(proj.score),
-        icon: 'bi-cone-striped',
-        color: proj.score >= 90 ? '#16a34a' : proj.score >= 80 ? '#d97706' : '#dc2626',
-        medal: ['🥇', '🥈', '🥉'][idx] || String(idx + 1),
-        details: {
-          ppe: Math.min(100, Math.round(proj.score * 1.01)),
-          barricade: proj.score >= 92 ? 'Optimal' : 'Caution',
-          days: Math.round(proj.score * 2.8),
-          speed: Math.min(100, Math.round(proj.score * 1.02)),
-          violation: proj.score >= 92 ? 'No Violation' : ['PPE Compliance Gaps', 'Unsafe Excavation Barricades'][idx % 2]
-        }
-      }));
+      const selectedCh = chainagesToUse.find((c) => c.id === appliedChainage);
+      return chainagesToUse
+        .filter((c) => c.site === selectedCh?.site)
+        .map((ch) => toEntry(ch.id, ch.name, ch.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
     }
-  }, [appliedChainage, appliedSite, appliedProject, chainagesToUse, sitesToUse, projectsToUse]);
-
-  const activeSiteDetail = leaderboardItems[activeLeaderboardIdx] || leaderboardItems[0] || null;
+    if (appliedSite) {
+      return chainagesToUse
+        .filter((c) => c.site === appliedSite)
+        .map((ch) => toEntry(ch.id, ch.name, ch.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
+    }
+    if (appliedProject) {
+      return sitesToUse
+        .filter((s) => s.projectName === appliedProject)
+        .map((site) => toEntry(site.id, site.name, site.safetyScore))
+        .filter((e): e is LeaderboardEntry => e !== null);
+    }
+    return sitesToUse
+      .map((site) => toEntry(site.id, site.name, site.safetyScore))
+      .filter((e): e is LeaderboardEntry => e !== null);
+  }, [appliedChainage, appliedSite, appliedProject, chainagesToUse, sitesToUse]);
 
   // 3. Dynamic timeline milestones structure
   const activeTimelineMilestones = useMemo(() => {
@@ -389,24 +299,64 @@ export const SiteEngineerDashboard = () => {
     }
   }, [appliedChainage, appliedSite, chainagesToUse, sitesToUse]);
 
-  // 4. Dynamic Cumulative Progress Chart Calculation Engine
-  const getChartData = () => {
-    let baseData = PLAN_VS_ACTUAL_MONTHLY;
-    if (chartRange === 'week') baseData = PLAN_VS_ACTUAL_WEEKLY;
-    else if (chartRange === 'year') baseData = PLAN_VS_ACTUAL_YEARLY;
+  // 4. Plan vs Actual trend — real API first, derived fallback (no mock tables)
+  const [trendApiData, setTrendApiData] = useState<ProgressPoint[] | null>(null);
 
-    // Apply Year multiplier scaling for historical / future view
+  useEffect(() => {
+    let isMounted = true;
+    dashboardService
+      .getPlanVsActualProgress(chartRange)
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) setTrendApiData(data);
+      })
+      .catch(() => null);
+    return () => {
+      isMounted = false;
+    };
+  }, [chartRange]);
+
+  const getChartData = (): ProgressPoint[] => {
+    if (trendApiData && trendApiData.length > 0) return trendApiData;
+
+    // Fallback: derive buckets from the real average progress.
     const yearScale = chartYear === '2024' ? 0.65 : chartYear === '2025' ? 0.85 : 1.0;
+    const progressTarget = Math.max(1, avgProgress || 0);
 
-    const maxActualInBase = baseData[baseData.length - 1].actual;
-    const currentProgressTarget = (appliedProject || appliedSite || appliedChainage) ? avgProgress : maxActualInBase;
-    const scaleFactor = (currentProgressTarget / maxActualInBase) * yearScale;
+    if (chartRange === 'week') {
+      const weeks = ['W1', 'W2', 'W3', 'W4', 'W5'];
+      return weeks.map((w, i) => {
+        const frac = (i + 1) / weeks.length;
+        return {
+          month: w,
+          planned: Math.min(100, Math.round(progressTarget * frac * 1.02)),
+          actual: Math.min(100, Math.round(progressTarget * frac * yearScale)),
+        };
+      });
+    }
 
-    return baseData.map((d) => ({
-      ...d,
-      planned: Math.min(100, Math.round(d.planned * (yearScale === 1.0 ? 1.0 : yearScale * 1.02))),
-      actual: Math.min(100, Math.round(d.actual * scaleFactor)),
-    }));
+    if (chartRange === 'year') {
+      const startYear = new Date().getFullYear() - 3;
+      return Array.from({ length: 4 }, (_, i) => {
+        const yr = startYear + i;
+        const frac = (i + 1) / 4;
+        return {
+          month: String(yr),
+          planned: Math.min(100, Math.round(progressTarget * frac * 1.02)),
+          actual: Math.min(100, Math.round(progressTarget * frac * yearScale)),
+        };
+      });
+    }
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonth = new Date().getMonth();
+    return months.map((m, i) => {
+      const frac = (i + 1) / months.length;
+      return {
+        month: m,
+        planned: Math.min(100, Math.round(progressTarget * frac * 1.02)),
+        actual: i <= currentMonth ? Math.min(100, Math.round(progressTarget * frac * yearScale)) : 0,
+      };
+    });
   };
 
   const handleSearch = () => {
@@ -500,7 +450,7 @@ export const SiteEngineerDashboard = () => {
       </section>
 
       {/* ── 2. Horizontal Search Filters Panel ── */}
-      <section className="card border-0 shadow-sm p-3 bg-white">
+      <section className="card border-0 shadow-sm p-3 p-md-4 bg-white mt-3">
         <div className="row g-2 align-items-center">
           {/* Site dropdown */}
           <div className="col-auto">
@@ -571,7 +521,7 @@ export const SiteEngineerDashboard = () => {
       </section>
 
       {/* ── 3. KPI Section: Grid of 6 optimized cards ── */}
-      <section className="row g-3">
+      <section className="row g-3 mt-3">
         {dynamicKpiCards.map((card) => (
           <div key={card.id} className="col-6 col-sm-4 col-md-3 col-xl-2">
             <div
@@ -611,7 +561,7 @@ export const SiteEngineerDashboard = () => {
       </section>
 
       {/* ── 4. Mid Section: Timeline + Plan vs Actual chart + Allocated Sites & Chainages ── */}
-      <section className="row g-3">
+      <section className="row g-3 mt-3">
 
         {/* Site and Chainage Timeline Progress (Replaces the vector map) */}
         <div className="col-12 col-md-6 col-xl-4">
@@ -760,7 +710,7 @@ export const SiteEngineerDashboard = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100 p-1">
+            <div className="flex-grow-1 d-flex align-items-center justify-content-center w-100 p-2">
               <PlanVsActualChart data={getChartData()} />
             </div>
           </div>
@@ -852,120 +802,11 @@ export const SiteEngineerDashboard = () => {
 
       </section>
 
-      {/* ── 5. Bottom Section: Safety Cause & Operations Console ── */}
-      <section className="row g-3">
-        {/* Box 1: Safety Leaderboard & Analysis */}
+      {/* ── 5. Bottom Section: Safety Leaderboard & Operations Console ── */}
+      <section className="row g-3 mt-3">
+        {/* Box 1: Safety Leaderboard */}
         <div className="col-12 col-lg-6">
-          <div className="card border-0 shadow-sm p-3 bg-white h-100 d-flex flex-column" style={{ minHeight: '380px' }}>
-            <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-              <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-shield-check text-success fs-5" />
-                <h3 className="h6 mb-0 fw-bold">{leaderboardTitle}</h3>
-              </div>
-              <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: '10px' }}>Compliance Log</span>
-            </div>
-
-            {leaderboardItems.length > 0 ? (
-              <div className="row g-3 flex-grow-1 align-items-stretch">
-                {/* Left split: leaderboard list */}
-                <div className="col-5 border-end pe-3 d-flex flex-column gap-2" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {leaderboardItems.map((item, idx) => (
-                    <div
-                      key={item.name}
-                      className={`d-flex align-items-center justify-content-between p-2 rounded cursor-pointer border ${activeLeaderboardIdx === idx
-                        ? 'bg-primary-subtle border-primary-subtle fw-semibold text-primary'
-                        : 'bg-light-subtle border-light-subtle text-body'
-                        }`}
-                      style={{ fontSize: '12px', transition: 'all 0.15s ease' }}
-                      onClick={() => setActiveLeaderboardIdx(idx)}
-                    >
-                      <div className="d-flex align-items-center gap-1.5 min-width-0">
-                        <span className="fw-bold" style={{ width: '22px' }}>{item.rank <= 3 ? item.medal : item.rank}</span>
-                        <span className="text-truncate fw-semibold" style={{ maxWidth: '200px' }}>{item.name}</span>
-                      </div>
-                      <span className="fw-bold" style={{ color: item.color }}>{item.score}%</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Right split: detailed factors */}
-                <div className="col-7 ps-3 d-flex flex-column justify-content-between">
-                  {activeSiteDetail ? (
-                    <div className="d-flex flex-column h-100 justify-content-between">
-                      <div>
-                        <div className="d-flex align-items-center justify-content-between mb-2">
-                          <span className="fw-bold text-dark text-truncate" style={{ fontSize: '14px', maxWidth: '180px' }}>
-                            {activeSiteDetail.name}
-                          </span>
-                          <span className="badge p-1.5" style={{ backgroundColor: activeSiteDetail.color + '22', color: activeSiteDetail.color, border: `1px solid ${activeSiteDetail.color}` }}>
-                            Score: {activeSiteDetail.score}%
-                          </span>
-                        </div>
-                        <p className="text-muted small mb-2.5">
-                          Root cause factors contributing to the safety scorecard ranking:
-                        </p>
-
-                        <div className="d-grid gap-2" style={{ fontSize: '12.5px' }}>
-                          {/* PPE */}
-                          <div>
-                            <div className="d-flex justify-content-between mb-0.5">
-                              <span className="text-muted">PPE Compliance Rate:</span>
-                              <strong className="text-dark">{activeSiteDetail.details.ppe}%</strong>
-                            </div>
-                            <div className="progress" style={{ height: '5px' }}>
-                              <div
-                                className="progress-bar bg-success"
-                                style={{ width: `${activeSiteDetail.details.ppe}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Barricades */}
-                          <div className="d-flex align-items-center justify-content-between py-1 border-bottom">
-                            <span className="text-muted">Safety Perimeter Barricades:</span>
-                            <span className={`badge ${activeSiteDetail.details.barricade === 'Optimal'
-                              ? 'bg-success-subtle text-success border border-success-subtle'
-                              : 'bg-warning-subtle text-warning border border-warning-subtle'
-                              }`}>
-                              {activeSiteDetail.details.barricade}
-                            </span>
-                          </div>
-
-                          {/* Primary Hazard */}
-                          <div className="d-flex align-items-center justify-content-between py-1 border-bottom">
-                            <span className="text-muted">Key Hazard / Violation:</span>
-                            <span className={`badge ${activeSiteDetail.details.violation === 'No Violation'
-                              ? 'bg-success-subtle text-success border'
-                              : 'bg-danger-subtle text-danger border border-danger-subtle'
-                              }`}>
-                              {activeSiteDetail.details.violation}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Incident Free Days Banner */}
-                      <div className="bg-light p-2.5 rounded border border-light-subtle d-flex align-items-center gap-2 mt-2">
-                        <i className="bi bi-shield-fill-plus text-success fs-5" />
-                        <div>
-                          <div className="fw-bold text-success" style={{ fontSize: '13px' }}>
-                            {activeSiteDetail.details.days} Days Incident-Free
-                          </div>
-                          <div className="text-muted" style={{ fontSize: '11px' }}>
-                            Zero severe casualties or site stop notices recorded.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="text-muted text-center py-5 my-auto">
-                No safety compliance records available.
-              </div>
-            )}
-          </div>
+          <SafetyLeaderboard title={leaderboardTitle} items={leaderboardItems} />
         </div>
 
         {/* Box 2: Worker Attendance Console */}
@@ -974,6 +815,7 @@ export const SiteEngineerDashboard = () => {
           selectedSite={appliedSite}
           selectedChainage={appliedChainage}
           userRole={user?.role}
+          siteId={sitesToUse.find((s) => s.name === appliedSite || s.id === appliedSite)?.id}
         />
 
       </section>

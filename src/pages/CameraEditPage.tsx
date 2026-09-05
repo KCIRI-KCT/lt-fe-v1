@@ -48,7 +48,7 @@ export const CameraEditPage = () => {
         siteName: selectedSiteObj?.name || selectedCam.siteName || '',
         location: data.location as string,
         type: data.type as Camera['type'],
-        healthScore: Number(data.healthScore) || 0,
+        // healthScore omitted: backend-owned via automated ping telemetry (read-only in UI).
       };
 
       await cameraService.updateCamera(selectedCamId, cameraPayload);
@@ -71,7 +71,6 @@ export const CameraEditPage = () => {
     { name: 'siteId', label: 'Site', type: 'select', options: sites.map((s) => ({ value: s.id, label: s.name })), required: true, colSpan: 6 },
     { name: 'location', label: 'Location', type: 'text', placeholder: 'Specific location description', required: true, colSpan: 6 },
     { name: 'type', label: 'Camera Type', type: 'select', options: CAMERA_TYPE_OPTIONS, required: true, colSpan: 6 },
-    { name: 'healthScore', label: 'Health Score', type: 'number', placeholder: '0-100', colSpan: 6 },
   ];
 
   const initialValues: Record<string, string> = selectedCam ? {
@@ -80,11 +79,10 @@ export const CameraEditPage = () => {
     siteId: selectedCam.siteId,
     location: selectedCam.location,
     type: selectedCam.type,
-    healthScore: String(selectedCam.healthScore),
   } : {};
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       <div className="page-heading">
         <div className="page-heading-copy">
           <span className="page-icon"><i className="bi bi-camera-video" aria-hidden="true" /></span>
@@ -141,6 +139,15 @@ export const CameraEditPage = () => {
 
             {selectedCam ? (
               <div className="pt-3 border-top">
+                {selectedCam.healthScore !== undefined && (
+                  <div className="alert alert-info d-flex align-items-center gap-2" role="status">
+                    <i className="bi bi-heart-pulse-fill" aria-hidden="true" />
+                    <span>
+                      Connection Health: <strong>{selectedCam.healthScore}%</strong>
+                      <small className="text-muted ms-2">(auto-calculated by backend ping telemetry)</small>
+                    </span>
+                  </div>
+                )}
                 <fieldset disabled={submitting}>
                   <DynamicForm
                     key={selectedCamId} // Re-mount form on camera selection change

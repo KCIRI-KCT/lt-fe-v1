@@ -163,6 +163,9 @@ export const cameraService = {
 
   async createCamera(cameraData: Partial<Camera>): Promise<Camera> {
     const formattedUrl = formatCameraStreamUrl(cameraData.rtspUrl);
+    // CameraRequest (POST /api/cameras/): name, rtsp_url, site required;
+    // location, status, type, resolution optional.
+    // Client health value omitted so the backend calculates the initial score via automated ping telemetry.
     const payload = {
       name: cameraData.name,
       rtsp_url: formattedUrl,
@@ -173,8 +176,7 @@ export const cameraService = {
       location: cameraData.location,
       type: cameraData.type || 'fixed',
       status: cameraData.status || 'online',
-      health_score: cameraData.healthScore ?? 100,
-      healthScore: cameraData.healthScore ?? 100,
+      resolution: cameraData.resolution,
     };
 
     let created: Camera;
@@ -186,7 +188,8 @@ export const cameraService = {
         created.siteName = cameraData.siteName;
       }
     } catch {
-      // Fallback: create local DB record
+      // Fallback: create local DB record (no manual healthScore;
+      // health is populated later via automated ping telemetry / normalize defaults).
       created = {
         id: cameraData.id || String(Date.now()),
         name: cameraData.name || 'New Camera',
@@ -197,7 +200,7 @@ export const cameraService = {
         status: cameraData.status || 'online',
         type: cameraData.type || 'fixed',
         lastOnline: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        healthScore: cameraData.healthScore ?? 100,
+        resolution: cameraData.resolution,
       };
     }
 

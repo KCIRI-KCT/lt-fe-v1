@@ -3,7 +3,7 @@
 // ============================================================================
 
 import api from './api';
-import type { AIAlert, PPEAcknowledgement, PPENotification, Incident, AlertSeverity, AlertStatus, AIAlertType } from '../types';
+import type { AIAlert, Incident, AlertSeverity, AlertStatus, AIAlertType } from '../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeAIAlert(raw: any): AIAlert {
@@ -72,16 +72,10 @@ export const safetyService = {
     return normalizeAIAlert(data);
   },
 
-  async acknowledgePPE(acknowledgement: Partial<PPEAcknowledgement>): Promise<PPEAcknowledgement> {
-    const response = await api.post('ppe-acknowledgements/', acknowledgement);
-    return response.data?.data || response.data;
-  },
-
-  async getPPENotifications(params?: Record<string, unknown>): Promise<PPENotification[]> {
-    const response = await api.get('ppe-notifications/', { params });
-    const data = response.data?.data || response.data;
-    return Array.isArray(data) ? data : data?.results || [];
-  },
+  // NOTE: PPE notification endpoints (POST ppe-acknowledgements/,
+  // GET ppe-notifications/) are deprecated and have been removed.
+  // The Notification Bell now uses Camera (ai-alerts, v1/logs) and
+  // System (messages) streams via notificationService.
 
   async getIncidents(params?: Record<string, unknown>): Promise<Incident[]> {
     const response = await api.get('incidents/', { params });

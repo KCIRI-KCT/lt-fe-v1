@@ -192,7 +192,7 @@ export const ReportsPage = () => {
   ];
 
   return (
-    <div className="container-fluid px-3 px-lg-4 py-4">
+    <div className="container-fluid px-3 px-md-4 py-3 py-lg-4">
       {/* Header */}
       <div className="page-heading d-flex justify-content-between align-items-center mb-4">
         <div className="page-heading-copy d-flex align-items-center gap-2">
