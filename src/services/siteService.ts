@@ -77,17 +77,23 @@ export const siteService = {
     return response.data;
   },
 
-  async getChainages(params?: { siteId?: string; projectId?: string }): Promise<Chainage[]> {
+  async getChainages(params?: string | { siteId?: string; projectId?: string }): Promise<Chainage[]> {
     const queryParams: Record<string, unknown> = {};
-    if (params?.siteId) {
-      queryParams.siteId = params.siteId;
-      queryParams.site_id = params.siteId;
-      queryParams.site = params.siteId;
-    }
-    if (params?.projectId) {
-      queryParams.projectId = params.projectId;
-      queryParams.project_id = params.projectId;
-      queryParams.project = params.projectId;
+    if (typeof params === 'string') {
+      queryParams.siteId = params;
+      queryParams.site_id = params;
+      queryParams.site = params;
+    } else if (params) {
+      if (params.siteId) {
+        queryParams.siteId = params.siteId;
+        queryParams.site_id = params.siteId;
+        queryParams.site = params.siteId;
+      }
+      if (params.projectId) {
+        queryParams.projectId = params.projectId;
+        queryParams.project_id = params.projectId;
+        queryParams.project = params.projectId;
+      }
     }
     const response = await api.get('chainages/', { params: Object.keys(queryParams).length > 0 ? queryParams : undefined });
     const data = response.data?.data || response.data;
