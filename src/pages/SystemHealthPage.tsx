@@ -21,6 +21,7 @@ interface CameraDetail {
   status: 'Working' | 'Offline';
   ai: string;
   rtspUrl: string;
+  ipAddress?: string;
   important?: boolean;
 }
 
@@ -199,6 +200,17 @@ export const SystemHealthPage = () => {
             const isWorking = statusStr === 'online' || statusStr === 'working';
             const siteObj = sitesData.find((s) => String(s.id) === String(c.siteId)) || { name: c.siteName || c.location || 'Site Sector 4B' } as Site;
             const chainageObj = chainagesData.find((ch) => String((ch as unknown as Record<string, unknown>).siteId || (ch as unknown as Record<string, unknown>).site) === String(c.siteId));
+            const getIpOrHost = (url?: string) => {
+              if (!url) return '10.1.82.235';
+              const ipMatch = url.match(/\d+\.\d+\.\d+\.\d+/);
+              if (ipMatch) return ipMatch[0];
+              try {
+                const parsed = new URL(url.startsWith('http') || url.startsWith('rtsp') ? url : `http://${url}`);
+                return parsed.hostname || '10.1.82.235';
+              } catch {
+                return '10.1.82.235';
+              }
+            };
             return {
               name: c.name,
               id: `CAM-${c.id}`,
@@ -212,6 +224,7 @@ export const SystemHealthPage = () => {
               status: isWorking ? ('Working' as const) : ('Offline' as const),
               ai: isWorking ? 'Running' : 'Disconnected',
               rtspUrl: c.rtspUrl,
+              ipAddress: getIpOrHost(c.rtspUrl),
               important: idx < 3,
             };
           });
@@ -1349,7 +1362,7 @@ export const SystemHealthPage = () => {
                               <div className="row g-3">
                                 <div className="col-12 col-md-6">
                                   <div className="mb-1"><span className="text-muted">Camera ID:</span> <strong className="text-body-emphasis">{cam.id}</strong></div>
-                                  <div className="mb-1"><span className="text-muted">RTSP URL:</span> <code className="text-body-emphasis">{cam.rtspUrl}</code></div>
+                                  <div className="mb-1"><span className="text-muted">Camera IP:</span> <code className="text-body-emphasis">{cam.ipAddress || '10.1.82.235'}</code></div>
                                 </div>
                                 <div className="col-12 col-md-6">
                                   {/* <div className="mb-1"><span className="text-muted">Edge Device:</span> <strong className="text-body-emphasis">{cam.edge}</strong></div> */}

@@ -751,9 +751,6 @@ export const CamerasPage = () => {
                           <div className="d-flex flex-column align-items-center justify-content-center p-4 h-100">
                             <i className="bi bi-camera-video fs-1 mb-2 opacity-50 text-info" />
                             <p className="fw-semibold text-uppercase tracking-wider opacity-75 mb-1">{activeCamera.type} Live Stream Feed</p>
-                            <code className="small text-white bg-dark bg-opacity-75 px-3 py-1.5 rounded border border-secondary mb-2">
-                              {activeCamera.rtspUrl}
-                            </code>
                             {streamError && (
                               <div className="badge bg-warning bg-opacity-20 text-warning border border-warning px-3 py-1 mt-1 d-flex align-items-center gap-1">
                                 <i className="bi bi-exclamation-triangle-fill" /> Direct Jetson Feed Standby / Connection Retrying...
