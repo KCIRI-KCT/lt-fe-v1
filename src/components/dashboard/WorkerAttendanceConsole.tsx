@@ -49,8 +49,6 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const raw = await dashboardService.getWorkerAttendanceSummary({
         siteId,
@@ -61,6 +59,7 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
         setError('No attendance data returned for this scope.');
         setSummary(null);
       } else {
+        setError(null);
         setSummary(normalized);
       }
     } catch {
@@ -73,7 +72,10 @@ export const WorkerAttendanceConsole: React.FC<WorkerAttendanceConsoleProps> = (
 
   useEffect(() => {
     let isMounted = true;
-    fetchSummary().catch(() => {
+    const runFetch = async () => {
+      await fetchSummary();
+    };
+    runFetch().catch(() => {
       if (isMounted) setError('Unable to load attendance data. Check your connection and retry.');
     });
     return () => {

@@ -55,7 +55,8 @@ export const projectService = {
       siteName: String(s.siteName || s.site_name || s.name || `Site ${idx + 1}`),
       siteNumber: String(s.siteNumber || s.site_number || s.code || `S-${idx + 1}`),
       chainageName: String(s.chainageName || s.chainage_name || s.chainage || 'N/A'),
-      chainageKm: Number(s.chainageKm || s.chainage_km || s.km || 0),
+      // Standardized on km_marker — obsolete site_km / s.km param removed
+      km_marker: String(s.km_marker || s.kmMarker || s.chainageKm || s.chainage_km || 'KM 0+000'),
     })) : [];
 
     const rawRoles = (p.roleAssignments || p.role_assignments) as Record<string, unknown>[] | undefined;

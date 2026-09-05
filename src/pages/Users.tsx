@@ -13,7 +13,9 @@ const columns: Column<UserProfile>[] = [
   )},
   { key: 'email', header: 'Email ID', sortable: true },
   { key: 'employeeId', header: 'Employee ID', sortable: true, render: (u) => u.employeeId || 'N/A' },
+  { key: 'phone', header: 'Mobile', sortable: true, render: (u) => u.mobile_number || u.phone || '—' },
   { key: 'role', header: 'Role', sortable: true, render: (u) => <span className={`badge ${ROLE_COLORS[u.role] || 'text-bg-secondary'}`}>{ROLE_LABELS[u.role]}</span> },
+  { key: 'department', header: 'Department', sortable: true, render: (u) => u.department || '—' },
   { key: 'joiningDate', header: 'Joining Date', sortable: true, render: (u) => u.joiningDate || u.joinedAt || 'N/A' },
   { key: 'address', header: 'Address', sortable: true, render: (u) => u.address || u.location || 'N/A' },
 ];

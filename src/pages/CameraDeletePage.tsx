@@ -48,22 +48,36 @@ export const CameraDeletePage = () => {
     });
   };
 
-  const handleDeleteSelected = async () => {
+  // Soft-delete confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleDeleteSelected = () => {
+    if (selectedCameraIds.size === 0) return;
+    setErrorMsg('');
+    setShowConfirmModal(true);
+  };
+
+  const confirmDelete = async () => {
     if (selectedCameraIds.size === 0) return;
     setDeleting(true);
+    setErrorMsg('');
     const ids = Array.from(selectedCameraIds);
     const count = ids.length;
-
     try {
       await Promise.all(ids.map((id) => cameraService.deleteCamera(id)));
+      // Optimistic update + cache invalidation already done in service (invalidateCameras)
       setCameras((prev) => prev.filter((c) => !selectedCameraIds.has(c.id)));
       setSelectedCameraIds(new Set());
+      setShowConfirmModal(false);
       setSuccessMsg(`Successfully deleted ${count} selected camera(s).`);
       setTimeout(() => {
         setSuccessMsg('');
         navigate('/cameras');
       }, 1500);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete cameras.';
+      setErrorMsg(msg);
       console.error('Failed to delete cameras:', err);
     } finally {
       setDeleting(false);
@@ -98,6 +112,12 @@ export const CameraDeletePage = () => {
           {successMsg}
         </div>
       )}
+      {errorMsg && (
+        <div className="alert alert-danger mt-3 d-flex align-items-center gap-2" role="alert">
+          <i className="bi bi-exclamation-triangle-fill" />
+          <div>{errorMsg}</div>
+        </div>
+      )}
 
       <div className="panel mt-3">
         {loading ? (
@@ -125,6 +145,36 @@ export const CameraDeletePage = () => {
                 {deleting ? 'Deleting...' : `Delete Selected (${selectedCameraIds.size})`}
               </button>
             </div>
+
+            {/* Soft-delete confirmation modal */}
+            {showConfirmModal && (
+              <div className="modal d-block" tabIndex={-1} style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => !deleting && setShowConfirmModal(false)}>
+                <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-content">
+                    <div className="modal-header border-0">
+                      <h5 className="modal-title"><i className="bi bi-exclamation-triangle text-warning me-2" />Confirm Deletion</h5>
+                      <button type="button" className="btn-close" onClick={() => setShowConfirmModal(false)} disabled={deleting} />
+                    </div>
+                    <div className="modal-body">
+                      <p className="mb-2">You are about to permanently delete <strong>{selectedCameraIds.size}</strong> camera(s). This action cannot be undone and corresponds to <code>DELETE /api/cameras/{'{camera_id}'}/</code> (204 No Content).</p>
+                      <ul className="small text-muted mb-0">
+                        {Array.from(selectedCameraIds).slice(0, 5).map((id) => {
+                          const cam = cameras.find((c) => c.id === id);
+                          return <li key={id}>{cam?.name || id} — {cam?.siteName || '—'}</li>;
+                        })}
+                        {selectedCameraIds.size > 5 && <li>…and {selectedCameraIds.size - 5} more</li>}
+                      </ul>
+                    </div>
+                    <div className="modal-footer border-0">
+                      <button type="button" className="btn btn-outline-secondary" onClick={() => setShowConfirmModal(false)} disabled={deleting}>Cancel</button>
+                      <button type="button" className="btn btn-danger" onClick={confirmDelete} disabled={deleting}>
+                        {deleting ? <><span className="spinner-border spinner-border-sm me-1" /> Deleting…</> : 'Confirm Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="table-responsive">
               <table className="table align-middle">

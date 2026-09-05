@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MetricCard } from '../components/ui/MetricCard';
 import { projectService } from '../services/projectService';
 import { siteService } from '../services/siteService';
+import { getStatusBadgeClass } from '../constants';
 import type { Project, Site, MetricCardData } from '../types';
 
 export const Dashboard = () => {
@@ -93,7 +94,7 @@ export const Dashboard = () => {
                   <tr key={p.id}>
                     <td><div><p className="fw-semibold mb-0">{p.name}</p><small className="text-muted">{p.code}</small></div></td>
                     <td>{p.cityName || 'N/A'}</td>
-                    <td><span className="badge text-bg-success">Active</span></td>
+                    <td><span className={`badge ${getStatusBadgeClass(p.status || 'active')}`}>{p.status || 'Active'}</span></td>
                     <td className="text-center">{p.siteCount || p.sites?.length || 0}</td>
                     <td className="text-center">{p.workerCount?.toLocaleString() || 0}</td>
                     <td className="text-end"><Link className="btn btn-light btn-sm" to={`/projects/${p.id}`}>View</Link></td>

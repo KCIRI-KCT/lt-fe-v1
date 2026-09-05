@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
 import { workerService } from '../services/workerService';
+import { fetchLiveDataForReport, generatePDFBlob, generateCSVBlob, openPDFPrintWindow, triggerBrowserDownload } from '../services/reportService';
 import type { Worker } from '../types';
 import { STATUS_BADGES } from '../constants';
 
@@ -61,9 +62,45 @@ export const WorkforcePage = () => {
             <h1 className="h3 mb-0">Workforce</h1>
           </div>
         </div>
-        <div className="heading-actions">
-          <button className="btn btn-outline-secondary btn-sm"><i className="bi bi-download" /> Export</button>
-          <button className="btn btn-primary btn-sm"><i className="bi bi-person-plus" /> Add Worker</button>
+        <div className="heading-actions d-flex gap-2">
+          <div className="dropdown">
+            <button
+              className="btn btn-outline-secondary btn-sm dropdown-toggle fw-semibold"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="bi bi-download me-1" /> Export Report
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <button
+                  className="dropdown-item d-flex align-items-center gap-2 small text-danger"
+                  onClick={async () => {
+                    const liveData = await fetchLiveDataForReport();
+                    openPDFPrintWindow({ title: 'Workforce Attendance & Deployment Report', format: 'pdf' }, liveData);
+                    const blob = generatePDFBlob({ title: 'Workforce_Attendance_Report', format: 'pdf' }, liveData);
+                    triggerBrowserDownload(blob, 'workforce_attendance_report.pdf');
+                  }}
+                >
+                  <i className="bi bi-file-pdf-fill" /> Export PDF (L&amp;T Standard)
+                </button>
+              </li>
+              <li>
+                <button
+                  className="dropdown-item d-flex align-items-center gap-2 small text-success"
+                  onClick={async () => {
+                    const liveData = await fetchLiveDataForReport();
+                    const blob = generateCSVBlob({ title: 'Workforce_Attendance_Report', format: 'csv' }, liveData);
+                    triggerBrowserDownload(blob, 'workforce_attendance_report.csv');
+                  }}
+                >
+                  <i className="bi bi-filetype-csv" /> Export CSV Dataset
+                </button>
+              </li>
+            </ul>
+          </div>
+          <button className="btn btn-primary btn-sm"><i className="bi bi-person-plus me-1" /> Add Worker</button>
         </div>
       </div>
       {loading ? (

@@ -140,8 +140,9 @@ function App() {
                     <Route path="/progress" element={<ProgressPage />} />
                   </Route>
 
-                  {/* Intrusion Detection — Safety Manager & Safety Officer */}
+                  {/* Intrusion & PPE Detection — Safety Manager & Safety Officer */}
                   <Route element={<ProtectedRoute requiredRoles={SafetyDetectionRoles} />}>
+                    <Route path="/ppe-detection" element={<PPEDetectionPage />} />
                     <Route path="/intrusion-detection" element={<IntrusionDetectionPage />} />
                   </Route>
 

@@ -121,26 +121,18 @@ export const dashboardService = {
   },
 
   async getPlanVsActualProgress(range: 'week' | 'month' | 'year' = 'month', projectId?: string): Promise<ProgressPoint[]> {
-    try {
-      const response = await api.get('dashboard/progress-trend/', {
-        params: { range, projectId }
-      });
-      const data = response.data?.data || response.data;
-      if (data && Array.isArray(data.labels) && Array.isArray(data.progress_trend)) {
-        return data.labels.map((lbl: string, idx: number) => ({
-          month: lbl,
-          planned: Math.min(100, (data.progress_trend[idx] || 0) + 5),
-          actual: data.progress_trend[idx] || 0,
-        }));
-      }
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [
-        { month: 'Jan', planned: 10, actual: 8 },
-        { month: 'Feb', planned: 20, actual: 18 },
-        { month: 'Mar', planned: 30, actual: 28 },
-      ];
+    const response = await api.get('dashboard/progress-trend/', {
+      params: { range, projectId }
+    });
+    const data = response.data?.data || response.data;
+    if (data && Array.isArray(data.labels) && Array.isArray(data.progress_trend)) {
+      return data.labels.map((lbl: string, idx: number) => ({
+        month: lbl,
+        planned: Math.min(100, (data.progress_trend[idx] || 0) + 5),
+        actual: data.progress_trend[idx] || 0,
+      }));
     }
+    return Array.isArray(data) ? data : [];
   },
 
   async getSafetyAlertsSummary(params?: { siteId?: string; status?: string; severity?: string }): Promise<SafetyAlertsSummary> {

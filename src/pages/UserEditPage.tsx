@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DynamicForm, type FieldConfig } from '../components/forms/DynamicForm';
 import { employeeService } from '../services/employeeService';
 import type { UserProfile } from '../types';
@@ -7,15 +7,54 @@ import { ROLE_OPTIONS } from '../constants';
 
 export const UserEditPage = () => {
   const navigate = useNavigate();
+  const { id: routeId } = useParams();
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedUserId, setSelectedUserId] = useState<string>(routeId || '');
+  const [prevRouteId, setPrevRouteId] = useState(routeId);
   const [successMsg, setSuccessMsg] = useState<string>('');
+  const [isLoadingSingle, setIsLoadingSingle] = useState(false);
+
+  // Sync selectedUserId when routeId changes during render
+  if (routeId !== prevRouteId) {
+    setPrevRouteId(routeId);
+    if (routeId && routeId !== 'add') {
+      setSelectedUserId(routeId);
+    }
+  }
 
   useEffect(() => {
     employeeService.getEmployees().then(setUsersList).catch(() => setUsersList([]));
   }, []);
 
-  const selectedUser = usersList.find((u) => u.id === selectedUserId);
+  // Support direct /users/edit/:id — fetch single employee from API and prefill
+  useEffect(() => {
+    if (!routeId || routeId === 'add') return;
+
+    const exists = usersList.some((u) => String(u.id) === String(routeId));
+    if (exists) return;
+
+    let ignore = false;
+
+    queueMicrotask(() => {
+      if (!ignore) setIsLoadingSingle(true);
+    });
+
+    employeeService.getEmployee(routeId)
+      .then(() => employeeService.getEmployees())
+      .then((data) => {
+        if (!ignore) setUsersList(data);
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (!ignore) setIsLoadingSingle(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [routeId, usersList]);
+
+  const selectedUser = usersList.find((u) => String(u.id) === String(selectedUserId));
 
   const handleCancel = () => navigate('/users');
 
@@ -57,7 +96,7 @@ export const UserEditPage = () => {
     { name: 'employee_code', label: 'Employee Code (employee_code)', type: 'text', placeholder: 'EMP-001', disabled: true, helpText: 'Read-only string identifier', colSpan: 6 },
     { name: 'name', label: 'Full Name', type: 'text', placeholder: 'Enter full name', required: true, colSpan: 6 },
     { name: 'email', label: 'Email Address', type: 'email', placeholder: 'user@example.com', required: true, colSpan: 6 },
-    { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: '+91-9876543210', colSpan: 6 },
+    { name: 'phone', label: 'Mobile Number *', type: 'tel', placeholder: '9876543210', required: true, colSpan: 6 },
     { name: 'role', label: 'Role', type: 'select', options: ROLE_OPTIONS, required: true, colSpan: 6 },
     { name: 'department', label: 'Department', type: 'text', placeholder: 'Department name', colSpan: 6 },
     { name: 'address', label: 'Street Address', type: 'text', placeholder: 'Street address', colSpan: 12 },
@@ -65,7 +104,9 @@ export const UserEditPage = () => {
     { name: 'state', label: 'State', type: 'text', placeholder: 'State', colSpan: 6 },
     { name: 'country', label: 'Country', type: 'text', placeholder: 'Country', colSpan: 6 },
     { name: 'pincode', label: 'Pincode / Postal Code', type: 'text', placeholder: 'Pincode', colSpan: 6 },
-    { name: 'workspace', label: 'Workspace', type: 'text', placeholder: 'Project/Organization', colSpan: 6 },
+    { name: 'workspace', label: 'Assigned Project / Workspace', type: 'text', placeholder: 'Project Name / Code', colSpan: 6 },
+    { name: 'siteName', label: 'Assigned Site', type: 'text', placeholder: 'Site Name / Code', colSpan: 6 },
+    { name: 'chainageKm', label: 'Assigned Chainage (KM Marker)', type: 'text', placeholder: 'KM 120+400', colSpan: 6 },
   ];
 
   const initialValues: Record<string, string> = selectedUser ? {
@@ -81,7 +122,9 @@ export const UserEditPage = () => {
     country: selectedUser.country || '',
     pincode: selectedUser.pincode || '',
     location: selectedUser.location || selectedUser.address || '',
-    workspace: selectedUser.workspace || '',
+    workspace: selectedUser.workspace || selectedUser.projectName || '',
+    siteName: selectedUser.siteName || '',
+    chainageKm: (selectedUser as unknown as Record<string, string>).chainageKm || '',
   } : {};
 
   return (
@@ -105,8 +148,9 @@ export const UserEditPage = () => {
       )}
 
       <div className="panel mt-3">
+        {isLoadingSingle && <div className="alert alert-info py-2 small">Loading user {routeId} from API...</div>}
         <div className="mb-4 col-md-6">
-          <label htmlFor="userSelect" className="form-label fw-bold">Select User to Edit</label>
+          <label htmlFor="userSelect" className="form-label fw-bold">Select User to Edit {routeId ? `(ID: ${routeId})` : ''}</label>
           <select
             id="userSelect"
             className="form-select"
@@ -119,7 +163,7 @@ export const UserEditPage = () => {
             <option value="">-- Choose User --</option>
             {usersList.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name} ({u.role.replace(/_/g, ' ')}) - {u.email}
+                {u.name} ({u.role.replace(/_/g, ' ')}) - {u.email} [{u.mobile_number || u.phone || 'no phone'}]
               </option>
             ))}
           </select>

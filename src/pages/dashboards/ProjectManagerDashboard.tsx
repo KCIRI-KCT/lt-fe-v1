@@ -500,9 +500,13 @@ export const ProjectManagerDashboard = () => {
               className="form-select form-select-sm"
               value={filterProject}
               onChange={(e) => {
-                setFilterProject(e.target.value);
+                const val = e.target.value;
+                setFilterProject(val);
                 setFilterSite('');
                 setFilterChainage('');
+                setAppliedProject(val);
+                setAppliedSite('');
+                setAppliedChainage('');
               }}
             >
               <option value="">All Projects</option>
@@ -521,11 +525,14 @@ export const ProjectManagerDashboard = () => {
                 const selectedVal = e.target.value;
                 setFilterSite(selectedVal);
                 setFilterChainage('');
+                setAppliedSite(selectedVal);
+                setAppliedChainage('');
                 if (selectedVal) {
                   const sObj = sitesList.find(s => s.name === selectedVal);
                   const matchedProj = projectsList.find(p => p.id === sObj?.projectId);
                   if (matchedProj) {
                     setFilterProject(matchedProj.name);
+                    setAppliedProject(matchedProj.name);
                   }
                 }
               }}
@@ -544,7 +551,11 @@ export const ProjectManagerDashboard = () => {
             <select
               className="form-select form-select-sm"
               value={filterChainage}
-              onChange={(e) => setFilterChainage(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilterChainage(val);
+                setAppliedChainage(val);
+              }}
               disabled={!filterSite}
             >
               <option value="">All Chainages</option>

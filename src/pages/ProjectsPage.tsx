@@ -391,7 +391,7 @@ export const ProjectsPage = () => {
                               {selectedProject.sites.map((s) => (
                                 <div key={s.id} className="p-2 border rounded bg-light-subtle">
                                   <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>{s.siteName} ({s.siteNumber})</div>
-                                  <div className="text-muted small" style={{ fontSize: '0.75rem' }}>{s.chainageName} — CH 0+{s.chainageKm}</div>
+                                  <div className="text-muted small" style={{ fontSize: '0.75rem' }}>{s.chainageName} — {String(s.km_marker || (s as unknown as Record<string, unknown>).chainageKm || 'KM 0+000')}</div>
                                 </div>
                               ))}
                             </div>

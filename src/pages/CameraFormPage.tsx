@@ -13,14 +13,15 @@ import { CAMERA_TYPE_OPTIONS } from '../constants';
 export const CameraFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = !!id && id !== 'add';
+  const isCreate = id === 'create';
+  const isEdit = !!id && id !== 'create' && id !== 'add' && id !== 'edit';
 
   const [camera, setCamera] = useState<Camera | undefined>(undefined);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
+// Reset for create mode
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
@@ -31,6 +32,8 @@ export const CameraFormPage = () => {
         if (isEdit && id) {
           const cam = await cameraService.getCamera(id);
           if (isMounted) setCamera(cam);
+        } else {
+          if (isMounted) setCamera(undefined); // Handles create/reset asynchronously
         }
       } catch (err) {
         console.error('Error loading camera form data:', err);
@@ -41,7 +44,7 @@ export const CameraFormPage = () => {
 
     loadData();
     return () => { isMounted = false; };
-  }, [id, isEdit]);
+  }, [id, isEdit, isCreate]);
 
   const handleCancel = () => navigate('/cameras');
 
@@ -59,7 +62,6 @@ export const CameraFormPage = () => {
         location: data.location as string,
         type: data.type as Camera['type'],
         status: isEdit ? camera?.status || 'online' : 'online',
-        // healthScore omitted: backend calculates initial score via automated ping telemetry.
         resolution: data.resolution as string | undefined,
       };
 

@@ -20,8 +20,17 @@
 // ============================================================================
 
 import api from './api';
+import { storage, KEYS } from './storage';
 import { normalizeAIAlert } from './safetyService';
-import type { Message, MessagePriority } from '../types';
+import type { Message, MessagePriority, ProjectRoleAssignment } from '../types';
+
+export interface AllocationNotificationPayload {
+  projectName: string;
+  cityName: string;
+  stateName: string;
+  roleAssignments: ProjectRoleAssignment[];
+  sites?: { siteName: string; kmMarker?: string }[];
+}
 
 // ----------------------------------------------------------------------------
 // Types
@@ -214,8 +223,74 @@ export async function markMessageRead(messageId: string): Promise<Message> {
 }
 
 // ----------------------------------------------------------------------------
-// Combined streams
+// Combined streams & Allocation Dispatcher
 // ----------------------------------------------------------------------------
+
+/**
+ * Dispatch system notifications to all allocated personnel when an Admin
+ * creates or updates a Project / Site with role assignments.
+ */
+export async function dispatchAllocationNotifications(
+  payload: AllocationNotificationPayload
+): Promise<void> {
+  const { projectName, cityName, stateName, roleAssignments, sites } = payload;
+  if (!roleAssignments || roleAssignments.length === 0) return;
+
+  const sitesSummary = sites && sites.length > 0
+    ? sites.map((s) => (s.kmMarker ? `${s.siteName} (${s.kmMarker})` : s.siteName)).join(', ')
+    : 'All Project Sites';
+
+  const roleTitles: Record<string, string> = {
+    project_manager: 'Project Manager',
+    site_supervisor: 'Site Supervisor',
+    site_engineer: 'Site Engineer',
+    safety_officer: 'Safety Officer',
+    safety_engineer: 'Safety Engineer',
+  };
+
+  const localMessages: Message[] = storage.get(KEYS.MESSAGES, []);
+
+  for (const ra of roleAssignments) {
+    if (!ra.userId || !ra.userName) continue;
+    const roleTitle = roleTitles[ra.role] || ra.role.replace('_', ' ').toUpperCase();
+    const msgId = `alloc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    const subject = `[Admin Allocation] Assigned as ${roleTitle} — ${projectName}`;
+    const content = `Hello ${ra.userName},\n\nAdmin has allocated you as ${roleTitle} for Project '${projectName}' located at ${cityName}, ${stateName}.\n\nAllocated Site(s): ${sitesSummary}\nAssigned Site Segment: ${ra.siteName || 'All Sites'}\n\nPlease review your assigned sites and project resources in the dashboard console.`;
+
+    const newMsg: Message & Record<string, unknown> = {
+      id: msgId,
+      senderId: 'admin',
+      senderName: 'Admin (Super Admin)',
+      sender_username: 'Admin (Super Admin)',
+      receiverId: ra.userId,
+      receiverName: ra.userName,
+      recipient_id: ra.userId,
+      subject,
+      content,
+      priority: 'high',
+      read: false,
+      is_read: false,
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    };
+
+    // 1. Send via POST /api/messages/ API endpoint
+    try {
+      await api.post('messages/', newMsg);
+    } catch {
+      // Backend api offline fallback to local storage
+    }
+
+    // 2. Persist locally for immediate Notification Bell delivery
+    const exists = localMessages.some(m => String(m.id) === String(msgId));
+    if (!exists) {
+      localMessages.unshift(newMsg as Message);
+    }
+  }
+
+  storage.set(KEYS.MESSAGES, localMessages);
+}
 
 /**
  * Fetch both streams concurrently. Never rejects when only one side fails —
@@ -244,6 +319,7 @@ export const notificationService = {
   getSystemNotifications,
   markMessageRead,
   getNotificationStreams,
+  dispatchAllocationNotifications,
   isActiveCameraAlert,
   isActiveAlertStatus,
 };
