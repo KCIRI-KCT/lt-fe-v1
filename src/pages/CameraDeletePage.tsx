@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cameraService } from '../services/cameraService';
 import type { Camera } from '../types';
-import { STATUS_BADGES } from '../constants';
+import { getStatusBadgeClass } from '../constants';
 
 export const CameraDeletePage = () => {
   const navigate = useNavigate();
@@ -213,21 +213,23 @@ export const CameraDeletePage = () => {
                         <td>
                           <div>
                             <p className="fw-semibold mb-0">{cam.name}</p>
-                            <code className="small text-muted">{cam.rtspUrl}</code>
                           </div>
                         </td>
                         <td>{cam.siteName || 'N/A'}</td>
                         <td>{cam.location || 'N/A'}</td>
                         <td><span className="badge text-bg-light border text-uppercase">{cam.type}</span></td>
                         <td>
-                          <span className={`badge ${STATUS_BADGES[cam.status] || 'text-bg-secondary'}`}>
+                          <span className={`badge ${getStatusBadgeClass(cam.status)}`}>
                             {cam.status}
                           </span>
                         </td>
                         <td className="text-center">
-                          <span className={`fw-bold ${cam.healthScore && cam.healthScore >= 80 ? 'text-success' : cam.healthScore && cam.healthScore >= 50 ? 'text-warning' : 'text-danger'}`}>
-                            {cam.healthScore}%
-                          </span>
+                          {(() => {
+                            const isOnline = ['online', 'active', 'working'].includes(String(cam.status || '').toLowerCase());
+                            const score = isOnline ? (typeof cam.healthScore === 'number' && cam.healthScore > 0 ? cam.healthScore : 100) : (cam.healthScore ?? 0);
+                            const colorClass = score >= 80 ? 'text-success' : score >= 50 ? 'text-warning' : 'text-danger';
+                            return <span className={`fw-bold ${colorClass}`}>{score}%</span>;
+                          })()}
                         </td>
                       </tr>
                     );

@@ -29,8 +29,8 @@ export const ProjectFormPage = () => {
   const [description, setDescription] = useState('');
   const [cityId, setCityId] = useState('');
   const [stateId, setStateId] = useState('');
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(defaultEndDate);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
 
   // Open API Location States (State & Linked Cities)
@@ -517,13 +517,13 @@ export const ProjectFormPage = () => {
     let finished = 0;
     if (todayDate.getTime() > start.getTime()) {
       const elapsedMs = Math.min(todayDate.getTime(), end.getTime()) - start.getTime();
-      finished = Math.max(0, Math.ceil(elapsedMs / (1000 * 60 * 60 * 24 * 7)));
+      finished = Math.max(0, Math.floor(elapsedMs / (1000 * 60 * 60 * 24 * 7)));
     }
     
     let remaining = 0;
     if (todayDate.getTime() < end.getTime()) {
       const remainingMs = end.getTime() - Math.max(todayDate.getTime(), start.getTime());
-      remaining = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24 * 7)));
+      remaining = Math.max(0, Math.floor(remainingMs / (1000 * 60 * 60 * 24 * 7)));
     }
     
     return { finished, remaining };
@@ -534,6 +534,8 @@ export const ProjectFormPage = () => {
     setCityId('');
     setPincodeInput('');
     setPincodeMsg('');
+    setStartDate('');
+    setEndDate('');
     setManagers([{ userId: '', siteId: '' }]);
     setSupervisors([{ userId: '', siteId: '' }]);
     setEngineers([{ userId: '', siteId: '' }]);

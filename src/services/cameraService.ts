@@ -169,7 +169,10 @@ export function normalizeCamera(item: Record<string, unknown> | null | undefined
     siteId: String(item.site_id || item.siteId || siteObj?.id || item.site || ''),
     siteName: (item.site_name as string) || (item.siteName as string) || (siteObj?.name as string) || '',
     location: (item.location as string) || '',
-    status: ((item.status as string) || 'offline') as Camera['status'],
+    status: (() => {
+      const s = String(item.status || '').toLowerCase();
+      return (s === 'active' || s === 'online' || s === 'working') ? 'online' : (s as Camera['status'] || 'offline');
+    })(),
     type: ((item.type as string) || 'fixed') as Camera['type'],
     lastOnline: (item.last_online as string) || (item.lastOnline as string) || new Date().toISOString().replace('T', ' ').substring(0, 19),
     healthScore: (item.health_score as number) ?? (item.healthScore as number) ?? 95,
@@ -180,20 +183,49 @@ export function normalizeCamera(item: Record<string, unknown> | null | undefined
 }
 
 export async function pingCameraHealth(camera: Camera): Promise<Camera> {
-  if (!camera.rtspUrl || camera.status === 'offline') {
+  const statusStr = String(camera.status || '').toLowerCase();
+  const isOnlineStatus = statusStr === 'online' || statusStr === 'active' || statusStr === 'working';
+
+  if (!camera.rtspUrl) {
     return { ...camera, status: 'offline', healthScore: 0 };
   }
+
+  const defaultHealth = (typeof camera.healthScore === 'number' && camera.healthScore > 0) ? camera.healthScore : (isOnlineStatus ? 100 : 0);
+  const defaultStatus = isOnlineStatus ? 'online' : (camera.status || 'offline');
+
   const startTime = Date.now();
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
-    await fetch(camera.rtspUrl, { method: 'HEAD', mode: 'no-cors', signal: controller.signal });
+    const res = await fetch(camera.rtspUrl, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      signal: controller.signal,
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
     clearTimeout(timeoutId);
+    if (!res.ok && res.status !== 0) {
+      return {
+        ...camera,
+        status: defaultStatus,
+        healthScore: defaultHealth
+      };
+    }
     const latency = Date.now() - startTime;
-    const healthScore = Math.max(50, Math.min(100, 100 - Math.round(latency / 30)));
-    return { ...camera, status: 'online', healthScore, lastOnline: new Date().toISOString().replace('T', ' ').substring(0, 19) };
+    const healthScore = Math.max(75, Math.min(100, 100 - Math.round(latency / 50)));
+    return {
+      ...camera,
+      status: 'online',
+      healthScore,
+      lastOnline: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
   } catch {
-    return { ...camera, status: 'offline', healthScore: 0 };
+    return {
+      ...camera,
+      status: defaultStatus,
+      healthScore: defaultHealth,
+      lastOnline: isOnlineStatus ? new Date().toISOString().replace('T', ' ').substring(0, 19) : camera.lastOnline
+    };
   }
 }
 

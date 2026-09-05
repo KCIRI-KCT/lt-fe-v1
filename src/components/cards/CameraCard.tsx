@@ -12,7 +12,7 @@ export const CameraCard = ({ camera, onView }: CameraCardProps) => {
   const isOnline = statusStr === 'online' || statusStr === 'active' || statusStr === 'working';
   const statusBadgeClass = getStatusBadgeClass(camera.status);
   const rawHealth = camera.healthScore;
-  const effectiveHealth = isOnline ? (typeof rawHealth === 'number' && !isNaN(rawHealth) ? rawHealth : 95) : 0;
+  const effectiveHealth = isOnline ? (typeof rawHealth === 'number' && !isNaN(rawHealth) && rawHealth > 0 ? rawHealth : 100) : 0;
   const healthColor = effectiveHealth >= 80 ? '#22c55e' : effectiveHealth >= 50 ? '#d97706' : effectiveHealth > 0 ? '#dc2626' : '#6b7280';
 
   return (
