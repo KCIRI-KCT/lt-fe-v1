@@ -104,7 +104,10 @@ export function useNotificationBell(
   const knownIdsRef = useRef<Set<string>>(new Set());
   const firstLoadRef = useRef(true);
   const dismissedRef = useRef(dismissed);
-  dismissedRef.current = dismissed;
+
+  useEffect(() => {
+    dismissedRef.current = dismissed;
+  }, [dismissed]);
 
   const fetchStreams = useCallback(
     async (isManual = false) => {      if (inFlightRef.current) return; // skip overlapping cycles
@@ -168,8 +171,13 @@ export function useNotificationBell(
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchStreams();
-    const interval = setInterval(() => fetchStreams(), pollIntervalMs);
+    const runFetch = async () => {
+      await fetchStreams();
+    };
+    runFetch();
+    const interval = setInterval(() => {
+      void fetchStreams();
+    }, pollIntervalMs);
     return () => {
       mountedRef.current = false;
       clearInterval(interval);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { siteService } from '../services/siteService';
+import { fetchLiveDataForReport, generatePDFBlob, generateCSVBlob, openPDFPrintWindow, triggerBrowserDownload } from '../services/reportService';
 import type { ChainageData } from '../types';
 
 export const ProgressPage = () => {
@@ -38,7 +39,7 @@ export const ProgressPage = () => {
             <p className="text-muted mb-0">Highway and structural progress tracking across all chainages.</p>
           </div>
         </div>
-        <div className="heading-actions">
+        <div className="heading-actions d-flex gap-2">
           <div className="btn-group btn-group-sm" role="group">
             <button
               type="button"
@@ -50,6 +51,43 @@ export const ProgressPage = () => {
               className={`btn ${view === 'structural' ? 'btn-primary' : 'btn-outline-secondary'}`}
               onClick={() => setView('structural')}
             >Structural</button>
+          </div>
+          <div className="dropdown">
+            <button
+              className="btn btn-outline-secondary btn-sm dropdown-toggle fw-semibold"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="bi bi-download me-1" /> Export Report
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+              <li>
+                <button
+                  className="dropdown-item d-flex align-items-center gap-2 small text-danger"
+                  onClick={async () => {
+                    const liveData = await fetchLiveDataForReport();
+                    openPDFPrintWindow({ title: 'Construction Progress & Measurement Report', format: 'pdf' }, liveData);
+                    const blob = generatePDFBlob({ title: 'Construction_Progress_Report', format: 'pdf' }, liveData);
+                    triggerBrowserDownload(blob, 'construction_progress_report.pdf');
+                  }}
+                >
+                  <i className="bi bi-file-pdf-fill" /> Export PDF (L&amp;T Standard)
+                </button>
+              </li>
+              <li>
+                <button
+                  className="dropdown-item d-flex align-items-center gap-2 small text-success"
+                  onClick={async () => {
+                    const liveData = await fetchLiveDataForReport();
+                    const blob = generateCSVBlob({ title: 'Construction_Progress_Report', format: 'csv' }, liveData);
+                    triggerBrowserDownload(blob, 'construction_progress_report.csv');
+                  }}
+                >
+                  <i className="bi bi-filetype-csv" /> Export CSV Dataset
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
       </div>

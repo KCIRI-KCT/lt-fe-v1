@@ -72,29 +72,107 @@ export const SEVERITY_BADGES: Record<string, string> = {
 // ============================================================================
 
 export const STATUS_BADGES: Record<string, string> = {
-  active: 'text-bg-success',
-  inactive: 'text-bg-secondary',
-  online: 'text-bg-success',
-  offline: 'text-bg-secondary',
-  error: 'text-bg-danger',
-  maintenance: 'text-bg-warning',
-  completed: 'text-bg-info',
-  planning: 'text-bg-primary',
-  on_hold: 'text-bg-warning',
-  cancelled: 'text-bg-danger',
-  new: 'text-bg-primary',
-  acknowledged: 'text-bg-info',
-  resolved: 'text-bg-success',
+  // Active -> BLUE tag (text-bg-primary)
+  active: 'text-bg-primary',
+  Active: 'text-bg-primary',
+
+  // Progress -> ORANGE tag (text-bg-warning)
+  progress: 'text-bg-warning',
+  Progress: 'text-bg-warning',
+  'in progress': 'text-bg-warning',
+  in_progress: 'text-bg-warning',
+  In_Progress: 'text-bg-warning',
+  'In Progress': 'text-bg-warning',
+  ongoing: 'text-bg-warning',
+  planning: 'text-bg-warning',
+  pending: 'text-bg-warning',
+  Pending: 'text-bg-warning',
+  generating: 'text-bg-warning',
+
+  // Open -> GREY tag (text-bg-secondary)
+  open: 'text-bg-secondary',
+  Open: 'text-bg-secondary',
+  new: 'text-bg-secondary',
+  New: 'text-bg-secondary',
+  draft: 'text-bg-secondary',
+  Draft: 'text-bg-secondary',
+  acknowledged: 'text-bg-secondary',
+  Acknowledged: 'text-bg-secondary',
   dismissed: 'text-bg-secondary',
-  open: 'text-bg-danger',
-  investigating: 'text-bg-warning',
-  closed: 'text-bg-secondary',
+  leave: 'text-bg-secondary',
+
+  // Completed / Closed / Resolved / Online / Present -> GREEN tag (text-bg-success)
+  completed: 'text-bg-success',
+  Completed: 'text-bg-success',
+  closed: 'text-bg-success',
+  Closed: 'text-bg-success',
+  resolved: 'text-bg-success',
+  Resolved: 'text-bg-success',
+  online: 'text-bg-success',
+  Online: 'text-bg-success',
   present: 'text-bg-success',
+  Present: 'text-bg-success',
+  working: 'text-bg-success',
+  Working: 'text-bg-success',
+  ready: 'text-bg-success',
+  Ready: 'text-bg-success',
+  valid: 'text-bg-success',
+
+  // Malfunction / Issue / Error / Offline / Inactive / Cancelled -> RED tag (text-bg-danger)
+  malfunction: 'text-bg-danger',
+  Malfunction: 'text-bg-danger',
+  issue: 'text-bg-danger',
+  Issue: 'text-bg-danger',
+  error: 'text-bg-danger',
+  Error: 'text-bg-danger',
+  fault: 'text-bg-danger',
+  Fault: 'text-bg-danger',
+  offline: 'text-bg-danger',
+  Offline: 'text-bg-danger',
+  inactive: 'text-bg-danger',
+  Inactive: 'text-bg-danger',
+  cancelled: 'text-bg-danger',
+  Cancelled: 'text-bg-danger',
+  on_hold: 'text-bg-danger',
   absent: 'text-bg-danger',
+  critical: 'text-bg-danger',
+  Critical: 'text-bg-danger',
+  'not working': 'text-bg-danger',
+  'Not Working': 'text-bg-danger',
+  maintenance: 'text-bg-warning',
   late: 'text-bg-warning',
   half_day: 'text-bg-info',
-  leave: 'text-bg-secondary',
 };
+
+export function getStatusBadgeClass(status?: string): string {
+  if (!status) return 'text-bg-secondary';
+  const s = status.trim().toLowerCase();
+
+  // Active -> BLUE tag
+  if (s === 'active') return 'text-bg-primary';
+
+  // Progress -> ORANGE tag
+  if (s.includes('progress') || s === 'ongoing' || s === 'planning' || s === 'pending' || s === 'generating') {
+    return 'text-bg-warning';
+  }
+
+  // Open -> GREY tag
+  if (s === 'open' || s === 'draft' || s === 'new' || s === 'acknowledged' || s === 'dismissed' || s === 'leave') {
+    return 'text-bg-secondary';
+  }
+
+  // Completed -> GREEN tag
+  if (s === 'completed' || s === 'closed' || s === 'resolved' || s === 'online' || s === 'present' || s === 'working' || s === 'ready' || s === 'valid') {
+    return 'text-bg-success';
+  }
+
+  // Malfunction / Issue / Error -> RED tag
+  if (s.includes('malfunction') || s.includes('issue') || s.includes('error') || s === 'offline' || s === 'inactive' || s === 'cancelled' || s === 'fault' || s === 'failed' || s === 'absent' || s === 'critical' || s === 'not working') {
+    return 'text-bg-danger';
+  }
+
+  return STATUS_BADGES[status] || STATUS_BADGES[s] || 'text-bg-secondary';
+}
 
 // ============================================================================
 // AI Alert Type Config

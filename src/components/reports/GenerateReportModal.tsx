@@ -94,6 +94,11 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
     setIsGenerating(true);
     setProgress(0);
 
+    // Resolve names from IDs for display while storing IDs for filtering
+    const projName = projectsList.find((p) => String(p.id) === String(project))?.name || project || 'All Projects';
+    const siteName = sitesList.find((s) => String(s.id) === String(site))?.name || site || 'All Sites';
+    const chainageName = chainagesList.find((c) => String(c.id) === String(chainage))?.name || chainage || 'All Chainages';
+
     // Simulate generation with progress
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -104,12 +109,15 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
             const newReport: ReportHistoryItem = {
               id: Date.now(),
               reportName: selectedTypes.length > 0
-                ? `${selectedTypes[0]} - ${site || 'All Sites'}`
-                : `Report - ${site || 'All Sites'}`,
+                ? `${selectedTypes[0]} - ${siteName}`
+                : `Report - ${siteName}`,
               reportType: selectedTypes.length > 0 ? selectedTypes[0] : 'General Report',
-              project: project || 'All Projects',
-              site: site || 'All Sites',
-              chainage: chainage || 'All Chainages',
+              project: projName,
+              site: siteName,
+              chainage: chainageName,
+              projectId: project || undefined,
+              siteId: site || undefined,
+              chainageId: chainage || undefined,
               generatedBy: String(role).replace(/_/g, ' '),
               generatedDate: new Date().toLocaleDateString('en-GB', {
                 day: '2-digit',
@@ -162,11 +170,11 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
                 <select
                   className="form-select"
                   value={project}
-                  onChange={(e) => setProject(e.target.value)}
+                  onChange={(e) => { setProject(e.target.value); setSite(''); setChainage(''); }}
                 >
                   <option value="">Select Project</option>
                   {projectsList.map((p) => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
                   ))}
                 </select>
               </div>
@@ -178,18 +186,18 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
               <select
                 className="form-select"
                 value={site}
-                onChange={(e) => setSite(e.target.value)}
+                onChange={(e) => { setSite(e.target.value); setChainage(''); }}
               >
                 <option value="">Select Site</option>
                 {sitesList
-                  .filter((s) => !project || s.projectName === project)
+                  .filter((s) => !project || String(s.projectId) === String(project))
                   .map((s) => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                   ))}
               </select>
             </div>
 
-            {/* Chainage dropdown */}
+            {/* Chainage dropdown — linked via chainage.siteId / site */}
             <div className="mb-3">
               <label className="form-label fw-semibold small text-uppercase text-muted">Chainage</label>
               <select
@@ -199,9 +207,13 @@ export const GenerateReportModal = ({ show, onClose, onGenerate }: GenerateRepor
               >
                 <option value="">Select Chainage</option>
                 {chainagesList
-                  .filter((c) => !site || c.site === site)
+                  .filter((c) => {
+                    if (!site) return true;
+                    const chSiteId = String((c as unknown as Record<string, unknown>).siteId || (c as unknown as Record<string, unknown>).site || '');
+                    return chSiteId === String(site);
+                  })
                   .map((c) => (
-                    <option key={c.id} value={c.name || c.id}>{c.name || c.id}</option>
+                    <option key={c.id} value={c.id}>{c.name || c.id} — {(c as unknown as Record<string, unknown>).km_marker as string || ''}</option>
                   ))}
               </select>
             </div>

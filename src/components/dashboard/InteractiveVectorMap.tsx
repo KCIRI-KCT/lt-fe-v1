@@ -39,6 +39,9 @@ const CITY_COORDS: Record<string, [number, number]> = {
   bangalore: [12.9716, 77.5946],
   pune: [18.5204, 73.8567],
   delhi: [28.6139, 77.2090],
+  noida: [28.5355, 77.3910],
+  gurgaon: [28.4595, 77.0266],
+  gurugram: [28.4595, 77.0266],
   kolkata: [22.5726, 88.3639],
   ahmedabad: [23.0225, 72.5714],
   jaipur: [26.9124, 75.7873],
@@ -46,6 +49,7 @@ const CITY_COORDS: Record<string, [number, number]> = {
   nagpur: [21.1458, 79.0882],
   coimbatore: [11.0168, 76.9558],
   kochi: [9.9312, 76.2673],
+  cochin: [9.9312, 76.2673],
   chandigarh: [30.7333, 76.7794],
   bhubaneswar: [20.2961, 85.8245],
   surat: [21.1702, 72.8311],
@@ -53,9 +57,101 @@ const CITY_COORDS: Record<string, [number, number]> = {
   bhopal: [23.2599, 77.4126],
   vadodara: [22.3072, 73.1812],
   visakhapatnam: [17.6868, 83.2185],
+  vizag: [17.6868, 83.2185],
   madurai: [9.9252, 78.1198],
   salem: [11.6643, 78.1460],
   tiruchirappalli: [10.7905, 78.7047],
+  trichy: [10.7905, 78.7047],
+  thiruvananthapuram: [8.5241, 76.9366],
+  trivandrum: [8.5241, 76.9366],
+  indore: [22.7196, 75.8577],
+  guwahati: [26.1445, 91.7362],
+  shimla: [31.1048, 77.1734],
+  dehradun: [30.3165, 78.0322],
+  ranchi: [23.3441, 85.3096],
+  jamshedpur: [22.8046, 86.2029],
+  raipur: [21.2514, 81.6296],
+  varanasi: [25.3176, 82.9739],
+  kanpur: [26.4499, 80.3319],
+  agra: [27.1767, 78.0081],
+  amritsar: [31.6340, 74.8723],
+  jodhpur: [26.2389, 73.0243],
+  udaipur: [24.5854, 73.7125],
+  mangalore: [12.9141, 74.8560],
+  mangaluru: [12.9141, 74.8560],
+  mysore: [12.2958, 76.6394],
+  mysuru: [12.2958, 76.6394],
+  hubli: [15.3647, 75.1240],
+  vijayawada: [16.5062, 80.6480],
+  guntur: [16.3067, 80.4365],
+  warangal: [17.9689, 79.5941],
+  kalyan: [19.2403, 73.1305],
+  nashik: [19.9975, 73.7898],
+  thane: [19.2183, 72.9781],
+  'navi mumbai': [19.0330, 73.0297],
+  vellore: [12.9165, 79.1325],
+  tirunelveli: [8.7139, 77.7567],
+  tuticorin: [8.7642, 78.1348],
+  thoothukudi: [8.7642, 78.1348],
+  pondicherry: [11.9416, 79.8083],
+  puducherry: [11.9416, 79.8083],
+  goa: [15.4989, 73.8278],
+  panaji: [15.4989, 73.8278],
+};
+
+const resolveCoords = (
+  item: {
+    lat?: number;
+    lng?: number;
+    latitude?: number;
+    longitude?: number;
+    location?: string;
+    cityName?: string;
+    stateName?: string;
+    name?: string;
+    site?: string;
+    project?: string;
+  },
+  idx: number
+): [number, number] => {
+  const latNum = Number(item.lat ?? item.latitude);
+  const lngNum = Number(item.lng ?? item.longitude);
+  if (!isNaN(latNum) && !isNaN(lngNum) && latNum !== 0 && lngNum !== 0) {
+    return [latNum, lngNum];
+  }
+
+  const fullText = [item.location, item.cityName, item.stateName, item.site, item.project, item.name]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  for (const [cityName, coords] of Object.entries(CITY_COORDS)) {
+    if (fullText.includes(cityName)) {
+      const spreadLat = ((idx * 7) % 9 - 4) * 0.02;
+      const spreadLng = ((idx * 13) % 9 - 4) * 0.02;
+      return [coords[0] + spreadLat, coords[1] + spreadLng];
+    }
+  }
+
+  const CORRIDORS: [number, number][] = [
+    [13.0827, 80.2707], // Chennai
+    [12.9716, 77.5946], // Bengaluru
+    [17.3850, 78.4867], // Hyderabad
+    [28.6139, 77.2090], // Delhi NCR
+    [22.5726, 88.3639], // Kolkata
+    [23.0225, 72.5714], // Gujarat
+    [18.5204, 73.8567], // Pune
+    [26.9124, 75.7873], // Jaipur
+    [26.8467, 80.9462], // Lucknow
+    [20.2961, 85.8245], // Odisha
+    [9.9312, 76.2673],  // Kerala
+  ];
+
+  const corridorIndex = Math.abs(idx) % CORRIDORS.length;
+  const base = CORRIDORS[corridorIndex];
+  const offsetLat = ((idx * 3) % 7 - 3) * 0.03;
+  const offsetLng = ((idx * 5) % 7 - 3) * 0.03;
+  return [base[0] + offsetLat, base[1] + offsetLng];
 };
 
 export const InteractiveVectorMap = ({
@@ -94,13 +190,14 @@ export const InteractiveVectorMap = ({
     if (selectedChainage) {
       const match = effectiveChainages.find((ch) => ch.id === selectedChainage);
       if (match) {
+        const [cLat, cLng] = resolveCoords(match as unknown as Record<string, unknown>, 0);
         return [{
           id: match.id,
           name: match.name || match.id,
           site: match.site || selectedSite || 'Site Segment',
           project: match.project || selectedProject || 'L&T Infrastructure Project',
-          lat: typeof match.lat === 'number' && !isNaN(match.lat) ? match.lat : (parseFloat(String(match.lat || '')) || 19.076),
-          lng: typeof match.lng === 'number' && !isNaN(match.lng) ? match.lng : (parseFloat(String(match.lng || '')) || 72.8777),
+          lat: cLat,
+          lng: cLng,
           progress: Number(match.progress) || 0,
           status: match.status || 'green',
           safetyScore: Number(match.safetyScore) || 94,
@@ -120,25 +217,28 @@ export const InteractiveVectorMap = ({
     if (selectedSite) {
       const siteChainages = effectiveChainages.filter((ch) => ch.site === selectedSite);
       if (siteChainages.length > 0) {
-        return siteChainages.map((ch) => ({
-          id: ch.id,
-          name: ch.name || ch.id,
-          site: ch.site || selectedSite,
-          project: ch.project || selectedProject || 'L&T Infrastructure Project',
-          lat: typeof ch.lat === 'number' && !isNaN(ch.lat) ? ch.lat : (parseFloat(String(ch.lat || '')) || 19.076),
-          lng: typeof ch.lng === 'number' && !isNaN(ch.lng) ? ch.lng : (parseFloat(String(ch.lng || '')) || 72.8777),
-          progress: Number(ch.progress) || 0,
-          status: ch.status || 'green',
-          safetyScore: Number(ch.safetyScore) || 94,
-          workers: Number(ch.workers) || 48,
-          aiAlerts: Number(ch.aiAlerts) || (ch.status === 'red' ? 6 : ch.status === 'yellow' ? 2 : 0),
-          highwayProgress: Number(ch.highwayProgress) || Math.min(100, Math.round((Number(ch.progress) || 50) * 1.1)),
-          structuralProgress: Number(ch.structuralProgress) || Math.max(0, Math.round((Number(ch.progress) || 50) * 0.9)),
-          supervisor: ch.supervisor || 'Suresh Reddy',
-          engineer: ch.engineer || 'Priya Sharma',
-          cameras: Number(ch.cameras) || 4,
-          lastUpdate: ch.lastUpdate || 'Live Telemetry Active',
-        }));
+        return siteChainages.map((ch, idx) => {
+          const [cLat, cLng] = resolveCoords(ch as unknown as Record<string, unknown>, idx);
+          return {
+            id: ch.id,
+            name: ch.name || ch.id,
+            site: ch.site || selectedSite,
+            project: ch.project || selectedProject || 'L&T Infrastructure Project',
+            lat: cLat,
+            lng: cLng,
+            progress: Number(ch.progress) || 0,
+            status: ch.status || 'green',
+            safetyScore: Number(ch.safetyScore) || 94,
+            workers: Number(ch.workers) || 48,
+            aiAlerts: Number(ch.aiAlerts) || (ch.status === 'red' ? 6 : ch.status === 'yellow' ? 2 : 0),
+            highwayProgress: Number(ch.highwayProgress) || Math.min(100, Math.round((Number(ch.progress) || 50) * 1.1)),
+            structuralProgress: Number(ch.structuralProgress) || Math.max(0, Math.round((Number(ch.progress) || 50) * 0.9)),
+            supervisor: ch.supervisor || 'Suresh Reddy',
+            engineer: ch.engineer || 'Priya Sharma',
+            cameras: Number(ch.cameras) || 4,
+            lastUpdate: ch.lastUpdate || 'Live Telemetry Active',
+          };
+        });
       }
     }
 
@@ -153,25 +253,16 @@ export const InteractiveVectorMap = ({
       return matchingSites.map((s, idx) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sAny = s as any;
-        const locStr = (s.location || sAny.cityName || s.projectName || s.name || '').toLowerCase();
-        let defaultCoord: [number, number] = [19.0760 + (idx % 6) * 1.8, 72.8777 + (idx % 6) * 1.5];
-        for (const [cityName, coords] of Object.entries(CITY_COORDS)) {
-          if (locStr.includes(cityName)) {
-            defaultCoord = [coords[0] + ((idx % 3) * 0.08), coords[1] + ((idx % 3) * 0.08)];
-            break;
-          }
-        }
+        const [cLat, cLng] = resolveCoords(sAny, idx);
         const score = Number(s.safetyScore || sAny.safety_score) || 92;
-        const latVal = typeof s.latitude === 'number' && !isNaN(s.latitude) && s.latitude !== 0 ? s.latitude : (parseFloat(String(s.latitude || '')) || defaultCoord[0]);
-        const lngVal = typeof s.longitude === 'number' && !isNaN(s.longitude) && s.longitude !== 0 ? s.longitude : (parseFloat(String(s.longitude || '')) || defaultCoord[1]);
 
         return {
           id: s.id,
           name: s.name,
           site: s.name,
           project: s.projectName || selectedProject || 'L&T Operations Project',
-          lat: latVal,
-          lng: lngVal,
+          lat: cLat,
+          lng: cLng,
           progress: Number(sAny.progress) || 65,
           status: score >= 90 ? 'green' : score >= 80 ? 'yellow' : 'red',
           safetyScore: score,
@@ -188,25 +279,28 @@ export const InteractiveVectorMap = ({
     }
 
     // 4. Fallback to effectiveChainages if sitesList is empty
-    return effectiveChainages.map((ch) => ({
-      id: ch.id,
-      name: ch.name || ch.id,
-      site: ch.site || 'Site Segment',
-      project: ch.project || 'L&T Project',
-      lat: typeof ch.lat === 'number' && !isNaN(ch.lat) ? ch.lat : 19.076,
-      lng: typeof ch.lng === 'number' && !isNaN(ch.lng) ? ch.lng : 72.8777,
-      progress: Number(ch.progress) || 0,
-      status: ch.status || 'green',
-      safetyScore: Number(ch.safetyScore) || 94,
-      workers: Number(ch.workers) || 48,
-      aiAlerts: Number(ch.aiAlerts) || 0,
-      highwayProgress: Number(ch.highwayProgress) || 50,
-      structuralProgress: Number(ch.structuralProgress) || 50,
-      supervisor: ch.supervisor || 'Suresh Reddy',
-      engineer: ch.engineer || 'Priya Sharma',
-      cameras: Number(ch.cameras) || 4,
-      lastUpdate: 'Live Telemetry Active',
-    }));
+    return effectiveChainages.map((ch, idx) => {
+      const [cLat, cLng] = resolveCoords(ch as unknown as Record<string, unknown>, idx);
+      return {
+        id: ch.id,
+        name: ch.name || ch.id,
+        site: ch.site || 'Site Segment',
+        project: ch.project || 'L&T Project',
+        lat: cLat,
+        lng: cLng,
+        progress: Number(ch.progress) || 0,
+        status: ch.status || 'green',
+        safetyScore: Number(ch.safetyScore) || 94,
+        workers: Number(ch.workers) || 48,
+        aiAlerts: Number(ch.aiAlerts) || 0,
+        highwayProgress: Number(ch.highwayProgress) || 50,
+        structuralProgress: Number(ch.structuralProgress) || 50,
+        supervisor: ch.supervisor || 'Suresh Reddy',
+        engineer: ch.engineer || 'Priya Sharma',
+        cameras: Number(ch.cameras) || 4,
+        lastUpdate: 'Live Telemetry Active',
+      };
+    });
   }, [effectiveChainages, sitesList, selectedProject, selectedSite, selectedChainage]);
 
   // Load Leaflet dynamically
@@ -312,6 +406,9 @@ export const InteractiveVectorMap = ({
 
       const marker = L.marker([ch.lat, ch.lng], { icon: customIcon }).addTo(map);
       marker.bindPopup(popupHtml, { maxWidth: 220, offset: [0, -8] });
+      marker.on('click', () => {
+        map.flyTo([ch.lat, ch.lng], 13, { animate: true, duration: 0.8 });
+      });
       markersRef.current[ch.id] = marker;
     });
 

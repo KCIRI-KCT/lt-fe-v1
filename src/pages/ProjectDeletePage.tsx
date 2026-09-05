@@ -4,7 +4,8 @@ import type { Project } from '../types';
 
 export const ProjectDeletePage = () => {
   const [activeTab, setActiveTab] = useState<'request' | 'approve'>('request');
-  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  // Set-based state architecture per spec: Decoupled from single boolean flag
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<number>>(new Set());
   const [toastMsg, setToastMsg] = useState<string>('');
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const masterCheckboxRef = useRef<HTMLInputElement>(null);
@@ -35,34 +36,36 @@ export const ProjectDeletePage = () => {
 
   const currentList = activeTab === 'request' ? activeProjects : pendingRequests;
 
-  const getProjId = (proj: Project): string => {
-    return String(proj.id || proj.project_id || proj.code || '');
+  const getProjId = (proj: Project): number => {
+    const raw = proj.project_id ?? proj.id ?? proj.code ?? 0;
+    const n = Number(String(raw).replace(/[^0-9]/g, '') || raw);
+    return Number.isFinite(n) ? n : Number(proj.id) || 0;
   };
 
   const toggleAll = (checked: boolean) => {
     if (checked) {
       setSelectedProjectIds(new Set(currentList.map(getProjId)));
     } else {
-      setSelectedProjectIds(new Set());
+      setSelectedProjectIds(new Set<number>());
     }
   };
 
-  const toggleRow = (id: string) => {
+  const toggleRow = (id: number) => {
     setSelectedProjectIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      const n = new Set(prev);
+      if (n.has(id)) {
+        n.delete(id);
       } else {
-        next.add(id);
+        n.add(id);
       }
-      return next;
+      return n;
     });
   };
 
   // Tab 1 Action: Submit Request
   const handleSubmitRequests = async () => {
     if (selectedProjectIds.size === 0) return;
-    const ids = Array.from(selectedProjectIds);
+    const ids = Array.from(selectedProjectIds).map(String);
     
     await Promise.allSettled(
       ids.map((id) => projectService.requestDeleteProject(id, 'User requested deletion via console'))
@@ -76,7 +79,7 @@ export const ProjectDeletePage = () => {
   // Tab 2 Action: Approve Request (Permanent Delete)
   const handleApproveRequests = async () => {
     if (selectedProjectIds.size === 0) return;
-    const ids = Array.from(selectedProjectIds);
+    const ids = Array.from(selectedProjectIds).map(String);
     const count = ids.length;
 
     await Promise.allSettled(
@@ -91,7 +94,7 @@ export const ProjectDeletePage = () => {
   // Tab 2 Action: Reject Request (Restore Status)
   const handleRejectRequests = async () => {
     if (selectedProjectIds.size === 0) return;
-    const ids = Array.from(selectedProjectIds);
+    const ids = Array.from(selectedProjectIds).map(String);
     const count = ids.length;
 
     await Promise.allSettled(
@@ -103,6 +106,7 @@ export const ProjectDeletePage = () => {
     fetchProjects();
   };
 
+  // Master checkbox reflects isAllSelected = projects.length >0 && selectedProjectIds.size === projects.length
   const isAllSelected = currentList.length > 0 && selectedProjectIds.size === currentList.length;
   const isIndeterminate = selectedProjectIds.size > 0 && !isAllSelected;
 

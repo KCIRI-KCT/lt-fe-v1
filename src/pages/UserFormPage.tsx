@@ -10,7 +10,7 @@ import { ROLE_OPTIONS } from '../constants';
 export const UserFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = !!id && id !== 'add';
+  const isEdit = !!id && id !== 'create' && id !== 'add' && id !== 'edit';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,10 +27,12 @@ export const UserFormPage = () => {
   const [country, setCountry] = useState('');
   const [pincode, setPincode] = useState('');
 
+  // Fetch employee details in edit mode
   useEffect(() => {
     if (isEdit && id) {
+      let isMounted = true;
       employeeService.getEmployee(id).then((emp) => {
-        if (emp) {
+        if (emp && isMounted) {
           setName(emp.employee_name || '');
           setEmail(emp.email || '');
           setEmployeeId(emp.employee_code || '');
@@ -47,8 +49,13 @@ export const UserFormPage = () => {
           }
         }
       }).catch(() => null);
+
+      return () => {
+        isMounted = false;
+      };
     }
   }, [id, isEdit]);
+
 
   // Dynamic Custom Roles List (persisted in localStorage)
   const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>(() => {
@@ -99,8 +106,13 @@ export const UserFormPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !employeeId || !role) {
-      alert('Please fill in all required fields marked with *');
+    if (!name.trim() || !email.trim() || !employeeId || !role || !phone.trim() || !department.trim()) {
+      alert('Please fill in all required fields marked with * (including Mobile Number & Department)');
+      return;
+    }
+    // Basic mobile validation per OpenAPI: 1-20 chars, unique
+    if (phone.trim().length < 7 || phone.trim().length > 20) {
+      alert('Mobile number must be 7-20 characters');
       return;
     }
 
@@ -109,14 +121,14 @@ export const UserFormPage = () => {
       employee_name: name.trim(),
       email: email.trim(),
       designation: role,
-      department: department || 'L&T Operations',
+      department: department.trim(),
       address: address.trim() || undefined,
       city: city.trim() || undefined,
       state: state.trim() || undefined,
       country: country.trim() || undefined,
       pincode: pincode.trim() || undefined,
       location: address.trim() || undefined,
-      mobile_number: phone || '9000000000',
+      mobile_number: phone.trim(),
       status: 'ACTIVE',
       ...(joiningDate ? { joining_date: joiningDate } : {}),
       ...(createdAt ? { created_at: createdAt } : {}),
@@ -144,7 +156,6 @@ export const UserFormPage = () => {
           <div>
             <p className="eyebrow mb-1">User Management</p>
             <h1 className="h3 mb-1">{isEdit ? 'Edit User' : 'Create User'}</h1>
-            <p className="text-muted mb-0">Define user profile info, assign joining years, and map user access roles.</p>
           </div>
         </div>
       </div>
@@ -223,7 +234,6 @@ export const UserFormPage = () => {
               onChange={(e) => setEmployeeId(e.target.value)}
               required
             />
-            <small className="text-muted small">Specify employee code / ID</small>
           </div>
 
           {/* Created Date */}
@@ -234,6 +244,34 @@ export const UserFormPage = () => {
               className="form-control"
               value={createdAt}
               onChange={(e) => setCreatedAt(e.target.value)}
+            />
+          </div>
+
+          {/* Mobile Number — required per EmployeeRequest */}
+          <div className="col-12 col-md-6">
+            <label className="form-label fw-bold small">Mobile Number *</label>
+            <input
+              type="tel"
+              className="form-control"
+              placeholder="e.g. 9876543210"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              maxLength={20}
+              pattern="^[0-9+\-\s]{7,20}$"
+            />
+          </div>
+
+          {/* Department — required per EmployeeRequest */}
+          <div className="col-12 col-md-6">
+            <label className="form-label fw-bold small">Department *</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. Engineering, Safety, Operations"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              required
             />
           </div>
 
@@ -255,6 +293,17 @@ export const UserFormPage = () => {
                     </option>
                   ))}
                 </select>
+                {role && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary text-nowrap"
+                    style={{ fontSize: '0.85rem' }}
+                    onClick={() => setRole('')}
+                    title="Reset role selection"
+                  >
+                    <i className="bi bi-arrow-counterclockwise me-1" /> Reset Role
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-outline-primary text-nowrap"
@@ -263,9 +312,6 @@ export const UserFormPage = () => {
                 >
                   <i className="bi bi-plus-lg me-1" /> Add Role
                 </button>
-              </div>
-              <div className="card bg-light border-0 p-2" style={{ minWidth: '150px' }}>
-                <small className="text-muted">Phone: {phone || 'Not provided'}</small>
               </div>
             </div>
 

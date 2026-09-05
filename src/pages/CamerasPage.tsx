@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CameraCard } from '../components/cards/CameraCard';
 import { cameraService, checkAllCamerasHealth } from '../services/cameraService';
-import type { Camera } from '../types';
+import { siteService } from '../services/siteService';
+import type { Camera, Site, Chainage } from '../types';
 
 export const CamerasPage = () => {
   const [cameras, setCameras] = useState<Camera[]>([]);
+  const [dbSites, setDbSites] = useState<Site[]>([]);
+  const [dbChainages, setDbChainages] = useState<Chainage[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [selectedSite, setSelectedSite] = useState<string>('all');
@@ -18,11 +21,16 @@ export const CamerasPage = () => {
 
   useEffect(() => {
     let isMounted = true;
-    cameraService.getCameras()
-      .then(async (data) => {
+    Promise.all([
+      cameraService.getCameras().catch(() => [] as Camera[]),
+      siteService.getSites().catch(() => [] as Site[]),
+      siteService.getChainages().catch(() => [] as Chainage[]),
+    ]).then(async ([camData, sitesData, chainagesData]) => {
         if (!isMounted) return;
-        setCameras(data);
-        const pinged = await checkAllCamerasHealth(data);
+        setDbSites(sitesData);
+        setDbChainages(chainagesData);
+        setCameras(camData);
+        const pinged = await checkAllCamerasHealth(camData);
         if (isMounted) setCameras(pinged);
       })
       .catch(() => {
@@ -85,24 +93,11 @@ export const CamerasPage = () => {
     setTimeout(() => setShowActionToast(false), 3000);
   };
 
-  // Extract unique Sites and Chainages dynamically
-  const siteOptions = Array.from(
-    new Set(
-      cameras.map((c) => {
-        const parts = c.siteName?.split(' - ') || [];
-        return parts[0] || '';
-      }).filter(Boolean)
-    )
-  );
-
-  const chainageOptions = Array.from(
-    new Set(
-      cameras.map((c) => {
-        const parts = c.siteName?.split(' - ') || [];
-        return parts[1] || '';
-      }).filter(Boolean)
-    )
-  );
+  // Site / Chainage options from real API (linked via site.projectId / chainage.siteId)
+  const siteOptions = dbSites;
+  const chainageOptions = selectedSite !== 'all'
+    ? dbChainages.filter((ch) => String((ch as unknown as Record<string, unknown>).siteId || (ch as unknown as Record<string, unknown>).site) === String(selectedSite))
+    : dbChainages;
 
   // Camera malfunctions derived dynamically from offline or error status cameras
   const malfunctions = cameras
@@ -123,12 +118,16 @@ export const CamerasPage = () => {
     if (filter === 'offline' && (statusStr === 'online' || statusStr === 'active')) return false;
     if (filter !== 'all' && filter !== 'online' && filter !== 'offline' && statusStr !== filter) return false;
 
-    const parts = c.siteName?.split(' - ') || [];
-    const sitePart = parts[0] || '';
-    if (selectedSite !== 'all' && sitePart !== selectedSite) return false;
+    if (selectedSite !== 'all' && String(c.siteId) !== String(selectedSite)) return false;
 
-    const chainagePart = parts[1] || '';
-    if (selectedChainage !== 'all' && chainagePart !== selectedChainage) return false;
+    if (selectedChainage !== 'all') {
+      const chainageSiteMatch = dbChainages.find((ch) => String(ch.id) === String(selectedChainage));
+      // If chainage belongs to different site, already filtered by site; else ensure camera's site matches chainage's site
+      if (chainageSiteMatch) {
+        const chSiteId = String((chainageSiteMatch as unknown as Record<string, unknown>).siteId || (chainageSiteMatch as unknown as Record<string, unknown>).site || '');
+        if (String(c.siteId) !== chSiteId) return false;
+      }
+    }
 
     return true;
   });
@@ -438,8 +437,8 @@ export const CamerasPage = () => {
               }}
             >
               <option value="all">All Sites</option>
-              {siteOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+              {(siteOptions as Site[]).map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
               ))}
             </select>
           </div>
@@ -457,8 +456,8 @@ export const CamerasPage = () => {
               }}
             >
               <option value="all">All Chainages</option>
-              {chainageOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+              {(chainageOptions as Chainage[]).map((ch) => (
+                <option key={ch.id} value={ch.id}>{ch.name} — {(ch as unknown as Record<string, unknown>).km_marker as string || ch.kmMarker || ''}</option>
               ))}
             </select>
           </div>

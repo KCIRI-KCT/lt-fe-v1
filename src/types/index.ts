@@ -108,6 +108,7 @@ export interface State {
   name: string;
   countryId: string;
   countryName?: string;
+  stateCode?: string;
 }
 
 export interface City {
@@ -152,12 +153,18 @@ export interface Project {
   deleteRequested?: boolean;
 }
 
+/** Regex for standard linear milestone: e.g. KM 120+400 */
+export const KM_MARKER_REGEX = /^KM\s*\d+(\+\d{1,3})?$/;
+
 export interface NestedSite {
   id: string;
   siteName: string;
   siteNumber: string;
   chainageName: string;
-  chainageKm: number;
+  /** Standardized linear reference — replaces deprecated site_km/chainageKm numeric field */
+  km_marker: string;
+  /** @deprecated use km_marker */
+  chainageKm?: string;
 }
 
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled';
@@ -186,10 +193,20 @@ export type SiteStatus = 'active' | 'inactive' | 'maintenance' | 'completed';
 export interface Chainage {
   id: string;
   name: string;
+  site: number; // FK to Site (integer) per OpenAPI Chainage model
   siteId: string;
-  kmMarker: number;
+  siteName?: string;
+  projectId?: string;
+  projectName?: string;
+  /** Required — standard linear milestone e.g. KM 120+400 (1..50 chars) */
+  km_marker: string;
+  /** @deprecated alias for km_marker */
+  kmMarker?: string;
   description?: string;
   status: ChainageStatus;
+  progress?: number;
+  workers_count?: number;
+  safety_score?: number;
 }
 
 export type ChainageStatus = 'active' | 'inactive' | 'completed';
@@ -566,6 +583,9 @@ export interface ReportHistoryItem {
   project: string;
   site: string;
   chainage: string;
+  projectId?: string;
+  siteId?: string;
+  chainageId?: string;
   generatedBy: string;
   generatedDate: string;
   status: ReportHistoryStatus;

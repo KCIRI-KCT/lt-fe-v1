@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ReusableDataTable, type Column } from '../components/tables/ReusableDataTable';
-import { reportService, generateCSVBlob, generatePDFBlob, triggerBrowserDownload } from '../services/reportService';
+import { reportService, generateCSVBlob, generatePDFBlob, fetchLiveDataForReport, openPDFPrintWindow, triggerBrowserDownload } from '../services/reportService';
 import { projectService } from '../services/projectService';
 import { siteService } from '../services/siteService';
 import { GenerateReportModal } from '../components/reports/GenerateReportModal';
@@ -39,18 +39,9 @@ export const ReportsPage = () => {
   const [appliedSite, setAppliedSite] = useState('');
   const [appliedChainage, setAppliedChainage] = useState('');
 
-  // Modal and console state
+  // Modal and state
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [showConsole, setShowConsole] = useState(true);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
-  const [consoleLogs, setConsoleLogs] = useState<string[]>([
-    `[${new Date().toLocaleTimeString()}] [INFO] Report Engine Online. PDF and CSV compilation modules initialized.`,
-    `[${new Date().toLocaleTimeString()}] [INFO] Workspace scoping: ${user?.role || 'User'} (${user?.siteName || 'All Sites'}).`,
-  ]);
-
-  const addConsoleLog = (msg: string) => {
-    setConsoleLogs((prev) => [...prev.slice(-49), msg]);
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -71,20 +62,22 @@ export const ReportsPage = () => {
     return () => { isMounted = false; };
   }, []);
 
-  const handleDownloadReport = (r: Report) => {
-    const timeStr = new Date().toLocaleTimeString();
+  const handleDownloadReport = async (r: Report) => {
     const cleanTitle = (r.title || 'Report').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     
+    const liveData = await fetchLiveDataForReport({
+      projectId: r.projectId,
+      siteId: r.siteId,
+      chainageId: r.chainageId,
+    });
+
     if (r.format === 'csv' || r.format === 'excel') {
-      addConsoleLog(`[${timeStr}] [DOWNLOAD] Generating CSV dataset for "${r.title}"...`);
-      const blob = generateCSVBlob(r);
+      const blob = generateCSVBlob(r, liveData);
       triggerBrowserDownload(blob, `${cleanTitle}.csv`);
-      addConsoleLog(`[${timeStr}] [SUCCESS] Downloaded "${cleanTitle}.csv" successfully.`);
     } else {
-      addConsoleLog(`[${timeStr}] [DOWNLOAD] Compiling PDF document for "${r.title}"...`);
-      const blob = generatePDFBlob(r);
+      openPDFPrintWindow(r, liveData);
+      const blob = generatePDFBlob(r, liveData);
       triggerBrowserDownload(blob, `${cleanTitle}.pdf`);
-      addConsoleLog(`[${timeStr}] [SUCCESS] Downloaded "${cleanTitle}.pdf" successfully.`);
     }
   };
 
@@ -99,11 +92,13 @@ export const ReportsPage = () => {
       generatedBy: newHistoryItem.generatedBy || user?.name || 'User',
       format: formatKey,
       status: 'ready',
+      projectId: newHistoryItem.projectId || appliedProject || undefined,
+      siteId: newHistoryItem.siteId || appliedSite || undefined,
+      chainageId: newHistoryItem.chainageId || appliedChainage || undefined,
     };
 
-    setReports((prev) => [newReport, ...prev]);
-    const timeStr = new Date().toLocaleTimeString();
-    addConsoleLog(`[${timeStr}] [SYNTHESIS] Successfully created new report: "${newReport.title}" [Format: ${formatKey.toUpperCase()}]`);
+    reportService.addReport(newReport);
+    setReports((prev) => [newReport, ...prev.filter((r) => String(r.id) !== String(newReport.id))]);
   };
 
   const availableSites = filterProject
@@ -200,18 +195,11 @@ export const ReportsPage = () => {
             <i className="bi bi-file-earmark-bar-graph fs-4" aria-hidden="true" />
           </span>
           <div>
-            <h1 className="h3 mb-0 fw-bold">Report Console & History</h1>
-            <p className="text-muted small mb-0">Generate, stream, and export PDF & CSV reports across all site locations.</p>
+            <h1 className="h3 mb-0 fw-bold">Reports & History</h1>
+            <p className="text-muted small mb-0">Generate and export standard PDF & CSV reports across all site locations.</p>
           </div>
         </div>
         <div className="heading-actions d-flex gap-2">
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            onClick={() => setShowConsole(!showConsole)}
-          >
-            <i className={`bi ${showConsole ? 'bi-terminal-fill' : 'bi-terminal'} me-1`} />
-            {showConsole ? 'Hide Console' : 'Show Console'}
-          </button>
           <button
             className="btn btn-primary btn-sm px-3 shadow-sm fw-semibold"
             onClick={() => setShowGenerateModal(true)}
@@ -220,40 +208,6 @@ export const ReportsPage = () => {
           </button>
         </div>
       </div>
-
-      {/* Interactive Report Execution Console */}
-      {showConsole && (
-        <div className="card border-0 shadow-sm mb-4" style={{ backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: '10px' }}>
-          <div className="card-header bg-transparent border-bottom border-secondary d-flex justify-content-between align-items-center py-2 px-3">
-            <div className="d-flex align-items-center gap-2">
-              <span className="spinner-grow spinner-grow-sm text-success" role="status" />
-              <span className="fw-bold small text-uppercase tracking-wide font-monospace text-info">
-                Report Generation Console v2.0
-              </span>
-              <span className="badge bg-success-subtle text-success border border-success border-opacity-25 ms-2">
-                PDF & CSV Active
-              </span>
-            </div>
-            <div className="d-flex gap-2">
-              <button
-                className="btn btn-sm btn-outline-light py-0 px-2 text-xs font-monospace"
-                onClick={() => setConsoleLogs([`[${new Date().toLocaleTimeString()}] [CONSOLE] Logs cleared by operator.`])}
-              >
-                Clear Log
-              </button>
-            </div>
-          </div>
-          <div className="card-body p-3 font-monospace small" style={{ maxHeight: '140px', overflowY: 'auto', fontSize: '12px' }}>
-            {consoleLogs.map((log, idx) => (
-              <div key={idx} className="mb-1 text-opacity-90">
-                <span className={log.includes('SUCCESS') ? 'text-success fw-bold' : log.includes('DOWNLOAD') ? 'text-warning fw-bold' : 'text-info'}>
-                  {log}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Filters Bar */}
       <div className="card border-0 shadow-sm p-3 mb-4 bg-white">
@@ -324,7 +278,6 @@ export const ReportsPage = () => {
                 setAppliedProject(filterProject);
                 setAppliedSite(filterSite);
                 setAppliedChainage(filterChainage);
-                addConsoleLog(`[${new Date().toLocaleTimeString()}] [FILTER] Applied site filters: Project (${filterProject || 'All'}), Site (${filterSite || 'All'})`);
               }}
             >
               Apply Filter
@@ -338,7 +291,6 @@ export const ReportsPage = () => {
                 setAppliedProject('');
                 setAppliedSite('');
                 setAppliedChainage('');
-                addConsoleLog(`[${new Date().toLocaleTimeString()}] [FILTER] Cleared all site filters.`);
               }}
             >
               Reset

@@ -6,25 +6,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { projectService } from '../services/projectService';
 import { employeeService } from '../services/employeeService';
+import { locationService } from '../services/locationService';
+import { notificationService } from '../services/notificationService';
 import type { Project, NestedSite, ProjectRoleAssignment, UserProfile, State, City } from '../types';
-
-const DEFAULT_STATES: State[] = [
-  { id: 'tn', name: 'Tamil Nadu', countryId: 'in' },
-  { id: 'ka', name: 'Karnataka', countryId: 'in' },
-  { id: 'mh', name: 'Maharashtra', countryId: 'in' },
-  { id: 'dl', name: 'Delhi', countryId: 'in' },
-  { id: 'tg', name: 'Telangana', countryId: 'in' },
-];
-
-const DEFAULT_CITIES: City[] = [
-  { id: 'chennai', name: 'Chennai', stateId: 'tn' },
-  { id: 'coimbatore', name: 'Coimbatore', stateId: 'tn' },
-  { id: 'bangalore', name: 'Bengaluru', stateId: 'ka' },
-  { id: 'mumbai', name: 'Mumbai', stateId: 'mh' },
-  { id: 'pune', name: 'Pune', stateId: 'mh' },
-  { id: 'delhi', name: 'New Delhi', stateId: 'dl' },
-  { id: 'hyderabad', name: 'Hyderabad', stateId: 'tg' },
-];
 
 interface RoleAssignment {
   userId: string;
@@ -34,7 +18,7 @@ interface RoleAssignment {
 export const ProjectFormPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = !!id && id !== 'add';
+  const isEdit = !!id && id !== 'create' && id !== 'add' && id !== 'edit';
 
   const today = new Date().toISOString().split('T')[0];
   const defaultEndDate = new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0];
@@ -49,6 +33,15 @@ export const ProjectFormPage = () => {
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
 
+  // Open API Location States (State & Linked Cities)
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loadingStates, setLoadingStates] = useState<boolean>(true);
+  const [loadingCities, setLoadingCities] = useState<boolean>(false);
+  const [pincodeInput, setPincodeInput] = useState<string>('');
+  const [fetchingPincode, setFetchingPincode] = useState<boolean>(false);
+  const [pincodeMsg, setPincodeMsg] = useState<string>('');
+
   // User Assignments States
   const [managers, setManagers] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
   const [supervisors, setSupervisors] = useState<RoleAssignment[]>([{ userId: '', siteId: '' }]);
@@ -59,13 +52,48 @@ export const ProjectFormPage = () => {
   // Nested Sites States
   const [sites, setSites] = useState<NestedSite[]>([]);
 
-  // New Site Input States
+  // Site & Chainage Generation Input States
+  const [siteGenMode, setSiteGenMode] = useState<'split' | 'single'>('split');
   const [newSiteName, setNewSiteName] = useState('');
   const [newSiteNumber, setNewSiteNumber] = useState('');
   const [newChainageName, setNewChainageName] = useState('');
-  const [newChainageKm, setNewChainageKm] = useState('');
+  const [newKmMarker, setNewKmMarker] = useState('');
+
+  // Auto-Split Chainage Generator States (e.g. 100km divided into 5km segments)
+  const [totalLengthKm, setTotalLengthKm] = useState('100');
+  const [splitIntervalKm, setSplitIntervalKm] = useState('5');
+  const [startKmMarker, setStartKmMarker] = useState('0');
 
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Load States from Open API on mount
+  useEffect(() => {
+    let isMounted = true;
+    locationService.getStates().then((sList) => {
+      if (isMounted) {
+        setStates(sList);
+        setLoadingStates(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Fetch Linked Cities whenever State changes
+  useEffect(() => {
+    if (!stateId) {
+      Promise.resolve().then(() => setCities([]));
+      return;
+    }
+    let isMounted = true;
+    Promise.resolve().then(() => { if (isMounted) setLoadingCities(true); });
+    locationService.getCitiesByState(stateId).then((cList) => {
+      if (isMounted) {
+        setCities(cList);
+        setLoadingCities(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [stateId]);
 
   useEffect(() => {
     employeeService.getEmployees()
@@ -74,7 +102,7 @@ export const ProjectFormPage = () => {
 
     if (isEdit && id) {
       projectService.getProject(id)
-        .then((proj) => {
+        .then(async (proj) => {
           if (proj) {
             setProjectData(proj);
             setName(proj.name || (proj as unknown as Record<string, unknown>).project_name as string || '');
@@ -82,20 +110,29 @@ export const ProjectFormPage = () => {
 
             const rawCityId = proj.cityId || (proj as unknown as Record<string, unknown>).city_id as string || (proj as unknown as Record<string, unknown>).city as string || '';
             const rawCityName = proj.cityName || (proj as unknown as Record<string, unknown>).city_name as string || '';
+            const rawStateName = proj.stateName || (proj as unknown as Record<string, unknown>).state_name as string || (proj as unknown as Record<string, unknown>).state as string || '';
 
-            const foundCity = DEFAULT_CITIES.find(
-              c => c.id === rawCityId || c.name.toLowerCase() === rawCityName.toLowerCase()
+            const currentStates = await locationService.getStates();
+            const foundState = currentStates.find(
+              s => s.name.toLowerCase() === rawStateName.toLowerCase() || s.id === rawStateName
             );
 
-            if (foundCity) {
-              setCityId(foundCity.id);
-              setStateId(foundCity.stateId);
-            } else if (rawCityId) {
-              setCityId(rawCityId);
+            if (foundState) {
+              setStateId(foundState.id);
+              const linkedCities = await locationService.getCitiesByState(foundState.id);
+              setCities(linkedCities);
+              const foundCity = linkedCities.find(
+                c => c.id === rawCityId || c.name.toLowerCase() === rawCityName.toLowerCase()
+              );
+              if (foundCity) setCityId(foundCity.id);
+              else if (rawCityId) setCityId(rawCityId);
+            } else {
+              if (rawCityId) setCityId(rawCityId);
             }
 
-            if (proj.startDate && proj.startDate !== 'N/A') setStartDate(proj.startDate);
-            if (proj.endDate && proj.endDate !== 'N/A') setEndDate(proj.endDate);
+            const normalizeDate = (d: string) => d.includes('T') ? d.split('T')[0] : d;
+            if (proj.startDate && proj.startDate !== 'N/A') setStartDate(normalizeDate(proj.startDate));
+            if (proj.endDate && proj.endDate !== 'N/A') setEndDate(normalizeDate(proj.endDate));
             if (proj.sites && proj.sites.length > 0) setSites(proj.sites);
 
             if (proj.roleAssignments && proj.roleAssignments.length > 0) {
@@ -122,26 +159,112 @@ export const ProjectFormPage = () => {
     }
   }, [isEdit, id, today, defaultEndDate]);
 
-  // Handle State Change -> Reset City
+  // Handle State Change -> Fetch Linked Cities and Reset City Selection
   const handleStateChange = (selectedStateId: string) => {
     setStateId(selectedStateId);
-    setCityId(''); // Reset selected city
+    setCityId('');
   };
 
-  // Filter cities by state
-  const filteredCities = DEFAULT_CITIES.filter((c) => c.stateId === stateId);
+  // Pincode Search using India Post Govt Portal API
+  const handlePincodeSearch = async (pin: string) => {
+    const cleanPin = pin.trim().replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      setPincodeMsg('Please enter a valid 6-digit Indian Pincode');
+      return;
+    }
+    setFetchingPincode(true);
+    setPincodeMsg('');
+    try {
+      const res = await locationService.fetchByPincode(cleanPin);
+      if (res) {
+        setStateId(res.stateId);
+        const linkedCities = await locationService.getCitiesByState(res.stateId);
+        setCities(linkedCities);
+        const foundCity = linkedCities.find(c => c.name.toLowerCase() === res.cityName.toLowerCase() || c.id === res.cityId);
+        if (foundCity) {
+          setCityId(foundCity.id);
+        } else if (linkedCities.length > 0) {
+          const newCity: City = { id: res.cityId, name: res.cityName, stateId: res.stateId };
+          setCities([newCity, ...linkedCities]);
+          setCityId(res.cityId);
+        } else {
+          const newCity: City = { id: res.cityId, name: res.cityName, stateId: res.stateId };
+          setCities([newCity]);
+          setCityId(res.cityId);
+        }
+        setPincodeMsg(`Resolved via India Post Govt API: ${res.cityName}, ${res.stateName} (District: ${res.district})`);
+      } else {
+        setPincodeMsg('Pincode not found in India Post Govt portal API.');
+      }
+    } catch {
+      setPincodeMsg('Failed to query India Post Govt Portal API.');
+    } finally {
+      setFetchingPincode(false);
+    }
+  };
 
-  // Add Site to List
+  // Auto-Split Chainage Generator Handler (e.g. 100km total, split into 5km segments)
+  const handleAutoSplitGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    const totalDist = parseFloat(totalLengthKm);
+    const interval = parseFloat(splitIntervalKm);
+    const startKm = parseFloat(startKmMarker) || 0;
+
+    if (isNaN(totalDist) || totalDist <= 0) {
+      setErrorMsg('Please enter a valid positive number for total site length (e.g., 100 km).');
+      return;
+    }
+    if (isNaN(interval) || interval <= 0) {
+      setErrorMsg('Please enter a valid positive split distance (e.g., 5 km).');
+      return;
+    }
+    if (interval > totalDist) {
+      setErrorMsg('Split interval cannot exceed total site distance.');
+      return;
+    }
+
+    const baseSiteName = newSiteName.trim() || 'Site Segment';
+    const baseSiteNum = newSiteNumber.trim() || 'SITE';
+    const baseChainage = newChainageName.trim() || 'Corridor';
+
+    const numSegments = Math.ceil(totalDist / interval);
+    const generatedSites: NestedSite[] = [];
+    const now = Date.now();
+
+    for (let i = 0; i < numSegments; i++) {
+      const segStart = startKm + i * interval;
+      const segEnd = Math.min(startKm + totalDist, startKm + (i + 1) * interval);
+      const segKmMarker = `KM ${segStart}+000`;
+
+      generatedSites.push({
+        id: `${now}-${i}`,
+        siteName: `${baseSiteName} (KM ${segStart}-${segEnd})`,
+        siteNumber: `${baseSiteNum}-${i + 1}`,
+        chainageName: `${baseChainage} (Sec ${i + 1})`,
+        km_marker: segKmMarker,
+      });
+    }
+
+    setSites((prev) => [...prev, ...generatedSites]);
+    setErrorMsg('');
+  };
+
+  // Add Single Site to List — validates km_marker ^KM\s*\d+(\+\d{1,3})?$
+  const KM_MARKER_REGEX = /^KM\s*\d+(\+\d{1,3})?$/;
   const handleAddSite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSiteName.trim() || !newSiteNumber.trim() || !newChainageName.trim() || !newChainageKm.trim()) {
+    if (!newSiteName.trim() || !newSiteNumber.trim() || !newChainageName.trim() || !newKmMarker.trim()) {
       setErrorMsg('Please fill in all site and chainage fields.');
       return;
     }
 
-    const km = Number(newChainageKm);
-    if (isNaN(km) || km <= 0) {
-      setErrorMsg('Chainage Kilometers must be a valid positive number.');
+    const normalizedKm = newKmMarker.trim().toUpperCase();
+    if (!KM_MARKER_REGEX.test(normalizedKm)) {
+      setErrorMsg('Chainage KM must match format e.g. KM 120+400 (KM <number>[+<1-3 digits>]).');
+      return;
+    }
+    if (normalizedKm.length < 1 || normalizedKm.length > 50) {
+      setErrorMsg('km_marker must be 1-50 characters.');
       return;
     }
 
@@ -150,14 +273,14 @@ export const ProjectFormPage = () => {
       siteName: newSiteName.trim(),
       siteNumber: newSiteNumber.trim(),
       chainageName: newChainageName.trim(),
-      chainageKm: km
+      km_marker: normalizedKm,
     };
 
     setSites((prev) => [...prev, newSite]);
     setNewSiteName('');
     setNewSiteNumber('');
     setNewChainageName('');
-    setNewChainageKm('');
+    setNewKmMarker('');
     setErrorMsg('');
   };
 
@@ -167,7 +290,7 @@ export const ProjectFormPage = () => {
   };
 
   // Save Project
-  const handleSaveProject = (e: React.FormEvent) => {
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !cityId || !stateId || !startDate) {
@@ -196,8 +319,8 @@ export const ProjectFormPage = () => {
       return;
     }
 
-    const selectedState = DEFAULT_STATES.find((s) => s.id === stateId);
-    const selectedCity = DEFAULT_CITIES.find((c) => c.id === cityId);
+    const selectedState = states.find((s) => s.id === stateId);
+    const selectedCity = cities.find((c) => c.id === cityId);
 
     // Build the project role assignments list
     const roleAssignments: ProjectRoleAssignment[] = [];
@@ -252,6 +375,15 @@ export const ProjectFormPage = () => {
       roleAssignments
     };
 
+    // Dispatch system notifications to all allocated personnel from Admin
+    await notificationService.dispatchAllocationNotifications({
+      projectName: name.trim(),
+      cityName: selectedCity?.name || cityId,
+      stateName: selectedState?.name || stateId,
+      roleAssignments,
+      sites: sites.map((s) => ({ siteName: s.siteName, kmMarker: s.km_marker || s.siteNumber })),
+    });
+
     if (isEdit && projectData) {
       projectService.updateProject(projectData.id, projPayload as Project).then(() => navigate('/projects')).catch(() => navigate('/projects'));
     } else {
@@ -289,6 +421,10 @@ export const ProjectFormPage = () => {
       });
     };
 
+    const handleResetRole = () => {
+      setAssignments([{ userId: '', siteId: '' }]);
+    };
+
     return (
       <div className="mb-4 pb-3 border-bottom">
         <div className="d-flex justify-content-between align-items-center mb-2">
@@ -296,14 +432,27 @@ export const ProjectFormPage = () => {
             {label} {isRequired ? '*' : ''}
           </label>
           {!isCompleted && (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-primary py-0 px-2 d-flex align-items-center gap-1"
-              style={{ fontSize: '0.75rem' }}
-              onClick={handleAdd}
-            >
-              <i className="bi bi-plus-lg" />
-            </button>
+            <div className="d-flex align-items-center gap-1">
+              {assignments.some((a) => a.userId || a.siteId) && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-danger text-decoration-none py-0 px-1"
+                  style={{ fontSize: '0.725rem' }}
+                  onClick={handleResetRole}
+                  title={`Reset ${label} dropdowns`}
+                >
+                  <i className="bi bi-arrow-counterclockwise me-1" />Reset
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary py-0 px-2 d-flex align-items-center gap-1"
+                style={{ fontSize: '0.75rem' }}
+                onClick={handleAdd}
+              >
+                <i className="bi bi-plus-lg" />
+              </button>
+            </div>
           )}
         </div>
         <div className="d-grid gap-2">
@@ -380,6 +529,18 @@ export const ProjectFormPage = () => {
     return { finished, remaining };
   };
 
+  const handleResetAllDropdowns = () => {
+    handleStateChange('');
+    setCityId('');
+    setPincodeInput('');
+    setPincodeMsg('');
+    setManagers([{ userId: '', siteId: '' }]);
+    setSupervisors([{ userId: '', siteId: '' }]);
+    setEngineers([{ userId: '', siteId: '' }]);
+    setSafetyOfficers([{ userId: '', siteId: '' }]);
+    setSafetyEngineers([{ userId: '', siteId: '' }]);
+  };
+
   const { finished: finishedWeeks, remaining: remainingWeeks } = getWeeksCount(startDate, endDate);
   const isCompleted = isEdit && projectData?.status === 'completed';
 
@@ -394,6 +555,18 @@ export const ProjectFormPage = () => {
             <p className="text-muted mb-0">Define project settings, assign role-based personnel, and add site details.</p>
           </div>
         </div>
+        {!isCompleted && (
+          <div className="heading-actions">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+              onClick={handleResetAllDropdowns}
+              title="Reset all dropdowns on this page"
+            >
+              <i className="bi bi-arrow-counterclockwise" /> Reset All Dropdowns
+            </button>
+          </div>
+        )}
       </div>
 
       {errorMsg && (
@@ -444,33 +617,109 @@ export const ProjectFormPage = () => {
                 />
               </div>
 
+              {/* Govt Open API Pincode Lookup */}
+              <div className="mb-3 p-3 bg-light rounded border">
+                <label className="form-label small fw-bold text-primary mb-1 d-flex align-items-center gap-1">
+                  <i className="bi bi-geo-alt-fill" /> Auto-Fill via Govt Portal (India Post Pincode API)
+                </label>
+                <div className="input-group input-group-sm">
+                  <input
+                    type="text"
+                    className="form-control"
+                    maxLength={6}
+                    placeholder="Enter 6-digit Pincode (e.g., 600001, 560001, 400001)"
+                    value={pincodeInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPincodeInput(val);
+                      if (val.trim().length === 6) handlePincodeSearch(val);
+                    }}
+                    disabled={isCompleted || fetchingPincode}
+                  />
+                  <button
+                    className="btn btn-outline-primary px-3"
+                    type="button"
+                    onClick={() => handlePincodeSearch(pincodeInput)}
+                    disabled={isCompleted || fetchingPincode || pincodeInput.trim().length !== 6}
+                  >
+                    {fetchingPincode ? (
+                      <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+                    ) : (
+                      <i className="bi bi-search me-1" />
+                    )}
+                    Fetch via Govt API
+                  </button>
+                </div>
+                {pincodeMsg && (
+                  <div className="form-text small mt-1 fw-medium text-info d-flex align-items-center gap-1">
+                    <i className="bi bi-info-circle" /> {pincodeMsg}
+                  </div>
+                )}
+              </div>
+
               <div className="row g-3 mb-3">
                 <div className="col-6">
-                  <label className="form-label small fw-bold">State *</label>
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <label className="form-label small fw-bold mb-0">State (Open API) *</label>
+                    {stateId && !isCompleted && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-link text-danger p-0 text-decoration-none"
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => {
+                          handleStateChange('');
+                          setPincodeInput('');
+                          setPincodeMsg('');
+                        }}
+                        title="Reset State dropdown"
+                      >
+                        <i className="bi bi-arrow-counterclockwise me-1" />Reset
+                      </button>
+                    )}
+                  </div>
                   <select
                     className="form-select"
                     value={stateId}
                     onChange={(e) => handleStateChange(e.target.value)}
-                    disabled={isCompleted}
+                    disabled={isCompleted || loadingStates}
                     required
                   >
-                    <option value="">Select State</option>
-                    {DEFAULT_STATES.map((s) => (
+                    <option value="">{loadingStates ? 'Loading States from Open API...' : 'Select State'}</option>
+                    {states.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="col-6">
-                  <label className="form-label small fw-bold">City *</label>
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <label className="form-label small fw-bold mb-0">Linked City (Open API) *</label>
+                    {cityId && !isCompleted && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-link text-danger p-0 text-decoration-none"
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => setCityId('')}
+                        title="Reset City dropdown"
+                      >
+                        <i className="bi bi-arrow-counterclockwise me-1" />Reset
+                      </button>
+                    )}
+                  </div>
                   <select
                     className="form-select"
                     value={cityId}
                     onChange={(e) => setCityId(e.target.value)}
-                    disabled={!stateId || isCompleted}
+                    disabled={!stateId || isCompleted || loadingCities}
                     required
                   >
-                    <option value="">Select City</option>
-                    {filteredCities.map((c) => (
+                    <option value="">
+                      {loadingCities
+                        ? 'Fetching linked cities...'
+                        : !stateId
+                        ? 'Select a state first'
+                        : 'Select City'}
+                    </option>
+                    {cities.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -538,7 +787,6 @@ export const ProjectFormPage = () => {
                 </div>
               </div>
             </div>
-
           </div>
 
           {/* Sites Creation Panel */}
@@ -559,7 +807,7 @@ export const ProjectFormPage = () => {
                       <div key={s.id} className="p-2 border rounded bg-light d-flex justify-content-between align-items-center">
                         <div>
                           <p className="fw-semibold small mb-0">{s.siteName} ({s.siteNumber})</p>
-                          <small className="text-muted">{s.chainageName} - CH 0+{s.chainageKm}</small>
+                          <small className="text-muted">{s.chainageName} - {String(s.km_marker || (s as unknown as Record<string, unknown>).chainageKm || 'KM 0+000')}</small>
                         </div>
                         {!isCompleted && (
                           <button
@@ -576,58 +824,169 @@ export const ProjectFormPage = () => {
                 )}
               </div>
 
-              {/* Add Site Inline Form */}
+              {/* Add / Generate Sites Form */}
               {!isCompleted && (
                 <div className="p-3 border rounded bg-light">
-                  <h6 className="fw-bold mb-2 small text-uppercase text-secondary">Add New Site & Chainage</h6>
-
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Site Name (e.g., Valluvarkottam Segment)"
-                      value={newSiteName}
-                      onChange={(e) => setNewSiteName(e.target.value)}
-                    />
-                  </div>
-                  <div className="row g-2 mb-2">
-                    <div className="col-6">
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Site Number (e.g., S-101)"
-                        value={newSiteNumber}
-                        onChange={(e) => setNewSiteNumber(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-6">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-control form-control-sm"
-                        placeholder="Chainage KM (e.g., 12.5)"
-                        value={newChainageKm}
-                        onChange={(e) => setNewChainageKm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="Chainage Name (e.g., Chennai North Line)"
-                      value={newChainageName}
-                      onChange={(e) => setNewChainageName(e.target.value)}
-                    />
+                  {/* Mode Selector Tabs */}
+                  <div className="btn-group w-100 mb-3" role="group">
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${siteGenMode === 'split' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={() => setSiteGenMode('split')}
+                    >
+                      <i className="bi bi-diagram-3 me-1" /> Auto-Split Generator
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${siteGenMode === 'single' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={() => setSiteGenMode('single')}
+                    >
+                      <i className="bi bi-plus-circle me-1" /> Single Entry
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm w-100"
-                    onClick={handleAddSite}
-                  >
-                    <i className="bi bi-plus-lg me-1" /> Add Site & Chainage
-                  </button>
+                  {siteGenMode === 'split' ? (
+                    <div>
+                      <h6 className="fw-bold mb-1 small text-uppercase text-secondary">
+                        Auto-Split Distance Generator
+                      </h6>
+                      <p className="text-muted mb-2" style={{ fontSize: '0.75rem' }}>
+                        Automatically divide total distance into equal segment sites (e.g. 100km site split into 5km sections).
+                      </p>
+
+                      <div className="row g-2 mb-2">
+                        <div className="col-6">
+                          <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Site Name Prefix</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="e.g., Highway Section"
+                            value={newSiteName}
+                            onChange={(e) => setNewSiteName(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Site Number Code</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="e.g., SITE-100"
+                            value={newSiteNumber}
+                            onChange={(e) => setNewSiteNumber(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Chainage Name Prefix</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="e.g., Main Expressway Corridor"
+                          value={newChainageName}
+                          onChange={(e) => setNewChainageName(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="row g-2 mb-2">
+                        <div className="col-4">
+                          <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Total (KM)</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="100"
+                            value={totalLengthKm}
+                            onChange={(e) => setTotalLengthKm(e.target.value)}
+                            min="1"
+                          />
+                        </div>
+                        <div className="col-4">
+                          <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Split Dist (KM)</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="5"
+                            value={splitIntervalKm}
+                            onChange={(e) => setSplitIntervalKm(e.target.value)}
+                            min="0.1"
+                            step="0.5"
+                          />
+                        </div>
+                        <div className="col-4">
+                          <label className="form-label mb-1 fw-bold" style={{ fontSize: '0.75rem' }}>Start KM</label>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="0"
+                            value={startKmMarker}
+                            onChange={(e) => setStartKmMarker(e.target.value)}
+                            min="0"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm w-100 mt-2"
+                        onClick={handleAutoSplitGenerate}
+                      >
+                        <i className="bi bi-diagram-3 me-1" /> Generate & Add {Math.ceil((parseFloat(totalLengthKm) || 0) / (parseFloat(splitIntervalKm) || 1))} Segment Sites
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <h6 className="fw-bold mb-2 small text-uppercase text-secondary">Add Single Site & Chainage</h6>
+
+                      <div className="mb-2">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Site Name (e.g., Valluvarkottam Segment)"
+                          value={newSiteName}
+                          onChange={(e) => setNewSiteName(e.target.value)}
+                        />
+                      </div>
+                      <div className="row g-2 mb-2">
+                        <div className="col-6">
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Site Number (e.g., S-101)"
+                            value={newSiteNumber}
+                            onChange={(e) => setNewSiteNumber(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Chainage KM (e.g., KM 120+400)"
+                            value={newKmMarker}
+                            onChange={(e) => setNewKmMarker(e.target.value)}
+                            pattern="^KM\s*\d+(\+\d{1,3})?$"
+                            title="Format: KM 120+400"
+                          />
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Chainage Name (e.g., Chennai North Line)"
+                          value={newChainageName}
+                          onChange={(e) => setNewChainageName(e.target.value)}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm w-100"
+                        onClick={handleAddSite}
+                      >
+                        <i className="bi bi-plus-lg me-1" /> Add Single Site & Chainage
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

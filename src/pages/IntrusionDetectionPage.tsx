@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { safetyService } from '../services/safetyService';
 import type { AIAlert } from '../types';
+import { getStatusBadgeClass } from '../constants';
 
 export const IntrusionDetectionPage = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
@@ -160,7 +161,7 @@ export const IntrusionDetectionPage = () => {
                       </td>
                       <td className="text-muted small">{new Date(alert.timestamp).toLocaleString()}</td>
                       <td className="text-center">
-                        <span className={`badge ${alert.status === 'new' ? 'text-bg-danger' : alert.status === 'acknowledged' ? 'text-bg-warning' : 'text-bg-success'}`}>
+                        <span className={`badge ${getStatusBadgeClass(alert.status)}`}>
                           {alert.status}
                         </span>
                       </td>

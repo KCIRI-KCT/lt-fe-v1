@@ -9,6 +9,7 @@ import { IncidentTrendChart } from '../../components/charts/IncidentTrendChart';
 import { PPEComplianceChart } from '../../components/charts/PPEComplianceChart';
 import { Link } from 'react-router-dom';
 import { MobilePageWrapper } from '../../components/common/MobilePageWrapper';
+import { getStatusBadgeClass } from '../../constants';
 import type { Project, Site, AIAlert, Incident, MetricCardData, SiteProgress, PPECompliance, StateWiseAnalytics, IncidentTrend } from '../../types';
 
 export const SuperAdminDashboard = () => {
@@ -229,7 +230,7 @@ export const SuperAdminDashboard = () => {
                       </div>
                     </td>
                     <td>{p.cityName || 'N/A'}</td>
-                    <td><span className="badge text-bg-success">Active</span></td>
+                    <td><span className={`badge ${getStatusBadgeClass(p.status || 'active')}`}>{p.status || 'Active'}</span></td>
                     <td className="text-center">{p.siteCount || 0}</td>
                     <td className="text-center">{p.workerCount?.toLocaleString() || 0}</td>
                     <td className="text-center">
